@@ -1,0 +1,44 @@
+{
+  "name": "NetWorthEntry",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "asset",
+        "liability"
+      ]
+    },
+    "value": {
+      "type": "number"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "investment",
+        "property",
+        "vehicle",
+        "crypto",
+        "loan",
+        "mortgage",
+        "credit_card",
+        "other"
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "value"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

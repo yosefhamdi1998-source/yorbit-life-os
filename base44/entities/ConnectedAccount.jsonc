@@ -1,0 +1,64 @@
+{
+  "name": "ConnectedAccount",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "plaid",
+        "teller"
+      ],
+      "default": "plaid"
+    },
+    "institution_name": {
+      "type": "string"
+    },
+    "account_name": {
+      "type": "string"
+    },
+    "account_type": {
+      "type": "string"
+    },
+    "account_mask": {
+      "type": "string"
+    },
+    "provider_account_id": {
+      "type": "string"
+    },
+    "provider_item_id": {
+      "type": "string"
+    },
+    "access_token_ref": {
+      "type": "string"
+    },
+    "last_synced_at": {
+      "type": "string"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "not_connected",
+        "connected",
+        "syncing",
+        "error",
+        "disconnected"
+      ],
+      "default": "not_connected"
+    },
+    "error_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "institution_name",
+    "account_name",
+    "sync_status"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

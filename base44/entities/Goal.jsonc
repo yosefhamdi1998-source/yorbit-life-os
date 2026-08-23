@@ -1,0 +1,75 @@
+{
+  "name": "Goal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "career",
+        "health",
+        "finance",
+        "relationships",
+        "learning",
+        "personal",
+        "other"
+      ],
+      "default": "personal"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "paused"
+      ],
+      "default": "active"
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "completed": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "progress": {
+      "type": "number",
+      "default": 0
+    },
+    "target_amount": {
+      "type": "number",
+      "description": "Optional financial target in dollars"
+    },
+    "savings_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount saved toward this goal so far"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

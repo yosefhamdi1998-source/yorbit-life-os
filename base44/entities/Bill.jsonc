@@ -1,0 +1,52 @@
+{
+  "name": "Bill",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "housing",
+        "utilities",
+        "phone",
+        "insurance",
+        "subscription",
+        "credit_card",
+        "loan",
+        "other"
+      ],
+      "default": "other"
+    },
+    "is_paid": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_recurring": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "amount",
+    "due_date"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

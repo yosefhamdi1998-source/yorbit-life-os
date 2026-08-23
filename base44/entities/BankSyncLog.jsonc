@@ -1,0 +1,57 @@
+{
+  "name": "BankSyncLog",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "plaid",
+        "teller"
+      ]
+    },
+    "connected_account_id": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "partial",
+        "failed"
+      ]
+    },
+    "imported_count": {
+      "type": "number",
+      "default": 0
+    },
+    "skipped_duplicate_count": {
+      "type": "number",
+      "default": 0
+    },
+    "error_count": {
+      "type": "number",
+      "default": 0
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "connected_account_id",
+    "started_at",
+    "status"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

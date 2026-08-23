@@ -1,0 +1,24 @@
+{
+  "name": "CustomRecord",
+  "type": "object",
+  "properties": {
+    "form_id": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "form_id"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

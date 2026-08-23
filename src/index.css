@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 60% 98%;
+    --foreground: 210 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 40% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 10%;
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 210 30% 30%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 210 20% 50%;
+    --accent: 38 95% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 30% 90%;
+    --input: 210 30% 90%;
+    --ring: 217 91% 50%;
+    --radius: 0.875rem;
+
+    --sky-hero-start: #8EC5FC;
+    --sky-hero-end: #E0C3FC;
+
+    --finance: 142 72% 42%;
+    --health: 15 90% 55%;
+    --habits: 262 83% 58%;
+    --goals: 217 91% 60%;
+    --notes: 175 70% 41%;
+    --tasks: 38 92% 50%;
+    --journal: 330 81% 60%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 210 30% 92%;
+    --card: 220 22% 12%;
+    --card-foreground: 210 30% 92%;
+    --popover: 220 22% 12%;
+    --popover-foreground: 210 30% 92%;
+    --primary: 217 91% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 17%;
+    --secondary-foreground: 210 20% 75%;
+    --muted: 220 20% 17%;
+    --muted-foreground: 210 15% 55%;
+    --accent: 38 95% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 18% 20%;
+    --input: 220 18% 20%;
+    --ring: 217 91% 58%;
+
+    --finance: 142 72% 48%;
+    --health: 15 90% 60%;
+    --habits: 262 83% 68%;
+    --goals: 217 91% 65%;
+    --notes: 175 70% 48%;
+    --tasks: 38 92% 55%;
+    --journal: 330 81% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Disable selection on interactive/nav elements */
+  button, a, nav, [role="tab"], [role="tablist"], svg, label {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Allow selection on all text content */
+  p, span, h1, h2, h3, h4, h5, h6, input, textarea, [contenteditable], li, td, th {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(160deg, #EAF6FF 0%, #F7FBFF 50%, #EEF2FF 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  .dark body, body.dark {
+    background: hsl(220, 25%, 8%) !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Use dynamic viewport height to avoid iOS bottom-bar resize jank */
+  body {
+    min-height: 100dvh;
+  }
+}
+
+@layer utilities {
+  /* Sky-themed gradients */
+  .gradient-sky-hero {
+    background: linear-gradient(135deg, #74B9FF 0%, #A29BFE 100%);
+  }
+  .gradient-sky-soft {
+    background: linear-gradient(135deg, #EAF6FF 0%, #EEF2FF 100%);
+  }
+  .gradient-primary {
+    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+  }
+  .gradient-finance {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  }
+  .gradient-health {
+    background: linear-gradient(135deg, hsl(15, 90%, 55%), hsl(0, 84%, 60%));
+  }
+  .gradient-habits {
+    background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(280, 80%, 55%));
+  }
+  .gradient-goals {
+    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+  }
+  .gradient-notes {
+    background: linear-gradient(135deg, hsl(175, 70%, 41%), hsl(190, 65%, 38%));
+  }
+  .gradient-tasks {
+    background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+  }
+  .gradient-journal {
+    background: linear-gradient(135deg, hsl(330, 81%, 60%), hsl(310, 75%, 55%));
+  }
+
+  /* Card styles */
+  .sky-card {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 24px rgba(37, 99, 235, 0.06), 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .dark .sky-card {
+    background: hsl(220, 22%, 13%);
+    border: 1px solid hsl(220, 18%, 20%);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 24px rgba(37, 99, 235, 0.2);
+  }
+  .glow-card {
+    box-shadow: 0 2px 16px rgba(37, 99, 235, 0.06), 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .dark .glow-card {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Aurora hero for dashboard */
+  .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(36px); }
+  .aurora-sky1 { width: 420px; height: 100px; background: radial-gradient(ellipse at center, #74B9FF 0%, #A29BFE 50%, transparent 80%); top: 40%; left: -60px; opacity: 0.9; animation: auroraMove1 10s ease-in-out infinite; }
+  .aurora-sky2 { width: 300px; height: 80px; background: radial-gradient(ellipse at center, #E0C3FC 0%, #8EC5FC 50%, transparent 80%); top: 20%; left: 20%; opacity: 0.75; animation: auroraMove2 13s ease-in-out infinite; }
+  .aurora-sky3 { width: 340px; height: 90px; background: radial-gradient(ellipse at center, #FBBF24 0%, #F97316 50%, transparent 80%); bottom: 5%; right: -40px; opacity: 0.5; animation: auroraMove4 15s ease-in-out infinite; }
+
+  @keyframes auroraMove1 { 0%, 100% { transform: translate(0,0) scaleX(1); } 33% { transform: translate(50px,-18px) scaleX(1.12); } 66% { transform: translate(-20px,12px) scaleX(0.92); } }
+  @keyframes auroraMove2 { 0%, 100% { transform: translate(0,0) scaleX(1); } 40% { transform: translate(-35px,22px) scaleX(1.18); } 70% { transform: translate(28px,-12px) scaleX(0.88); } }
+  @keyframes auroraMove4 { 0%, 100% { transform: translate(0,0) scaleX(1); } 45% { transform: translate(-28px,-22px) scaleX(1.22); } 80% { transform: translate(18px,12px) scaleX(0.82); } }
+}

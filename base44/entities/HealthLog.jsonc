@@ -1,0 +1,48 @@
+{
+  "name": "HealthLog",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "weight": {
+      "type": "number"
+    },
+    "sleep_hours": {
+      "type": "number"
+    },
+    "water_intake": {
+      "type": "number"
+    },
+    "steps": {
+      "type": "number"
+    },
+    "workout": {
+      "type": "string"
+    },
+    "workout_duration": {
+      "type": "number"
+    },
+    "mood": {
+      "type": "number",
+      "description": "1-10 scale"
+    },
+    "energy": {
+      "type": "number",
+      "description": "1-10 scale"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "Budget",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "housing",
+        "food",
+        "transport",
+        "entertainment",
+        "health",
+        "shopping",
+        "education",
+        "savings",
+        "other"
+      ]
+    },
+    "monthly_limit": {
+      "type": "number"
+    },
+    "month": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "category",
+    "monthly_limit",
+    "month"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}

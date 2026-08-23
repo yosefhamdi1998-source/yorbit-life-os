@@ -1,0 +1,30 @@
+{
+  "name": "AIInsightCache",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "briefing",
+        "coach"
+      ]
+    },
+    "date": {
+      "type": "string"
+    },
+    "content": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "type",
+    "date",
+    "content"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
+}
