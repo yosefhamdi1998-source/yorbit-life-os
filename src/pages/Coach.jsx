@@ -69,7 +69,6 @@ export default function Coach() {
       setAutoGenerate(false);
       getAdvice();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoGenerate, isPro]);
 
   const getAdvice = async () => {

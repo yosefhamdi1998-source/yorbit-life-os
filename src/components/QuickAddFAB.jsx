@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, DollarSign, Target, Receipt, PiggyBank } from 'lucide-react';
+import { Plus, DollarSign, Target, Receipt, PiggyBank } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
