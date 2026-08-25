@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 
@@ -243,7 +243,7 @@ export default function Goals() {
                       </Badge>
                     </div>
                     {goal.description && <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>}
-                    {goal.target_date && <p className="text-xs text-muted-foreground mt-1">🎯 {format(new Date(goal.target_date), 'MMM d, yyyy')}</p>}
+                    {goal.target_date && <p className="text-xs text-muted-foreground mt-1">🎯 {format(parseISO(goal.target_date), 'MMM d, yyyy')}</p>}
 
                     {/* Progress bar */}
                     <div className="mt-3">

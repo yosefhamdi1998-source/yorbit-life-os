@@ -102,11 +102,17 @@ export default function CSVImport() {
         ? (ALL_CATS.includes(row[mapping.category]?.toLowerCase()) ? row[mapping.category].toLowerCase() : 'other')
         : guessCategory(description);
       let date = row[mapping.date] || format(new Date(), 'yyyy-MM-dd');
-      // Try to normalize date
-      try {
-        const d = new Date(date);
-        if (!isNaN(d.getTime())) date = format(d, 'yyyy-MM-dd');
-      } catch { date = format(new Date(), 'yyyy-MM-dd'); }
+      // Try to normalize date. Skip re-parsing values already in yyyy-MM-dd —
+      // new Date('yyyy-MM-dd') parses as UTC midnight, which date-fns's format()
+      // then renders in local time, shifting the date back a day in any
+      // timezone behind UTC. Only non-ISO formats (e.g. bank CSVs using
+      // MM/DD/YYYY, which new Date() parses as local time) need this round-trip.
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        try {
+          const d = new Date(date);
+          if (!isNaN(d.getTime())) date = format(d, 'yyyy-MM-dd');
+        } catch { date = format(new Date(), 'yyyy-MM-dd'); }
+      }
       return { title: description, amount, type, category, date, _raw: row, _skip: amount === 0 };
     }).filter(r => !r._skip);
     setPreview(rows);

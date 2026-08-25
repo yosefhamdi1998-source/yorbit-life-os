@@ -199,7 +199,7 @@ export default function Bills() {
   });
   const paid = filteredBills.filter(b => b.is_paid);
   const totalDue = bills.filter(b => !b.is_paid).reduce((s, b) => s + (b.amount || 0), 0);
-  const overdue = bills.filter(b => !b.is_paid && b.due_date && new Date(b.due_date) < today).length;
+  const overdue = bills.filter(b => !b.is_paid && b.due_date && parseISO(b.due_date) < today).length;
   const dueSoon = bills.filter(b => {
     if (b.is_paid || !b.due_date) return false;
     try {
