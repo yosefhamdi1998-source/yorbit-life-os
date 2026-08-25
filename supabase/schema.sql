@@ -394,8 +394,18 @@ create policy "advisor_messages_insert_own" on public.advisor_messages
 -- service-role key, which bypasses RLS — so no "insert as assistant" policy is needed
 -- for regular users, and users can never spoof an assistant message themselves.
 
--- Enable Realtime for the messages table so AdvisorChat.jsx's subscription works
-alter publication supabase_realtime add table public.advisor_messages;
+-- Enable Realtime for the messages table so AdvisorChat.jsx's subscription works.
+-- Guarded because some Supabase projects default supabase_realtime to publish all
+-- tables already, which would make an unconditional ADD TABLE here error out.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'advisor_messages'
+  ) then
+    alter publication supabase_realtime add table public.advisor_messages;
+  end if;
+end $$;
 
 -- ============================================================
 -- 4. updated_date auto-touch trigger, applied to every table above

@@ -111,10 +111,10 @@ export default function Bills() {
       const payload = { ...form, amount: parseFloat(form.amount) };
       if (editingBill) {
         setBills(prev => prev.map(b => b.id === editingBill.id ? { ...b, ...payload } : b));
-        await base44.functions.invoke('saveBill', { id: editingBill.id, ...payload });
+        await base44.entities.Bill.update(editingBill.id, payload);
         toast({ title: 'Bill updated', description: form.name });
       } else {
-        await base44.functions.invoke('saveBill', { ...payload, is_paid: false });
+        await base44.entities.Bill.create({ ...payload, is_paid: false });
         toast({ title: 'Bill added', description: form.name });
       }
       closeForm();

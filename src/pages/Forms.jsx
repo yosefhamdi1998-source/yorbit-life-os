@@ -54,8 +54,8 @@ export default function Forms() {
 
   const handleCreateForm = async (formData) => {
     try {
-      const res = await base44.functions.invoke('customForms', { op: 'save_form', ...formData });
-      setForms(prev => [res.data, ...prev]);
+      const res = await base44.entities.CustomForm.create(formData);
+      setForms(prev => [res, ...prev]);
       setShowCreate(false);
       toast({ title: 'Form created', description: formData.name });
     } catch {
@@ -65,9 +65,9 @@ export default function Forms() {
 
   const handleEditForm = async (formData) => {
     try {
-      const res = await base44.functions.invoke('customForms', { op: 'save_form', id: editForm.id, ...formData });
-      setForms(prev => prev.map(f => f.id === editForm.id ? { ...f, ...res.data } : f));
-      if (selectedForm?.id === editForm.id) setSelectedForm({ ...selectedForm, ...res.data });
+      const res = await base44.entities.CustomForm.update(editForm.id, formData);
+      setForms(prev => prev.map(f => f.id === editForm.id ? { ...f, ...res } : f));
+      if (selectedForm?.id === editForm.id) setSelectedForm({ ...selectedForm, ...res });
       setEditForm(null);
       toast({ title: 'Form updated', description: formData.name });
     } catch {
@@ -78,7 +78,9 @@ export default function Forms() {
   const handleDeleteForm = async (form) => {
     if (!confirm(`Delete "${form.name}" and all its records?`)) return;
     try {
-      await base44.functions.invoke('customForms', { op: 'delete_form', id: form.id });
+      // custom_records has ON DELETE CASCADE on form_id, so deleting the form alone
+      // is enough — no need to delete its records first.
+      await base44.entities.CustomForm.delete(form.id);
       setForms(prev => prev.filter(f => f.id !== form.id));
       if (selectedForm?.id === form.id) setSelectedForm(null);
       toast({ title: 'Form deleted' });
@@ -90,16 +92,12 @@ export default function Forms() {
   const handleSaveRecord = async (data, notes) => {
     try {
       const isEditing = !!recordModal.record;
-      const res = await base44.functions.invoke('customForms', {
-        op: 'save_record',
-        ...(isEditing ? { id: recordModal.record.id } : {}),
-        form_id: selectedForm.id,
-        data,
-        notes,
-      });
+      const res = isEditing
+        ? await base44.entities.CustomRecord.update(recordModal.record.id, { form_id: selectedForm.id, data, notes })
+        : await base44.entities.CustomRecord.create({ form_id: selectedForm.id, data, notes });
       setRecords(prev => isEditing
-        ? prev.map(r => r.id === recordModal.record.id ? { ...r, ...res.data } : r)
-        : [res.data, ...prev]);
+        ? prev.map(r => r.id === recordModal.record.id ? { ...r, ...res } : r)
+        : [res, ...prev]);
       setRecordModal(null);
       toast({ title: isEditing ? 'Record updated' : 'Record added' });
     } catch {
@@ -110,7 +108,7 @@ export default function Forms() {
   const handleDeleteRecord = async (record) => {
     if (!confirm('Delete this record?')) return;
     try {
-      await base44.functions.invoke('customForms', { op: 'delete_record', id: record.id });
+      await base44.entities.CustomRecord.delete(record.id);
       setRecords(prev => prev.filter(r => r.id !== record.id));
       toast({ title: 'Record deleted' });
     } catch {
