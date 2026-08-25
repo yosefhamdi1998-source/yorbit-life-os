@@ -2,7 +2,7 @@ import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-6'; // update as newer models become available
+const MODEL = 'claude-sonnet-5'; // update as newer models become available
 
 const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for Yoglow users. Your job is to review the user's budget limits and actual spending, their upcoming bills, AND their custom form records, then offer clear, actionable advice.
 

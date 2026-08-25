@@ -1,19 +1,26 @@
 # Yoglow — Personal Finance App
 
-A production-ready personal finance app built on Base44 (React + Vite + Tailwind + shadcn/ui). Tracks transactions, budgets, bills, goals, net worth, habits, tasks, health, and journals with AI insights, bank sync, and Stripe/RevenueCat monetization.
+A personal finance app (React + Vite + Tailwind + shadcn/ui) tracking transactions,
+budgets, bills, goals, net worth, and custom forms, with an AI coach, bank sync, and
+Stripe/RevenueCat monetization. Originally built on Base44; migrated to a
+self-hosted Supabase backend — see `MIGRATION_STEPS.md` for the full migration
+record and what's still pending.
 
 ## Tech Stack
 - **Frontend:** React 18, Vite, Tailwind CSS, shadcn/ui (Radix), framer-motion, recharts, react-router-dom v6
-- **Backend:** Base44 BaaS (entities, backend functions, automations, AI agents)
-- **Monetization:** Stripe (web) + RevenueCat/Capacitor (iOS/Android in-app purchases)
-- **Bank Sync:** Plaid (production credentials configured)
-- **AI:** Base44 InvokeLLM + 3 custom in-app agents
+- **Backend:** Supabase (Postgres + Auth + Row Level Security + Edge Functions + Realtime)
+- **AI:** Anthropic Claude via the `ai-coach` / `weekly-custom-record-analysis` Edge Functions
+- **Monetization:** Stripe (web) + RevenueCat/Capacitor (iOS/Android) — code present, disabled by default
+- **Bank Sync:** Plaid — code present, disabled by default
 
 ## Quick Start
 ```bash
 npm install
 npm run dev
 ```
+Requires a `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` — see `.env.example`.
+The database schema (`supabase/schema.sql`) must be run once in the Supabase SQL Editor
+before the app has any tables to talk to.
 
 ## Project Structure
 ```
@@ -26,125 +33,79 @@ src/
     forms/        — Custom forms feature
   hooks/          — useGoBack, useProStatus, usePullToRefresh, use-mobile
   lib/            — utils, AuthContext, query-client, features, appStoreConfig, revenuecat, platform
-  api/            — base44Client (pre-initialized SDK)
+  api/            — supabaseClient, entities (generic CRUD), base44Client (compatibility shim)
+supabase/
+  schema.sql      — All tables, RLS policies, triggers, pg_cron jobs
+  functions/      — Edge Functions (Deno), one per subfolder
 base44/
-  entities/       — JSON schema definitions (database models)
-  functions/      — Backend functions (entry.ts each)
-  agents/         — AI agent configs (JSONC)
-  config.jsonc    — App config
+  entities/, agents/, functions/, config.jsonc  — Original Base44 schema definitions,
+  kept only as historical reference for the entity shapes; no longer live or read by the app.
 ```
 
-## Entities (Database Models)
-| Entity | Purpose |
-|--------|---------|
-| Transaction | Income/expense records with category, date, notes |
-| Bill | Recurring bills with due dates, paid status |
-| Budget | Monthly category spending limits |
-| Goal | Personal goals with milestones, progress, savings |
-| SavingsGoal | Named savings targets with progress |
-| NetWorthEntry | Assets & liabilities for net worth tracking |
-| Habit | Daily/weekly habit tracker with streaks |
-| Task | Todo items with priority, status, due dates |
-| HealthLog | Daily weight, sleep, water, steps, mood, energy |
-| JournalEntry | Journal with mood tags |
-| Note | Notes with tags, pin, AI summary |
-| Notification | Event alerts (bill due, goal, info) |
-| CustomForm | User-defined forms with custom fields |
-| CustomRecord | Data entries for custom forms |
-| Subscription | Stripe/RevenueCat subscription state |
-| ConnectedAccount | Plaid/Teller bank connections |
-| BankSyncLog | Sync run history |
-| AIInsightCache | Cached AI briefings/coaching |
+## Database (Supabase Postgres)
+18 tables, all with RLS enabled and scoped to `auth.uid() = user_id`: `transactions`,
+`bills`, `budgets`, `goals`, `savings_goals`, `net_worth_entries`, `habits`, `tasks`,
+`health_logs`, `journal_entries`, `notes`, `custom_forms`, `custom_records`,
+`ai_insight_caches`, `notifications`, `connected_accounts`, `bank_sync_logs`,
+`subscriptions` — plus `profiles` (auto-populated on signup) and `advisor_conversations`
+/ `advisor_messages` (the AI Coach chat log, Realtime-enabled). Full definitions in
+`supabase/schema.sql`. RLS isolation has been verified live with a two-account test —
+see git log.
 
-All entities have RLS set to `true` for all operations (public app, user-isolated by default).
+## Edge Functions (`supabase/functions/`)
+| Function | Purpose | Status |
+|----------|---------|--------|
+| ai-coach | AI Coach chat + one-off LLM calls (Anthropic) | Not deployed — needs `ANTHROPIC_API_KEY` + a Supabase personal access token |
+| weekly-custom-record-analysis | Weekly per-user AI analysis of custom form records | Not deployed |
+| generate-subscription-reminders | Notifies on subscription-category bills due within 3 days | Not deployed |
+| cleanup-duplicate-records | One-time dedup utility, admin-only | Not deployed |
+| delete-account | Full account + data deletion, must stay server-side (deletes the auth user itself) | Not deployed |
+| custom-forms, save-bill | Superseded — the client now calls the generic Entity CRUD directly instead (see `src/pages/Forms.jsx`, `Bills.jsx`); kept for reference | Bypassed, not needed |
+| create-checkout, stripe-webhook | Stripe billing | Not deployed, billing disabled |
+| plaid-create-link-token, plaid-exchange-token, plaid-sync-transactions, sync-all-accounts | Plaid bank sync | Not deployed, disabled |
 
-## Backend Functions
-| Function | Purpose |
-|----------|---------|
-| createCheckout | Stripe Checkout session creation (web) |
-| stripeWebhook | Stripe webhook handler (subscription lifecycle) |
-| deleteAccount | Full account + data deletion (App Store compliance) |
-| saveBill | Bill creation/update helper |
-| generateSubscriptionReminders | Checks recurring bills due in 3 days, creates notifications |
-| syncAllAccounts | Daily bank sync via Plaid (scheduled 6 AM) |
-| plaidCreateLinkToken | Plaid Link token generation |
-| plaidExchangeToken | Plaid public token → access token exchange |
-| plaidSyncTransactions | Fetch transactions from Plaid |
-| customForms | Custom form/record CRUD |
-| cleanupDuplicateRecords | Dedup utility |
-| weeklyCustomRecordAnalysis | Monday 9 AM AI analysis of custom records |
-
-## AI Agents
-| Agent | Purpose |
-|-------|---------|
-| financial_advisor | Reads Budget, Transaction, Bill, CustomForm/CustomRecord; gives financial advice |
-| subscription_budget_advisor | Analyzes recurring payments and budget health |
-| savings_motivation_coach | Encouragement based on journal logs |
+Deploying any of these needs `supabase functions deploy <name>` via the Supabase CLI,
+which requires logging into your Supabase account (`supabase login`) — see
+`MIGRATION_STEPS.md` Step 4.
 
 ## Key Pages
-- **Dashboard (`/`)** — Hero summary (income vs expenses, net worth), upcoming bills, goal progress, recent transactions
-- **Finance (`/finance`)** — Transaction CRUD, spending charts, net worth tracker, AI briefing & coach
-- **Budget (`/budget`)** — Category budgets with progress bars, export menu
-- **Bills (`/bills`)** — Bill tracking with paid/recurring status
-- **Spending Summary (`/spending-summary`)** — Donut/bar/trend charts with monthly/biweekly/yearly views, CSV+PDF export
-- **Goals (`/goals`)** — Goal management with milestones and savings progress
-- **Coach (`/coach`)** — AI financial advisor chat
-- **Bank Sync (`/bank-sync`)** — Plaid connection management (feature-flagged)
-- **Settings (`/settings`)** — Account, subscription, data export, account deletion, share/rate
-- **Upgrade (`/upgrade`)** — Pro subscription (Stripe + RevenueCat)
+- **Dashboard (`/`)** — Income vs expenses, budget/bill/goal summaries, recent transactions
+- **Finance (`/finance`)** — Transaction CRUD, spending charts, net worth tracker
+- **Budget (`/budget`)** — Category budgets with progress bars
+- **Bills (`/bills`)** — Bill tracking, paid/recurring status, overdue detection
+- **Spending Summary (`/spending-summary`)** — Charts with monthly/biweekly/yearly views, CSV+PDF export
+- **Goals (`/goals`)** — Goals with milestones and savings progress
+- **Coach (`/coach`)** — AI financial advisor (Pro-gated; needs `ai-coach` deployed to actually respond)
+- **Forms (`/forms`)** — Custom forms + records
+- **CSV Import (`/csv-import`)** — Import transactions from a bank CSV export
+- **Bank Sync (`/bank-sync`)** — Plaid connection UI (feature-flagged off)
+- **Settings (`/settings`)** — Account, data export, account deletion, dark mode
 - **Onboarding (`/onboarding`)** — Multi-step intro carousel
-- **Notifications (`/notifications`)** — Alert center
-
-## Integrations
-### Stripe (Live Mode)
-- **Products:** MoneyGlow Pro Monthly ($4.99/mo), Yearly ($29.99/yr)
-- **Secrets:** STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET (all set)
-- **Webhook endpoint:** `https://yorbit-life-os.base44.app/functions/stripeWebhook`
-- Checkout flow checks for iframe context and blocks if inside preview
-
-### RevenueCat (iOS/Android)
-- Config in `src/lib/appStoreConfig.js` — **API key placeholder needs to be set**
-- Entitlement: `pro`
-- Product IDs defined in appStoreConfig.js
-
-### Plaid (Bank Sync)
-- PLAID_CLIENT_ID, PLAID_SECRET set (production tier)
-- Feature flag in `src/lib/features.js`
 
 ## Feature Flags (`src/lib/features.js`)
-- `bankSync` — Plaid integration (requires production credentials verified)
-- `launchChecklist` — Internal launch tracking pages
+- `bankSync` — Plaid integration UI (edge functions not deployed, so connecting won't work yet)
+- `launchChecklist` — internal dev-only pages, must stay `false` before any public release
 
-## App Store Readiness
-- ✅ Privacy Policy (`/privacy-policy`) and Terms of Use (`/terms-of-use`)
-- ✅ Account deletion flow in Settings
-- ✅ Support page (`/support`) with FAQ
-- ✅ Onboarding flow
-- ✅ Loading/empty/error states across pages
-- ✅ Mobile-first responsive design with bottom tab nav
-- ⚠️ Requires App Store Connect setup (app IDs, subscription products, RevenueCat keys)
-- ⚠️ RevenueCat API key placeholder in `src/lib/appStoreConfig.js`
+## Auth
+Email/password with a 6-digit OTP verification step, Google OAuth (needs a client
+ID/secret added in the Supabase dashboard), and password reset via Supabase's
+recovery-link flow. See `src/lib/AuthContext.jsx` and `src/api/base44Client.js`
+(the auth/entities shim — keeps the same call shape as the original Base44 SDK so
+most pages needed no changes).
+
+## Known gaps
+1. AI Coach, `deleteAccount`, and the other Edge Functions above aren't deployed yet
+2. Google OAuth not configured in the Supabase dashboard
+3. Stripe billing and Plaid bank sync are intentionally disabled (code present, no live keys)
+4. RevenueCat / Capacitor native app packaging is a config file only — `@capacitor/core` etc.
+   aren't installed; turning this into an actual iOS/Android build is separate future work
+5. `src/pages/OAuthConsent.jsx` was a Base44-platform-specific feature (letting AI clients
+   connect via OAuth) with no Supabase equivalent — not routed, needs a decision on whether
+   to rebuild it or remove it
 
 ## Design System
 - Colors: CSS custom properties in `src/index.css` (light + dark themes)
 - Tailwind config maps tokens to utility classes in `tailwind.config.js`
-- Gradients: `.gradient-primary`, `.gradient-finance`, etc.
 - Cards: `.sky-card` (glassmorphic light, solid dark)
 - Font: Inter
-
-## Known Issues & TODOs
-1. RevenueCat API key placeholder needs production value
-2. App Store Connect setup pending (subscription products, RevenueCat dashboard)
-3. Custom Forms feature exists in backend but limited UI access
-4. Google Sheets sync paused (needs manual OAuth setup)
-5. Test transactions in database (user chose to keep them)
-
-## Environment Secrets (set in Base44 Settings → Secrets)
-- STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET
-- PLAID_CLIENT_ID, PLAID_SECRET
-- (Test variants also set for development)
-
-## Build & Deploy
-- Base44 handles hosting and deployment
-- For local dev: `npm run dev`
-- Capacitor config at `src/capacitor.config.ts` for iOS/Android builds
+- Responsive: bottom tab nav below the `lg` (1024px) breakpoint, sidebar above it
