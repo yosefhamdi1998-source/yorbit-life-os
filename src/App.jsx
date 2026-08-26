@@ -27,6 +27,12 @@ import { FEATURES } from '@/lib/features';
 import Upgrade from '@/pages/Upgrade';
 import Onboarding from '@/pages/Onboarding';
 import Notifications from '@/pages/Notifications';
+import Notes from '@/pages/Notes';
+import Tasks from '@/pages/Tasks';
+import Habits from '@/pages/Habits';
+import Journal from '@/pages/Journal';
+import HealthLog from '@/pages/HealthLog';
+import More from '@/pages/More';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -43,7 +49,7 @@ const AuthenticatedApp = () => {
           <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center">
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">Loading Yoglow…</p>
+          <p className="text-sm text-muted-foreground font-medium">Loading MoneyGlow…</p>
         </div>
       </div>
     );
@@ -63,6 +69,12 @@ const AuthenticatedApp = () => {
           <Route path="/spending-summary" element={<SpendingSummary />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/habits" element={<Habits />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/health-log" element={<HealthLog />} />
+          <Route path="/more" element={<More />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/upgrade" element={<Upgrade />} />
           {FEATURES.bankSync && <Route path="/bank-sync" element={<BankSync />} />}
