@@ -168,9 +168,11 @@ export default function Bills() {
     if (!entry) return;
     clearTimeout(timersRef.current[id]);
     delete timersRef.current[id];
-    // Re-create in DB (original id may be gone if timer fired, so create fresh)
-    const { id: _id, created_date, updated_date, created_by_id, ...billData } = entry.bill;
-    await base44.entities.Bill.create(billData).catch(() => {});
+    // deleteBill() only ever hides the row locally - the real DB delete is
+    // deferred to the timer above, which we just canceled. So the original
+    // row is still there; restoring just means un-hiding it, not recreating
+    // it (recreating produced a permanent duplicate whenever the 30-minute
+    // window hadn't elapsed yet, which is the common case for an "undo").
     setDeletedBills(prev => {
       const next = prev.filter(d => d.id !== id);
       localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
