@@ -69,7 +69,7 @@ export default function RateAppPrompt({ transactionCount }) {
 
               <div className="text-center mb-5">
                 <div className="text-5xl mb-3">🌟</div>
-                <h2 className="text-xl font-black text-foreground mb-1">Loving Yoglow?</h2>
+                <h2 className="text-xl font-black text-foreground mb-1">Loving MoneyGlow?</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   You've logged {transactionCount} transactions! A quick rating helps us keep improving for you.
                 </p>
@@ -94,7 +94,7 @@ export default function RateAppPrompt({ transactionCount }) {
                 className="w-full h-12 rounded-2xl font-bold text-sm mb-3 text-white"
                 style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)' }}
               >
-                Rate Yoglow ⭐
+                Rate MoneyGlow ⭐
               </button>
               <button
                 onClick={handleMaybeLater}

@@ -1,7 +1,7 @@
 {
-  "name": "Yoglow: Budget & AI Coach",
-  "short_name": "Yoglow",
-  "description": "Track your money. Know your next move. Yoglow helps you track income, expenses, bills, budgets, and goals with AI-powered insights.",
+  "name": "MoneyGlow: Budget & AI Coach",
+  "short_name": "MoneyGlow",
+  "description": "Track your money. Know your next move. MoneyGlow helps you track income, expenses, bills, budgets, and goals with AI-powered insights.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

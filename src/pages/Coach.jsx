@@ -153,7 +153,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
           </div>
           <h3 className="text-xl font-black text-white mb-2">Pro Feature</h3>
           <p className="text-white/70 text-sm mb-5 leading-relaxed">
-            AI Coach, daily briefings, and personalized guidance are part of Yoglow Pro.
+            AI Coach, daily briefings, and personalized guidance are part of MoneyGlow Pro.
           </p>
           <Link to="/upgrade">
             <Button className="bg-white text-primary hover:bg-white/90 gap-2 font-bold h-11">

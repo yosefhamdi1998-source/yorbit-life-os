@@ -21,18 +21,18 @@ export default function PrivacyPolicy() {
       <div className="bg-card border border-border rounded-2xl p-6 space-y-1">
 
         <Section title="Overview">
-          <p>Yoglow is a personal finance tracking app. We take your privacy seriously. This policy explains what data we collect, how we use it, and your rights.</p>
+          <p>MoneyGlow is a personal finance tracking app. We take your privacy seriously. This policy explains what data we collect, how we use it, and your rights.</p>
         </Section>
 
         <Section title="What We Collect">
           <p><strong className="text-foreground">Financial data you enter:</strong> Transactions, budgets, savings goals, and bills that you manually add or import.</p>
           <p><strong className="text-foreground">CSV import data:</strong> When you import a CSV file, we parse and store the transaction records locally in your account. We do not retain the original file.</p>
           <p><strong className="text-foreground">Account metadata:</strong> Your email address and display name, provided at registration. No financial credentials are collected.</p>
-          <p><strong className="text-foreground">Bank connection metadata (future feature):</strong> If bank sync is enabled, connection metadata such as institution name and account type may be stored. Your bank login credentials are never stored by Yoglow — they are handled directly by a third-party provider (e.g. Plaid or Teller).</p>
+          <p><strong className="text-foreground">Bank connection metadata (future feature):</strong> If bank sync is enabled, connection metadata such as institution name and account type may be stored. Your bank login credentials are never stored by MoneyGlow — they are handled directly by a third-party provider (e.g. Plaid or Teller).</p>
         </Section>
 
         <Section title="How We Use Your Data">
-          <p>Your data is used only to power your own Yoglow experience:</p>
+          <p>Your data is used only to power your own MoneyGlow experience:</p>
           <ul className="list-disc list-inside space-y-1 pl-2">
             <li>To display your transactions, budgets, and goals</li>
             <li>To generate your AI Money Briefing and coaching suggestions</li>
@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="AI Insights">
-          <p>Yoglow uses an AI model to generate personalized financial summaries and coaching tips. Your anonymized spending categories and amounts are sent to the AI model to produce these insights. No personally identifiable information is included in AI requests.</p>
+          <p>MoneyGlow uses an AI model to generate personalized financial summaries and coaching tips. Your anonymized spending categories and amounts are sent to the AI model to produce these insights. No personally identifiable information is included in AI requests.</p>
           <p>AI-generated content is informational only. It is not financial, legal, tax, or investment advice.</p>
         </Section>
 
@@ -61,11 +61,11 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="Third-Party Services">
-          <p>Yoglow may use third-party services for authentication and infrastructure. These services have their own privacy policies. We do not share your financial data with them beyond what is required to operate the app.</p>
+          <p>MoneyGlow may use third-party services for authentication and infrastructure. These services have their own privacy policies. We do not share your financial data with them beyond what is required to operate the app.</p>
         </Section>
 
         <Section title="Children">
-          <p>Yoglow is not intended for users under 13 years of age. We do not knowingly collect data from children.</p>
+          <p>MoneyGlow is not intended for users under 13 years of age. We do not knowingly collect data from children.</p>
         </Section>
 
         <Section title="Changes to This Policy">
@@ -73,7 +73,7 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="Contact">
-          <p>Questions about this policy? Email us at <a href="mailto:support@yoglow.app" className="text-primary hover:underline">support@yoglow.app</a> or visit <a href="https://yoglow.app/support" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">yoglow.app/support</a>.</p>
+          <p>Questions about this policy? Email us at <a href="mailto:support@moneyglow.app" className="text-primary hover:underline">support@moneyglow.app</a> or visit <a href="https://moneyglow.app/support" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">moneyglow.app/support</a>.</p>
         </Section>
 
       </div>

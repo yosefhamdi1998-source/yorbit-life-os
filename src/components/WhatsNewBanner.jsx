@@ -43,7 +43,7 @@ export default function WhatsNewBanner() {
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <p className="text-sm font-black text-gray-800">What's New in Yoglow</p>
+                <p className="text-sm font-black text-gray-800">What's New in MoneyGlow</p>
               </div>
               <button onClick={dismiss} className="p-1 rounded-full hover:bg-black/5 shrink-0">
                 <X className="w-3.5 h-3.5 text-gray-400" />

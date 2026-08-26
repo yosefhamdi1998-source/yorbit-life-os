@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, DollarSign, Target, Brain, PiggyBank,
-  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell
+  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell,
+  StickyNote, CheckSquare, Flame, BookOpen, HeartPulse, Grid2x2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
@@ -18,12 +19,17 @@ const bottomNavItems = [
   { path: '/coach', icon: Brain, label: 'Coach' },
 ];
 
-const sidebarItems = [
+export const sidebarItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
   { path: '/finance', icon: DollarSign, label: 'Transactions' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
   { path: '/goals', icon: Target, label: 'Goals' },
+  { path: '/notes', icon: StickyNote, label: 'Notes' },
+  { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { path: '/habits', icon: Flame, label: 'Habits' },
+  { path: '/journal', icon: BookOpen, label: 'Journal' },
+  { path: '/health-log', icon: HeartPulse, label: 'Health Log' },
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/coach', icon: Brain, label: 'AI Coach' },
   ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync' }] : []),
@@ -85,7 +91,7 @@ export default function Layout() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #7C3AED 100%)' }}>
             <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="font-black text-[15px] tracking-tight text-foreground">Yoglow</span>
+          <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
         </div>
 
         {/* Nav */}
@@ -151,9 +157,12 @@ export default function Layout() {
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #7C3AED 100%)' }}>
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-black text-[15px] tracking-tight text-foreground">Yoglow</span>
+            <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
           </div>
           <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-9 w-9 rounded-full">
+              <Grid2x2 className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} className="h-9 w-9 rounded-full">
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>

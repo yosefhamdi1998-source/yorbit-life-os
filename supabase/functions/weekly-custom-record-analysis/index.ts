@@ -4,7 +4,7 @@ import { serviceClient } from '../_shared/supabase.ts';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-5';
 
-const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for Yoglow users. Each week you review the user's custom form records and turn them into clear, actionable financial guidance.
+const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for MoneyGlow users. Each week you review the user's custom form records and turn them into clear, actionable financial guidance.
 
 Method:
 1. Understand what each custom form tracks from its name, description, and field definitions.

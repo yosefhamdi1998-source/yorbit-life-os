@@ -19,7 +19,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
     setBusy('csv');
     try {
       const rows = [];
-      rows.push('Yoglow Finance Export');
+      rows.push('MoneyGlow Finance Export');
       rows.push(`Period,${csvEsc(periodLabel)}`);
       rows.push(`Generated,${format(new Date(), "MMM d, yyyy h:mm a")}`);
       rows.push('');
@@ -40,7 +40,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `yoglow-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      a.download = `moneyglow-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: 'CSV exported', description: 'Opens in Google Sheets or Excel.' });
@@ -60,7 +60,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(20);
-      doc.text('Yoglow Spending Summary', 40, 50);
+      doc.text('MoneyGlow Spending Summary', 40, 50);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(11);
       doc.text(`Period: ${periodLabel}`, 40, 72);
@@ -103,7 +103,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
         y += 15;
       });
 
-      doc.save(`yoglow-summary-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      doc.save(`moneyglow-summary-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       toast({ title: 'PDF exported', description: 'Saved to your downloads.' });
     } catch {
       toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });

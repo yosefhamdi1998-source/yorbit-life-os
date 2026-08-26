@@ -1,18 +1,18 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * Capacitor config for Yoglow iOS build.
+ * Capacitor config for MoneyGlow iOS build.
  *
  * SETUP STEPS (run in terminal after `npm run build`):
  *   1. npm install @capacitor/core @capacitor/cli @capacitor/ios
- *   2. npx cap init "Yoglow" "app.yoglow" --web-dir=dist
+ *   2. npx cap init "MoneyGlow" "app.moneyglow" --web-dir=dist
  *   3. npx cap add ios
  *   4. npm run build && npx cap copy ios && npx cap sync ios
  *   5. npx cap open ios   ← opens Xcode; archive & upload from there
  */
 const config: CapacitorConfig = {
-  appId: 'app.yoglow',
-  appName: 'Yoglow',
+  appId: 'app.moneyglow',
+  appName: 'MoneyGlow',
   webDir: 'dist',
 
   server: {

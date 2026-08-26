@@ -31,7 +31,7 @@ const PRICES = {
 };
 
 const TESTIMONIALS = [
-  { name: 'Sarah M.', text: 'Yoglow Pro paid for itself in the first week. I found $200/month I was wasting on subscriptions!', stars: 5 },
+  { name: 'Sarah M.', text: 'MoneyGlow Pro paid for itself in the first week. I found $200/month I was wasting on subscriptions!', stars: 5 },
   { name: 'James R.', text: 'The AI coach is unreal. It tells me exactly what to do, not generic advice.', stars: 5 },
   { name: 'Priya K.', text: 'Finally hit my emergency fund goal. The goal tracker kept me motivated every day.', stars: 5 },
 ];
@@ -83,7 +83,7 @@ export default function Upgrade() {
     if (result.error) {
       toast({ title: "Purchase failed", description: result.error, variant: 'destructive' });
     } else if (!result.cancelled) {
-      toast({ title: "Welcome to Yoglow Pro! 🎉", description: "Your subscription is now active." });
+      toast({ title: "Welcome to MoneyGlow Pro! 🎉", description: "Your subscription is now active." });
       navigate('/settings');
     }
   };
@@ -110,7 +110,7 @@ export default function Upgrade() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-black leading-none">Yoglow Pro</h1>
+          <h1 className="text-xl font-black leading-none">MoneyGlow Pro</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Unlock your financial superpower</p>
         </div>
       </div>
@@ -267,7 +267,7 @@ export default function Upgrade() {
       {iframeBlocked && (
         <div className="mx-4 mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
           <p className="font-bold mb-1">Checkout only works in the published app.</p>
-          <p>Open Yoglow from your published URL to complete your purchase.</p>
+          <p>Open MoneyGlow from your published URL to complete your purchase.</p>
         </div>
       )}
 

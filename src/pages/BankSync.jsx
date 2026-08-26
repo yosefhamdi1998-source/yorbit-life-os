@@ -153,7 +153,7 @@ export default function BankSync() {
           </div>
           <p className="text-base font-black text-foreground mb-1">Connect your bank</p>
           <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-            Automatically import transactions and keep Yoglow up to date. Your credentials are never stored.
+            Automatically import transactions and keep MoneyGlow up to date. Your credentials are never stored.
           </p>
           <Button
             onClick={connectBank}
@@ -230,7 +230,7 @@ export default function BankSync() {
       <div className="mt-6 bg-card border border-border rounded-2xl p-4">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Privacy Note</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Yoglow uses read-only bank connections powered by Plaid. Your login credentials are never stored — only a secure access token is saved to fetch transactions.
+          MoneyGlow uses read-only bank connections powered by Plaid. Your login credentials are never stored — only a secure access token is saved to fetch transactions.
         </p>
       </div>
     </div>

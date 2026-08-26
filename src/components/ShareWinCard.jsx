@@ -13,9 +13,9 @@ export default function ShareWinCard({ monthIncome, monthExpenses, savingsRate, 
   if (netSaved <= 0 || monthIncome === 0) return null;
 
   const handleShare = async () => {
-    const text = `💰 I saved $${fmt(netSaved)} this month with Yoglow!\nSavings rate: ${savingsRate}% 🚀\n\nTrack your money smarter: yoglow.app`;
+    const text = `💰 I saved $${fmt(netSaved)} this month with MoneyGlow!\nSavings rate: ${savingsRate}% 🚀\n\nTrack your money smarter: moneyglow.app`;
     if (navigator.share) {
-      await navigator.share({ title: 'My Yoglow Win 🎉', text });
+      await navigator.share({ title: 'My MoneyGlow Win 🎉', text });
     } else {
       await navigator.clipboard.writeText(text);
     }
@@ -70,7 +70,7 @@ export default function ShareWinCard({ monthIncome, monthExpenses, savingsRate, 
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-white/70" />
-                    <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">Yoglow Win</span>
+                    <span className="text-white/70 text-xs font-semibold uppercase tracking-wider">MoneyGlow Win</span>
                   </div>
                   <p className="text-white/60 text-xs mb-1">{month}</p>
                   <p className="text-white text-3xl font-black">${fmt(netSaved)} saved</p>

@@ -109,7 +109,7 @@ const CHECKLIST = [
     category: 'App Store Assets',
     items: [
       'App icon 1024×1024 PNG created',
-      'App name confirmed: Yoglow',
+      'App name confirmed: MoneyGlow',
       'Subtitle confirmed: Budget & AI Money Coach',
       'App description drafted',
       'Keywords list drafted',
