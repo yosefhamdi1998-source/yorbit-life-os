@@ -93,9 +93,11 @@ const agents = {
   async addMessage(conversation, { role, content }) {
     // Insert the user's message directly (RLS: users can only insert into their own conversation),
     // then call the Edge Function to generate + insert the assistant's reply.
+    const { data: userData } = await supabase.auth.getUser();
+    const user_id = userData?.user?.id;
     const { error: insertError } = await supabase
       .from('advisor_messages')
-      .insert({ conversation_id: conversation.id, role, content });
+      .insert({ conversation_id: conversation.id, user_id, role, content });
     if (insertError) throw new Error(insertError.message);
 
     const { error } = await supabase.functions.invoke('ai-coach', {
