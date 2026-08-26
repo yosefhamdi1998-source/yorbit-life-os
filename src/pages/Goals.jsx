@@ -11,6 +11,13 @@ import { toast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import confetti from 'canvas-confetti';
+
+function celebrateGoal() {
+  const colors = ['#2563EB', '#7C3AED', '#F59E0B', '#10B981'];
+  confetti({ particleCount: 90, spread: 75, origin: { y: 0.65 }, colors, startVelocity: 45, ticks: 200 });
+  setTimeout(() => confetti({ particleCount: 50, spread: 100, origin: { y: 0.6 }, colors, startVelocity: 30, ticks: 200 }), 150);
+}
 
 const CATEGORIES = ['career', 'health', 'finance', 'relationships', 'learning', 'personal', 'other'];
 const CAT_COLORS = { career: 'bg-blue-500/10 text-blue-600', health: 'bg-orange-500/10 text-orange-600', finance: 'bg-green-500/10 text-green-600', relationships: 'bg-pink-500/10 text-pink-600', learning: 'bg-purple-500/10 text-purple-600', personal: 'bg-yellow-500/10 text-yellow-600', other: 'bg-gray-500/10 text-gray-600' };
@@ -83,8 +90,13 @@ export default function Goals() {
   };
 
   const completeGoal = async (goal) => {
+    const completing = goal.status !== 'completed';
     try {
-      await base44.entities.Goal.update(goal.id, { status: goal.status === 'completed' ? 'active' : 'completed' });
+      await base44.entities.Goal.update(goal.id, { status: completing ? 'completed' : 'active' });
+      if (completing) {
+        celebrateGoal();
+        toast({ title: '🎉 Goal completed!', description: goal.title });
+      }
       loadGoals();
     } catch (error) {
       toast({ title: "Couldn't update goal", description: "Please try again in a moment.", variant: 'destructive' });
@@ -100,7 +112,13 @@ export default function Goals() {
       : goal.progress || 0;
     try {
       await base44.entities.Goal.update(goal.id, { savings_amount: savedAmount, progress: newProgress });
-      toast({ title: 'Money added', description: `$${amount} toward "${goal.title}"` });
+      const justFunded = newProgress >= 100 && (goal.progress || 0) < 100;
+      if (justFunded) {
+        celebrateGoal();
+        toast({ title: '🎉 Fully funded!', description: `"${goal.title}" hit its target` });
+      } else {
+        toast({ title: 'Money added', description: `$${amount} toward "${goal.title}"` });
+      }
       setAddMoneyGoalId(null);
       setAddMoneyAmount('');
       loadGoals();

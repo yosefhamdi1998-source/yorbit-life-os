@@ -7,6 +7,7 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import { TrendingUp, TrendingDown, DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
@@ -139,7 +140,7 @@ export default function Dashboard() {
           {/* Primary metric */}
           <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
           <p className="text-white text-4xl font-black tracking-tight leading-none mb-5">
-            {netSaved >= 0 ? '+' : '−'}${fmt(Math.abs(netSaved))}
+            {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
           </p>
 
           {/* Income / Expenses */}
@@ -148,14 +149,14 @@ export default function Dashboard() {
               <TrendingUp className="w-4 h-4 text-emerald-300 shrink-0" />
               <div className="min-w-0">
                 <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Income</p>
-                <p className="text-white font-black text-lg leading-tight truncate">${fmt(monthIncome)}</p>
+                <p className="text-white font-black text-lg leading-tight truncate"><AnimatedNumber prefix="$" value={monthIncome} /></p>
               </div>
             </div>
             <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center gap-2.5 min-w-0">
               <TrendingDown className="w-4 h-4 text-red-300 shrink-0" />
               <div className="min-w-0">
                 <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Expenses</p>
-                <p className="text-white font-black text-lg leading-tight truncate">${fmt(monthExpenses)}</p>
+                <p className="text-white font-black text-lg leading-tight truncate"><AnimatedNumber prefix="$" value={monthExpenses} /></p>
               </div>
             </div>
           </div>
