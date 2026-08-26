@@ -150,13 +150,18 @@ export default function Goals() {
 
   const getAINudge = async (goal) => {
     setAiLoading(goal.id);
-    const completed = (goal.milestones || []).filter(m => m.completed).length;
-    const total = (goal.milestones || []).length;
-    const prompt = `Give a short, energizing motivational nudge (1-2 sentences) for this goal: "${goal.title}". Progress: ${goal.progress || 0}% (${completed}/${total} milestones). Target date: ${goal.target_date || 'not set'}. Be specific and punchy.`;
-    const result = await base44.integrations.Core.InvokeLLM({ prompt });
-    await base44.entities.Goal.update(goal.id, { ai_nudge: result });
-    loadGoals();
-    setAiLoading(null);
+    try {
+      const completed = (goal.milestones || []).filter(m => m.completed).length;
+      const total = (goal.milestones || []).length;
+      const prompt = `Give a short, energizing motivational nudge (1-2 sentences) for this goal: "${goal.title}". Progress: ${goal.progress || 0}% (${completed}/${total} milestones). Target date: ${goal.target_date || 'not set'}. Be specific and punchy.`;
+      const result = await base44.integrations.Core.InvokeLLM({ prompt });
+      await base44.entities.Goal.update(goal.id, { ai_nudge: result });
+      loadGoals();
+    } catch (error) {
+      toast({ title: "Couldn't get a nudge right now", description: error.message || 'Please try again in a moment.', variant: 'destructive' });
+    } finally {
+      setAiLoading(null);
+    }
   };
 
   const active = goals.filter(g => g.status === 'active');

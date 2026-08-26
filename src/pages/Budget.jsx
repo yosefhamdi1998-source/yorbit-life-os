@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/PageHeader';
 import BudgetExportMenu from '@/components/budget/BudgetExportMenu';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 
@@ -135,9 +136,9 @@ export default function Budget() {
         <div className="bg-card border border-border rounded-2xl p-4 mb-4">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Budget Health</p>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <div><p className="text-xs text-muted-foreground">Total Budget</p><p className="text-xl font-black">${fmt(totalBudget)}</p></div>
-            <div><p className="text-xs text-muted-foreground">Total Spent</p><p className={`text-xl font-black ${totalSpent > totalBudget ? 'text-red-500' : ''}`}>${fmt(totalSpent)}</p></div>
-            <div><p className="text-xs text-muted-foreground">Remaining</p><p className={`text-xl font-black ${totalBudget - totalSpent < 0 ? 'text-red-500' : 'text-emerald-500'}`}>${fmt(Math.abs(totalBudget - totalSpent))}</p></div>
+            <div><p className="text-xs text-muted-foreground">Total Budget</p><p className="text-xl font-black"><AnimatedNumber prefix="$" value={totalBudget} /></p></div>
+            <div><p className="text-xs text-muted-foreground">Total Spent</p><p className={`text-xl font-black ${totalSpent > totalBudget ? 'text-red-500' : ''}`}><AnimatedNumber prefix="$" value={totalSpent} /></p></div>
+            <div><p className="text-xs text-muted-foreground">Remaining</p><p className={`text-xl font-black ${totalBudget - totalSpent < 0 ? 'text-red-500' : 'text-emerald-500'}`}><AnimatedNumber prefix="$" value={Math.abs(totalBudget - totalSpent)} /></p></div>
             <div><p className="text-xs text-muted-foreground">Over Limit</p><p className={`text-xl font-black ${overCount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{overCount}</p></div>
           </div>
           <div className="h-2.5 bg-secondary rounded-full overflow-hidden">

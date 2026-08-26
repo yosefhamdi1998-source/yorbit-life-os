@@ -38,7 +38,16 @@ async function invokeLLM({ prompt, response_json_schema }) {
   const { data, error } = await supabase.functions.invoke('ai-coach', {
     body: { mode: 'invoke', prompt, response_json_schema },
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Supabase wraps the Edge Function's JSON error body in error.context; surface it
+    // the same way invokeFunction does, instead of the generic "non-2xx status" message.
+    let message = error.message;
+    try {
+      const ctx = await error.context?.json?.();
+      if (ctx?.error) message = ctx.error;
+    } catch (_) { /* keep default message */ }
+    throw new Error(message);
+  }
   return data.result;
 }
 
@@ -92,7 +101,14 @@ const agents = {
     const { error } = await supabase.functions.invoke('ai-coach', {
       body: { mode: 'advisor_chat', conversation_id: conversation.id },
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      let message = error.message;
+      try {
+        const ctx = await error.context?.json?.();
+        if (ctx?.error) message = ctx.error;
+      } catch (_) { /* keep default message */ }
+      throw new Error(message);
+    }
   },
 };
 

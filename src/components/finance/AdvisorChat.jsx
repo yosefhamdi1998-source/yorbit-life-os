@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
+import { toast } from '@/components/ui/use-toast';
 
 const SUGGESTED = [
   "Review my budget and tell me where I'm overspending",
@@ -20,12 +21,16 @@ export default function AdvisorChat() {
 
   useEffect(() => {
     const init = async () => {
-      const conv = await base44.agents.createConversation({
-        agent_name: 'financial_advisor',
-        metadata: { name: 'Financial Advisor Session' },
-      });
-      setConversation(conv);
-      setMessages(conv.messages || []);
+      try {
+        const conv = await base44.agents.createConversation({
+          agent_name: 'financial_advisor',
+          metadata: { name: 'Financial Advisor Session' },
+        });
+        setConversation(conv);
+        setMessages(conv.messages || []);
+      } catch (error) {
+        toast({ title: "Couldn't start a session with your advisor", description: error.message || 'Please try again in a moment.', variant: 'destructive' });
+      }
     };
     init();
   }, []);
@@ -48,7 +53,12 @@ export default function AdvisorChat() {
     if (!msg || !conversation || sending) return;
     setInput('');
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: msg });
+    try {
+      await base44.agents.addMessage(conversation, { role: 'user', content: msg });
+    } catch (error) {
+      setSending(false);
+      toast({ title: "Couldn't reach your advisor", description: error.message || 'Please try again in a moment.', variant: 'destructive' });
+    }
   };
 
   const isTyping = sending || messages[messages.length - 1]?.role === 'user';
