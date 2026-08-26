@@ -181,7 +181,7 @@ export default function Habits() {
                 >
                   {doneToday && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </button>
-                <button onClick={() => deleteHabit(habit.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete habit">
+                <button onClick={() => deleteHabit(habit.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete habit" aria-label="Delete habit">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

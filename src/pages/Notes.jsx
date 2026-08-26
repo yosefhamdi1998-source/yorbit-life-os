@@ -205,6 +205,7 @@ function NoteCard({ note, onEdit, onPin, onDelete }) {
             onClick={(e) => { e.stopPropagation(); onPin(note); }}
             className="p-1.5 rounded-lg hover:bg-black/10 transition-colors"
             title={note.is_pinned ? 'Unpin' : 'Pin'}
+            aria-label={note.is_pinned ? 'Unpin note' : 'Pin note'}
           >
             <Pin className={`w-3.5 h-3.5 text-neutral-700 ${note.is_pinned ? 'fill-neutral-700' : ''}`} />
           </button>
@@ -212,6 +213,7 @@ function NoteCard({ note, onEdit, onPin, onDelete }) {
             onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
             className="p-1.5 rounded-lg hover:bg-black/10 transition-colors"
             title="Delete note"
+            aria-label="Delete note"
           >
             <Trash2 className="w-3.5 h-3.5 text-neutral-700" />
           </button>

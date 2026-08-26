@@ -158,7 +158,7 @@ export default function Tasks() {
             const overdue = task.due_date && task.status !== 'done' && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
             return (
               <div key={task.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3.5 py-3">
-                <button onClick={() => cycleStatus(task)} className="shrink-0 p-1 -m-1" title="Cycle status">
+                <button onClick={() => cycleStatus(task)} className="shrink-0 p-1 -m-1" title="Cycle status" aria-label="Cycle status">
                   {task.status === 'done'
                     ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     : task.status === 'in_progress'
@@ -177,7 +177,7 @@ export default function Tasks() {
                     <span className={`text-xs font-semibold ${PRIORITY_COLOR[task.priority]}`}>· {task.priority}</span>
                   </div>
                 </div>
-                <button onClick={() => deleteTask(task.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete task">
+                <button onClick={() => deleteTask(task.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete task" aria-label="Delete task">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
 import QuickAddFAB from '@/components/QuickAddFAB';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { recordRoute } from '@/hooks/useGoBack';
 
 const bottomNavItems = [
@@ -230,7 +231,9 @@ export default function Layout() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className="pb-32 lg:pb-8"
           >
-            <Outlet />
+            <ErrorBoundary key={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
       </main>

@@ -406,13 +406,13 @@ export default function Bills() {
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <span className="font-bold text-sm">${fmt(bill.amount)}</span>
-                              <button onClick={() => togglePaid(bill)} className="w-7 h-7 rounded-full border-2 border-border flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-50 transition-all" title="Mark as paid">
+                              <button onClick={() => togglePaid(bill)} className="w-7 h-7 rounded-full border-2 border-border flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-50 transition-all" title="Mark as paid" aria-label="Mark as paid">
                                 <CheckCircle className="w-3.5 h-3.5 text-muted-foreground/40" />
                               </button>
-                              <button onClick={() => openEdit(bill)} className="p-1 text-muted-foreground hover:text-primary transition-colors" title="Edit bill">
+                              <button onClick={() => openEdit(bill)} className="p-1 text-muted-foreground hover:text-primary transition-colors" title="Edit bill" aria-label="Edit bill">
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={() => deleteBill(bill.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Delete bill">
+                              <button onClick={() => deleteBill(bill.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Delete bill" aria-label="Delete bill">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -438,13 +438,13 @@ export default function Bills() {
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className="font-bold text-sm">${fmt(bill.amount)}</span>
-                            <button onClick={() => togglePaid(bill)} className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center" title="Mark as unpaid">
+                            <button onClick={() => togglePaid(bill)} className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center" title="Mark as unpaid" aria-label="Mark as unpaid">
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                             </button>
-                            <button onClick={() => openEdit(bill)} className="p-1 text-muted-foreground hover:text-primary transition-colors" title="Edit bill">
+                            <button onClick={() => openEdit(bill)} className="p-1 text-muted-foreground hover:text-primary transition-colors" title="Edit bill" aria-label="Edit bill">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
-                            <button onClick={() => deleteBill(bill.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Delete bill">
+                            <button onClick={() => deleteBill(bill.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors" title="Delete bill" aria-label="Delete bill">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>

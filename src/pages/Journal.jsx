@@ -147,7 +147,7 @@ export default function Journal() {
                   <span className="text-xl">{MOOD_EMOJI[entry.mood] || '📝'}</span>
                   <span className="text-xs font-semibold text-muted-foreground">{format(parseISO(entry.date), 'EEEE, MMM d')}</span>
                 </div>
-                <button onClick={() => deleteEntry(entry.id)} className="p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Delete entry">
+                <button onClick={() => deleteEntry(entry.id)} className="p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Delete entry" aria-label="Delete entry">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

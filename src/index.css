@@ -75,6 +75,14 @@
     @apply border-border outline-ring/50;
     -webkit-tap-highlight-color: transparent;
   }
+  /* outline-ring/50 above only sets outline-color/width; outline-style stays
+     'none' by default so nothing actually renders. shadcn's <Button> already
+     handles its own focus-visible ring, but plain <button>/<a> elements
+     (used throughout for icon actions like delete/pin) had no keyboard
+     focus indicator at all. */
+  :focus-visible {
+    outline-style: solid;
+  }
   /* Disable selection on interactive/nav elements */
   button, a, nav, [role="tab"], [role="tablist"], svg, label {
     -webkit-user-select: none;

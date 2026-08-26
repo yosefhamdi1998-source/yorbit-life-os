@@ -274,18 +274,18 @@ export default function Finance() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-black tracking-tight">Money</h1>
         <div className="flex gap-1.5 items-center">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary" aria-label="Spending Summary">
             <BarChart3 className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate('/bills')} className="h-8 w-8 text-muted-foreground" title="Bills">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/bills')} className="h-8 w-8 text-muted-foreground" title="Bills" aria-label="Bills">
             <Receipt className="w-4 h-4" />
           </Button>
           {FEATURES.bankSync && (
-            <Button variant="ghost" size="icon" onClick={() => navigate('/bank-sync')} className="h-8 w-8 text-blue-600" title="Connect Bank">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/bank-sync')} className="h-8 w-8 text-blue-600" title="Connect Bank" aria-label="Connect Bank">
               <Link2 className="w-4 h-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV" aria-label="Import CSV">
             <Upload className="w-4 h-4" />
           </Button>
           <Button onClick={() => setShowTxForm(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
