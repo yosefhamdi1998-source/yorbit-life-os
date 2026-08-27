@@ -227,7 +227,7 @@ export default function Dashboard() {
       {/* ── Content sections ──────────────────────────────────────────
           One column on phone; two side-by-side columns from lg up, so
           cards stay a readable width instead of stretching into bands. */}
-      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
+      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:auto-rows-fr [&>*]:lg:h-full">
 
         {/* Onboarding CTA */}
         {isNewUser && (
