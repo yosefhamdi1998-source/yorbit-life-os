@@ -78,6 +78,8 @@ export default function Budget() {
   };
 
   const deleteBudget = async (id) => {
+    const b = budgets.find(x => x.id === id);
+    if (!window.confirm(`Remove the ${b?.category || 'this'} budget limit?`)) return;
     try {
       await base44.entities.Budget.delete(id);
       toast({ title: 'Budget deleted' });
@@ -248,7 +250,7 @@ export default function Budget() {
                     {close && !over && <div className="flex items-center gap-1 text-xs font-medium text-amber-500"><Clock className="w-3 h-3" />Close</div>}
                     {!over && !close && limit > 0 && <div className="flex items-center gap-1 text-xs font-medium text-emerald-500"><CheckCircle className="w-3 h-3" />On track</div>}
                     {budget && (
-                      <button onClick={() => deleteBudget(budget.id)} className="text-muted-foreground hover:text-destructive p-1 transition-colors">
+                      <button onClick={() => deleteBudget(budget.id)} className="text-muted-foreground hover:text-destructive p-1 transition-colors" title="Remove budget limit" aria-label="Remove budget limit">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     )}

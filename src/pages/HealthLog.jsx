@@ -42,7 +42,11 @@ export default function HealthLog() {
 
   const num = (v) => (v === '' || v == null ? null : parseFloat(v));
 
+  const hasAnyValue = [form.weight, form.sleep_hours, form.water_intake, form.steps, form.workout, form.workout_duration, form.mood, form.energy, form.notes]
+    .some(v => String(v || '').trim() !== '');
+
   const saveLog = async () => {
+    if (!hasAnyValue) return;
     setSaving(true);
     try {
       await base44.entities.HealthLog.create({
@@ -126,7 +130,7 @@ export default function HealthLog() {
           </div>
           <div className="flex gap-2 mt-3">
             <Button variant="outline" onClick={closeForm} className="flex-1">Cancel</Button>
-            <Button onClick={saveLog} disabled={saving} className="flex-1">{saving ? 'Saving…' : 'Save Log'}</Button>
+            <Button onClick={saveLog} disabled={saving || !hasAnyValue} className="flex-1">{saving ? 'Saving…' : 'Save Log'}</Button>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { toast } from '@/components/ui/use-toast';
 import { Brain, CheckCircle, AlertCircle, Target, Calendar, RefreshCw, Loader2, Sparkles, Clock, MessageCircle, Lock, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useProStatus } from '@/hooks/useProStatus';
@@ -22,7 +23,7 @@ export default function Coach() {
   const [error, setError] = useState('');
   const [cacheId, setCacheId] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [autoGenerate, setAutoGenerate] = useState(false);
+  const autoGenRef = useRef(false);
   const { isPro, loading: proStatusLoading } = useProStatus();
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -41,14 +42,12 @@ export default function Coach() {
         setAdvice(cache[0].content);
         setCacheId(cache[0].id);
         setLastUpdated(cache[0].created_date);
-        setLoading(false);
-      } else if (tx.length >= MIN_TRANSACTIONS && isPro) {
-        setLoading(false);
-        setTimeout(() => setAutoGenerate(true), 100);
-      } else {
-        setLoading(false);
       }
-    }).catch(() => setLoading(false));
+      setLoading(false);
+    }).catch(() => {
+      setLoading(false);
+      toast({ title: "Couldn't load your data", description: 'Please try again in a moment.', variant: 'destructive' });
+    });
   }, []);
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
@@ -64,12 +63,16 @@ export default function Coach() {
 
   const hasEnoughData = transactions.length >= MIN_TRANSACTIONS;
 
+  // Auto-generate today's plan once everything has loaded and there's no cached
+  // insight yet. (The previous version read `isPro` inside the mount effect,
+  // where it was still false while the Pro check was in flight — so the plan
+  // never auto-generated for Pro users.)
   useEffect(() => {
-    if (isPro && autoGenerate && hasEnoughData && !advice && !generating) {
-      setAutoGenerate(false);
-      getAdvice();
-    }
-  }, [autoGenerate, isPro]);
+    if (loading || proStatusLoading || !isPro) return;
+    if (advice || generating || !hasEnoughData || autoGenRef.current) return;
+    autoGenRef.current = true;
+    getAdvice();
+  }, [loading, proStatusLoading, isPro, advice, generating, hasEnoughData]);
 
   const getAdvice = async () => {
     if (!isPro || !hasEnoughData) return;
@@ -91,7 +94,7 @@ User finances:
 - Total spending this month: $${monthExpenses.toFixed(0)}
 - Savings rate: ${savingsRate}%
 - Spending by category: ${budgetStatus || 'no data yet'}
-- Savings goals: ${goals?.map(g => `${g.name}: ${Math.round(((g.current_amount || 0) / g.target_amount) * 100)}%`).join(', ') || 'none set'}
+- Savings goals: ${goals?.filter(g => g.target_amount > 0).map(g => `${g.name}: ${Math.round(((g.current_amount || 0) / g.target_amount) * 100)}%`).join(', ') || 'none set'}
 
 Return exactly this JSON (each item max 18 words, reference real numbers):
 {

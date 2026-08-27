@@ -29,6 +29,7 @@ export default function Goals() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'personal', target_date: '', milestones: [], status: 'active', target_amount: '', savings_amount: 0 });
   const [milestone, setMilestone] = useState('');
+  const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(null);
   const [addMoneyGoalId, setAddMoneyGoalId] = useState(null);
   const [addMoneyAmount, setAddMoneyAmount] = useState('');
@@ -50,9 +51,12 @@ export default function Goals() {
   const { pullY, refreshing, threshold } = usePullToRefresh(loadGoals);
 
   const save = async () => {
-    const data = { ...form, progress: 0, savings_amount: 0 };
+    if (!form.title.trim() || saving) return;
+    setSaving(true);
+    const data = { ...form, title: form.title.trim(), progress: 0, savings_amount: 0 };
     if (data.target_amount) data.target_amount = parseFloat(data.target_amount);
     else delete data.target_amount;
+    if (!data.target_date) delete data.target_date;
     try {
       await base44.entities.Goal.create(data);
       toast({ title: 'Goal created', description: data.title });
@@ -61,6 +65,8 @@ export default function Goals() {
       loadGoals();
     } catch (error) {
       toast({ title: "Couldn't save goal", description: "Please try again in a moment.", variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -83,6 +89,8 @@ export default function Goals() {
   };
 
   const deleteGoal = async (id) => {
+    const goal = goals.find(g => g.id === id);
+    if (!window.confirm(`Delete "${goal?.title || 'this goal'}"? This cannot be undone.`)) return;
     try {
       await base44.entities.Goal.delete(id);
       toast({ title: 'Goal deleted' });
@@ -137,9 +145,13 @@ export default function Goals() {
     const progress = milestones.filter(m => m.completed).length > 0
       ? Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100)
       : goal.progress || 0;
-    await base44.entities.Goal.update(goal.id, { milestones, progress });
-    setNewMilestone(s => ({ ...s, [goal.id]: '' }));
-    loadGoals();
+    try {
+      await base44.entities.Goal.update(goal.id, { milestones, progress });
+      setNewMilestone(s => ({ ...s, [goal.id]: '' }));
+      loadGoals();
+    } catch (error) {
+      toast({ title: "Couldn't add milestone", description: "Please try again in a moment.", variant: 'destructive' });
+    }
   };
 
   const removeMilestone = async (goal, idx) => {
@@ -147,8 +159,12 @@ export default function Goals() {
     const progress = milestones.length > 0
       ? Math.round((milestones.filter(m => m.completed).length / milestones.length) * 100)
       : 0;
-    await base44.entities.Goal.update(goal.id, { milestones, progress });
-    loadGoals();
+    try {
+      await base44.entities.Goal.update(goal.id, { milestones, progress });
+      loadGoals();
+    } catch (error) {
+      toast({ title: "Couldn't remove milestone", description: "Please try again in a moment.", variant: 'destructive' });
+    }
   };
 
   const getAINudge = async (goal) => {
@@ -257,7 +273,9 @@ export default function Goals() {
                 ))}
               </div>
             </div>
-            <Button onClick={save} className="gradient-primary text-white border-0 w-full">Create Goal</Button>
+            <Button onClick={save} disabled={!form.title.trim() || saving} className="gradient-primary text-white border-0 w-full">
+              {saving ? 'Creating…' : 'Create Goal'}
+            </Button>
           </div>
         </div>
       )}
@@ -341,7 +359,7 @@ export default function Goals() {
                   <Button size="sm" variant="outline" onClick={() => completeGoal(goal)} className="text-xs h-7 px-2">
                     <Check className="w-3 h-3 mr-1" />Complete
                   </Button>
-                  <button onClick={() => deleteGoal(goal.id)} className="text-muted-foreground hover:text-destructive">
+                  <button onClick={() => deleteGoal(goal.id)} className="text-muted-foreground hover:text-destructive" title="Delete goal" aria-label="Delete goal">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
