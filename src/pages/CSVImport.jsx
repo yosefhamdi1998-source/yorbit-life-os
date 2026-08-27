@@ -196,7 +196,7 @@ export default function CSVImport() {
               <Upload className="w-4 h-4" /> Choose File
             </Button>
           </div>
-          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5">
+          <div className="sky-card rounded-2xl p-4 sm:p-5">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">How to export your CSV</p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• <strong>Chase:</strong> Download Activity → CSV</li>
@@ -211,7 +211,7 @@ export default function CSVImport() {
       {/* Step 2: Map columns */}
       {step === 'map' && (
         <div>
-          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 mb-4">
+          <div className="sky-card rounded-2xl p-4 sm:p-6 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <FileText className="w-4 h-4 text-primary" />
               <p className="text-base font-bold">Map Your Columns</p>
@@ -254,7 +254,7 @@ export default function CSVImport() {
       {/* Step 3: Preview */}
       {step === 'preview' && (
         <div>
-          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 mb-4">
+          <div className="sky-card rounded-2xl p-4 sm:p-6 mb-4">
             <p className="text-base font-bold mb-0.5">Preview ({preview.length} transactions)</p>
             <p className="text-sm text-muted-foreground mb-4">Review before importing. Duplicates will be skipped automatically.</p>
             <div className="space-y-1 max-h-96 overflow-y-auto">

@@ -31,7 +31,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses }) {
   const sorted = [...catData].sort((a, b) => b.spent - a.spent);
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden mb-4">
+    <div className="sky-card rounded-2xl overflow-hidden mb-4">
       <div className="px-4 pt-4 pb-2">
         <p className="font-bold text-sm text-gray-800">Spending by Category</p>
         <p className="text-xs text-gray-500 font-medium">This month · ${fmt(totalExpenses)} total</p>

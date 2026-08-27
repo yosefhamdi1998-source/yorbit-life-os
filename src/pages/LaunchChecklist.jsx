@@ -102,7 +102,7 @@ export default function LaunchChecklist() {
           { label: 'TestFlight Checklist', path: '/testflight-checklist' },
           { label: 'App Store Copy', path: '/app-store-copy' },
         ].map(({ label, path }) => (
-          <Link key={path} to={path} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between active:opacity-70 transition-opacity">
+          <Link key={path} to={path} className="sky-card rounded-xl px-4 py-3 flex items-center justify-between active:opacity-70 transition-opacity">
             <span className="text-sm font-semibold text-foreground">{label}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </Link>
@@ -110,7 +110,7 @@ export default function LaunchChecklist() {
       </div>
 
       {/* Progress */}
-      <div className="bg-card border border-border rounded-2xl p-4 mb-5">
+      <div className="sky-card rounded-2xl p-4 mb-5">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-bold">Launch Readiness</p>
           <span className="text-sm font-black text-primary">{pct}%</span>

@@ -10,7 +10,7 @@ function CopyBlock({ label, content }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 mb-4">
+    <div className="sky-card rounded-2xl p-5 mb-4">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-foreground">{label}</p>
         <button onClick={copy} className="flex items-center gap-1.5 text-xs text-primary font-medium px-3 py-1.5 rounded-lg bg-primary/8 active:opacity-70 transition-opacity">
@@ -186,7 +186,7 @@ export default function AppStoreCopy() {
       <CopyBlock label="Review Notes for Apple" content={REVIEW_NOTES} />
       <CopyBlock label="Subscription Products (App Store Connect)" content={SUBSCRIPTION_INFO} />
 
-      <div className="bg-card border border-border rounded-2xl p-5 mt-2">
+      <div className="sky-card rounded-2xl p-5 mt-2">
         <p className="text-sm font-bold text-foreground mb-3">App Icon</p>
         <img
           src="https://media.base44.com/images/public/6a1a08af1b08f6ace95e7c1d/33ac3faab_generated_image.png"

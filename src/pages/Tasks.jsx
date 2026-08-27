@@ -119,7 +119,7 @@ export default function Tasks() {
       )}
 
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">New Task</p>
             <button onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
@@ -157,7 +157,7 @@ export default function Tasks() {
           {visible.map(task => {
             const overdue = task.due_date && task.status !== 'done' && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date));
             return (
-              <div key={task.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3.5 py-3">
+              <div key={task.id} className="flex items-center gap-3 sky-card rounded-xl px-3.5 py-3">
                 <button onClick={() => cycleStatus(task)} className="shrink-0 p-1 -m-1" title="Cycle status" aria-label="Cycle status">
                   {task.status === 'done'
                     ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />

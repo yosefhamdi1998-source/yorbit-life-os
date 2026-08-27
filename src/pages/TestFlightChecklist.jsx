@@ -132,7 +132,7 @@ function ChecklistSection({ category, items }) {
   const toggle = (item) => setChecked(prev => ({ ...prev, [item]: !prev[item] }));
 
   return (
-    <div className="bg-card border border-border rounded-2xl overflow-hidden mb-3">
+    <div className="sky-card rounded-2xl overflow-hidden mb-3">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-5 py-4 text-left"

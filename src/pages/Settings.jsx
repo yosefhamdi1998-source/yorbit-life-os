@@ -163,7 +163,7 @@ export default function Settings() {
         </Link>
 
         {/* Rate the app */}
-        <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between">
+        <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-yellow-400/10 rounded-xl flex items-center justify-center">
               <Star className="w-5 h-5 text-yellow-500" />
@@ -186,7 +186,7 @@ export default function Settings() {
         </div>
 
         {/* Restore Purchases — Apple requirement */}
-        <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between">
+        <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-400/10 rounded-xl flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-blue-500" />
@@ -210,7 +210,7 @@ export default function Settings() {
         </div>
 
         {/* Share / Refer */}
-        <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between">
+        <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-pink-400/10 rounded-xl flex items-center justify-center">
               <Heart className="w-5 h-5 text-pink-500" />
@@ -231,7 +231,7 @@ export default function Settings() {
         {/* Connected Accounts — only shown when bank sync feature is enabled */}
         {FEATURES.bankSync && (
           <Link to="/bank-sync">
-            <div className="bg-card border border-border rounded-2xl p-5 flex items-center justify-between active:opacity-70 transition-opacity">
+            <div className="sky-card rounded-2xl p-5 flex items-center justify-between active:opacity-70 transition-opacity">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-primary" />
                 <div>
@@ -245,7 +245,7 @@ export default function Settings() {
         )}
 
         {/* Trust & Privacy */}
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="sky-card rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <Shield className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-sm">Trust & Privacy</h3>
@@ -284,7 +284,7 @@ export default function Settings() {
         </div>
 
         {/* Legal & Support */}
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="sky-card rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <FileText className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-sm">Legal & Support</h3>
@@ -315,7 +315,7 @@ export default function Settings() {
         </div>
 
         {/* Export Data */}
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="sky-card rounded-2xl p-5">
           <h3 className="font-bold text-sm mb-1">Export My Data</h3>
           <p className="text-sm text-muted-foreground mb-4">Download all your transactions, budgets, goals, bills, and net worth entries as a JSON file.</p>
           <Button
@@ -330,7 +330,7 @@ export default function Settings() {
         </div>
 
         {/* Session */}
-        <div className="bg-card border border-border rounded-2xl p-5">
+        <div className="sky-card rounded-2xl p-5">
           <h3 className="font-bold text-sm mb-1">Session</h3>
           <p className="text-sm text-muted-foreground mb-4">Sign out of your account on this device.</p>
           <Button

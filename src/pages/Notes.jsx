@@ -121,7 +121,7 @@ export default function Notes() {
       )}
 
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">{editingId ? 'Edit Note' : 'New Note'}</p>
             <button onClick={closeForm} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">

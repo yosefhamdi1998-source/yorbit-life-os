@@ -313,7 +313,7 @@ export default function Bills() {
 
           {/* Add / Edit form */}
           {showForm && (
-            <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="sky-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-sm">{editingBill ? 'Edit Bill' : 'Add Bill'}</p>
                 <button onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -430,7 +430,7 @@ export default function Bills() {
                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Paid</p>
                   <div className="space-y-2">
                     {paid.map(bill => (
-                      <div key={bill.id} className="bg-card border border-border rounded-2xl p-4 opacity-60">
+                      <div key={bill.id} className="sky-card rounded-2xl p-4 opacity-60">
                         <div className="flex items-center gap-3">
                           <span className="text-xl shrink-0">{CAT_ICONS[bill.category] || '💸'}</span>
                           <div className="flex-1 min-w-0">

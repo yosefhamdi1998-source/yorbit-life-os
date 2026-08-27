@@ -91,7 +91,7 @@ export default function Journal() {
       />
 
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">New Entry</p>
             <button onClick={closeForm} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
@@ -141,7 +141,7 @@ export default function Journal() {
       ) : (
         <div className="space-y-2.5">
           {entries.map(entry => (
-            <div key={entry.id} className="bg-card border border-border rounded-2xl p-4">
+            <div key={entry.id} className="sky-card rounded-2xl p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{MOOD_EMOJI[entry.mood] || '📝'}</span>

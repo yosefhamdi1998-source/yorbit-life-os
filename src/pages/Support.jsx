@@ -15,7 +15,7 @@ export default function Support() {
       <div className="space-y-4">
 
         {/* Contact */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="sky-card rounded-2xl p-6">
           <h2 className="font-bold text-sm mb-1">Contact Us</h2>
           <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
             Have a question, bug report, or feedback? We respond within 24–48 hours.
@@ -34,7 +34,7 @@ export default function Support() {
         </div>
 
         {/* FAQ */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="sky-card rounded-2xl p-6">
           <h2 className="font-bold text-sm mb-4">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {[
@@ -72,7 +72,7 @@ export default function Support() {
         </div>
 
         {/* Legal links */}
-        <div className="bg-card border border-border rounded-2xl p-5 flex gap-4">
+        <div className="sky-card rounded-2xl p-5 flex gap-4">
           <Link to="/privacy-policy" className="flex items-center gap-2 text-sm text-primary font-medium hover:underline">
             <Shield className="w-4 h-4" /> Privacy Policy
           </Link>

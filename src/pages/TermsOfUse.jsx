@@ -18,7 +18,7 @@ export default function TermsOfUse() {
         gradient="gradient-primary"
       />
 
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-1">
+      <div className="sky-card rounded-2xl p-6 space-y-1">
 
         <Section title="Acceptance">
           <p>By using MoneyGlow, you agree to these Terms of Use. If you do not agree, please do not use the app.</p>

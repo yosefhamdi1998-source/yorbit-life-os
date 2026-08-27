@@ -38,7 +38,7 @@ const PieTooltip = ({ active, payload }) => {
   if (active && payload?.length) {
     const { name, value } = payload[0];
     return (
-      <div className="bg-card border border-border rounded-xl px-3 py-2 shadow-lg">
+      <div className="sky-card rounded-xl px-3 py-2 shadow-lg">
         <p className="text-xs font-bold capitalize">{CAT_ICONS[name]} {name}</p>
         <p className="text-sm font-black">${fmt(value)}</p>
       </div>
@@ -258,7 +258,7 @@ export default function SpendingSummary() {
       </div>
 
       {/* Period navigator */}
-      <div className="flex items-center justify-between bg-card border border-border rounded-2xl p-3 mb-4">
+      <div className="flex items-center justify-between sky-card rounded-2xl p-3 mb-4">
         <Button variant="ghost" size="icon" onClick={goPrev} aria-label="Previous period" className="min-h-[44px] min-w-[44px]">
           <ChevronLeft className="w-5 h-5" />
         </Button>
@@ -329,7 +329,7 @@ export default function SpendingSummary() {
           )}
 
           {/* Donut */}
-          <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="sky-card rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
               <p className="font-bold text-sm">Spending by Category</p>
               <p className="text-xs text-muted-foreground font-medium">${fmt(totalSpending)} total</p>
@@ -345,7 +345,7 @@ export default function SpendingSummary() {
           </div>
 
           {/* Trend */}
-          <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="sky-card rounded-2xl p-4 mb-4">
             <p className="font-bold text-sm mb-3">{period === 'yearly' ? 'Monthly Spending' : 'Daily Spending Trend'}</p>
             {period === 'yearly' ? (
               <ResponsiveContainer width="100%" height={180}>
@@ -377,7 +377,7 @@ export default function SpendingSummary() {
           </div>
 
           {/* Category bars */}
-          <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="sky-card rounded-2xl p-4 mb-4">
             <p className="font-bold text-sm mb-3">Category Comparison</p>
             <ResponsiveContainer width="100%" height={Math.max(140, catData.length * 36)}>
               <BarChart data={catData} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
@@ -393,7 +393,7 @@ export default function SpendingSummary() {
           </div>
 
           {/* Breakdown */}
-          <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="sky-card rounded-2xl p-4">
             <p className="font-bold text-sm mb-3">Breakdown</p>
             <div className="space-y-3">
               {catData.map(({ name, spent }) => {

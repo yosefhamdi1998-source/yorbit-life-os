@@ -138,7 +138,7 @@ export default function HealthLog() {
       />
 
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">Log an Entry</p>
             <button onClick={closeForm} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
@@ -182,7 +182,7 @@ export default function HealthLog() {
       ) : (
         <div className="space-y-2.5">
           {logs.map(log => (
-            <div key={log.id} className="bg-card border border-border rounded-2xl p-4">
+            <div key={log.id} className="sky-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-semibold text-muted-foreground">{format(parseISO(log.date), 'EEEE, MMM d')}</span>
                 <button onClick={() => deleteLog(log.id)} className="p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete log" aria-label="Delete log">

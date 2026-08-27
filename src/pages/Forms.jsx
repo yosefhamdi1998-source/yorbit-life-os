@@ -187,7 +187,7 @@ export default function Forms() {
         ) : (
           <div className="space-y-3">
             {filteredRecords.map(record => (
-              <div key={record.id} className="bg-card border border-border rounded-2xl p-4">
+              <div key={record.id} className="sky-card rounded-2xl p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {(selectedForm.fields || []).filter(f => f.label?.trim()).map(field => (
                     <div key={field.id}>
@@ -261,7 +261,7 @@ export default function Forms() {
             <button
               key={form.id}
               onClick={() => openForm(form)}
-              className="bg-card border border-border rounded-2xl p-4 text-left hover:shadow-md transition-shadow active:scale-[0.98] flex items-start gap-3"
+              className="sky-card rounded-2xl p-4 text-left hover:shadow-md transition-shadow active:scale-[0.98] flex items-start gap-3"
             >
               <div className="w-11 h-11 rounded-2xl gradient-primary flex items-center justify-center text-xl shrink-0">
                 {form.icon || '📋'}

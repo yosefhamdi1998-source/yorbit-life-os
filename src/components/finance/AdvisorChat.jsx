@@ -120,7 +120,7 @@ export default function AdvisorChat() {
             <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
               <Bot className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3">
+            <div className="sky-card rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1 items-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: '150ms' }} />

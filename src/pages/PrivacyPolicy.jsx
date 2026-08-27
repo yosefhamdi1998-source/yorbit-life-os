@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
         gradient="gradient-primary"
       />
 
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-1">
+      <div className="sky-card rounded-2xl p-6 space-y-1">
 
         <Section title="Overview">
           <p>MoneyGlow is a personal finance tracking app. We take your privacy seriously. This policy explains what data we collect, how we use it, and your rights.</p>

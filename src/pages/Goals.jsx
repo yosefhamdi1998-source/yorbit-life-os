@@ -230,7 +230,7 @@ export default function Goals() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+        <div className="sky-card rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold">New Goal</h3>
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)} className="min-h-[44px] min-w-[44px]"><X className="w-5 h-5" /></Button>
@@ -282,7 +282,7 @@ export default function Goals() {
           const progress = goal.progress || 0;
 
           return (
-            <div key={goal.id} className="bg-card border border-border rounded-2xl overflow-hidden glow-card">
+            <div key={goal.id} className="sky-card rounded-2xl overflow-hidden glow-card">
               <div className="p-5">
                 <div className="flex items-start gap-3">
                   <div className={`w-10 h-10 ${CAT_GRADIENTS[goal.category] || 'gradient-goals'} rounded-xl flex items-center justify-center shrink-0`}>

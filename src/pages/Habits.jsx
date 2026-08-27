@@ -114,7 +114,7 @@ export default function Habits() {
       />
 
       {showForm && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">New Habit</p>
             <button onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
@@ -161,7 +161,7 @@ export default function Habits() {
           {habits.map(habit => {
             const doneToday = (habit.completions || []).includes(today);
             return (
-              <div key={habit.id} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5">
+              <div key={habit.id} className="flex items-center gap-3 sky-card rounded-2xl px-4 py-3.5">
                 <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-lg shrink-0">{habit.icon || '✅'}</div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate">{habit.name}</p>

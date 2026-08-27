@@ -103,7 +103,7 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
           {filtered.slice(0, 60).map(tx => (
             <div
               key={tx.id}
-              className={`bg-card border border-border rounded-xl overflow-hidden transition-opacity ${tx.id?.startsWith('temp-') ? 'opacity-50' : ''}`}
+              className={`sky-card rounded-xl overflow-hidden transition-opacity ${tx.id?.startsWith('temp-') ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center gap-3 p-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base" style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}>
@@ -351,7 +351,7 @@ export default function Finance() {
               <SpendingByCategoryChart catData={catData} totalExpenses={monthExpenses} />
 
               {monthIncome > 0 && (
-                <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+                <div className="sky-card rounded-2xl p-4 mb-4">
                   <p className="font-bold text-sm mb-3">Money Snapshot</p>
                   <div className="space-y-2.5">
                     {[
@@ -392,7 +392,7 @@ export default function Finance() {
 
         {/* NET WORTH TAB */}
         <TabsContent value="networth">
-          <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <div className="sky-card rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-bold">Net Worth</p>
               <Button onClick={() => setShowNWForm(true)} variant="outline" size="sm" className="h-8 text-xs gap-1">
@@ -405,7 +405,7 @@ export default function Finance() {
           </div>
 
           {showNWForm && (
-            <div className="bg-card border border-border rounded-2xl p-5 mb-4">
+            <div className="sky-card rounded-2xl p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-sm">Add Entry</p>
                 <button onClick={() => setShowNWForm(false)} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -444,7 +444,7 @@ export default function Finance() {
                 <h4 className={`font-bold text-sm ${color} mb-3`}>{label} · ${fmt(total)}</h4>
                 <div className="space-y-2">
                   {netWorth.filter(n => n.type === type).map(n => (
-                    <div key={n.id} className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-2">
+                    <div key={n.id} className="sky-card rounded-xl p-3 flex items-center justify-between gap-2">
                       <div className="min-w-0"><p className="text-sm font-medium truncate">{n.name}</p><p className="text-xs text-muted-foreground capitalize">{n.category}</p></div>
                       <div className="flex items-center gap-1 shrink-0">
                         <span className={`font-bold ${color}`}>{type === 'liability' ? '-' : ''}${fmt(n.value)}</span>

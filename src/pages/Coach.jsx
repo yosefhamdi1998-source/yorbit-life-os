@@ -221,7 +221,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
                   </div>
                 </div>
               </div>
-              <div className="bg-card border border-border rounded-2xl p-4">
+              <div className="sky-card rounded-2xl p-4">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">What you'll get</p>
                 {[
                   { icon: '✅', text: "What's working in your finances" },
@@ -240,15 +240,15 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
             <div className="space-y-4">
               {/* Stats snapshot */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-card border border-border rounded-2xl p-3 text-center">
+                <div className="sky-card rounded-2xl p-3 text-center">
                   <p className="text-lg font-black text-emerald-500">${monthIncome > 0 ? (monthIncome / 1000).toFixed(1) : '0'}k</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Income</p>
                 </div>
-                <div className="bg-card border border-border rounded-2xl p-3 text-center">
+                <div className="sky-card rounded-2xl p-3 text-center">
                   <p className="text-lg font-black text-red-500">${monthExpenses > 0 ? (monthExpenses / 1000).toFixed(1) : '0'}k</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Spending</p>
                 </div>
-                <div className="bg-card border border-border rounded-2xl p-3 text-center">
+                <div className="sky-card rounded-2xl p-3 text-center">
                   <p className={`text-lg font-black ${Number(savingsRate) >= 20 ? 'text-emerald-500' : 'text-amber-500'}`}>{savingsRate}%</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Savings Rate</p>
                 </div>
@@ -268,7 +268,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
               )}
 
               {generating && (
-                <div className="bg-card border border-border rounded-2xl p-6 flex items-center gap-3">
+                <div className="sky-card rounded-2xl p-6 flex items-center gap-3">
                   <Loader2 className="w-5 h-5 text-purple-500 animate-spin shrink-0" />
                   <p className="text-sm text-muted-foreground">Building your personalized coaching plan…</p>
                 </div>
