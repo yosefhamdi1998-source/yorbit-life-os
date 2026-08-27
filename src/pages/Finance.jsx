@@ -119,6 +119,8 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
                   <button
                     onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
                     className="text-muted-foreground hover:text-destructive transition-colors ml-1 shrink-0 p-2 -mr-1 rounded-lg"
+                    title="Delete transaction"
+                    aria-label="Delete transaction"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

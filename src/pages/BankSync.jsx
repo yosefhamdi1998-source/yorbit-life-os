@@ -217,6 +217,7 @@ export default function BankSync() {
                       variant="ghost" size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => disconnect(acct.id)}
+                      aria-label="Disconnect account"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

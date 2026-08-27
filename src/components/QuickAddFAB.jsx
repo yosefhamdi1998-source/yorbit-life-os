@@ -66,6 +66,8 @@ export default function QuickAddFAB() {
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setOpen(o => !o)}
+          aria-label={open ? 'Close quick actions' : 'Open quick actions'}
+          aria-expanded={open}
           className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
           style={{ pointerEvents: 'auto', background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)', boxShadow: '0 4px 16px rgba(37,99,235,0.35)' }}
         >

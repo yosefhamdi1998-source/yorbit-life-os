@@ -178,6 +178,7 @@ export default function Habits() {
                   onClick={() => toggleToday(habit)}
                   className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 ${doneToday ? 'bg-emerald-500' : 'bg-secondary border-2 border-dashed border-border'}`}
                   title={doneToday ? "Done today — tap to undo" : 'Mark done today'}
+                  aria-label={doneToday ? 'Done today — tap to undo' : 'Mark done today'}
                 >
                   {doneToday && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </button>

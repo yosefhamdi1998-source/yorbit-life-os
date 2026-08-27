@@ -117,6 +117,7 @@ export default function Dashboard() {
         onClick={() => setQuickAddOpen(true)}
         className="fixed bottom-[84px] right-4 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform lg:hidden"
         style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
+        aria-label="Quick add expense"
       >
         <Zap className="w-5 h-5 text-white" strokeWidth={2.5} />
       </button>

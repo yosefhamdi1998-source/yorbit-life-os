@@ -138,7 +138,7 @@ export default function Notifications() {
                         <Check className="w-4 h-4 mr-1" /> Mark read
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => remove(n.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => remove(n.id)} aria-label="Delete notification">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

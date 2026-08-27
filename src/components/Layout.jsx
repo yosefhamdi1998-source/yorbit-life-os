@@ -161,16 +161,16 @@ export default function Layout() {
             <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-9 w-9 rounded-full">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-9 w-9 rounded-full" aria-label="More">
               <Grid2x2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} className="h-9 w-9 rounded-full">
+            <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} className="h-9 w-9 rounded-full" aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="h-9 w-9 rounded-full">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="h-9 w-9 rounded-full" aria-label="Notifications">
               <Bell className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="h-9 w-9 rounded-full">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="h-9 w-9 rounded-full" aria-label="Settings">
               <Settings className="w-4 h-4" />
             </Button>
           </div>

@@ -19,6 +19,7 @@ export default function PageHeader({ title, subtitle, icon: Icon, gradient, acti
             size="icon"
             onClick={goBack}
             className="min-h-[44px] min-w-[44px] shrink-0"
+            aria-label="Go back"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
