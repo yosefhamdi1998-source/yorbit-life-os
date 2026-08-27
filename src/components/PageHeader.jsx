@@ -14,7 +14,10 @@ export default function PageHeader({ title, subtitle, action, showBack }) {
   const goBack = useGoBack('/');
 
   return (
-    <div className="flex items-end justify-between mb-5 gap-3">
+    // Title and actions share a row once there's width for it; on a phone the
+    // actions drop to their own line so the subtitle isn't truncated to
+    // "TRACK SPENDING AGAINST …".
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex items-center gap-1.5 min-w-0">
         {showBackBtn && (
           <Button
@@ -29,14 +32,14 @@ export default function PageHeader({ title, subtitle, action, showBack }) {
         )}
         <div className="min-w-0">
           {subtitle && (
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1 truncate">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
               {subtitle}
             </p>
           )}
           <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-none truncate">{title}</h1>
         </div>
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="shrink-0 flex items-center gap-1.5">{action}</div>}
     </div>
   );
 }

@@ -16,8 +16,13 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
     budget: budgets.find(b => b.category === cat && b.month === thisMonth),
   })).filter(d => d.spent > 0 || d.budget);
 
-  const totalBudget = rows.reduce((s, r) => s + (r.budget?.monthly_limit || 0), 0);
-  const totalSpent = rows.reduce((s, r) => s + r.spent, 0);
+  // Compare like with like: spending is only measured against categories that
+  // actually have a limit. Counting unbudgeted spending against a budgeted
+  // total produced nonsense like "$1,596 / $400 · $1,196 over · All on track".
+  const budgetedRows = rows.filter(r => r.budget);
+  const totalBudget = budgetedRows.reduce((s, r) => s + (r.budget?.monthly_limit || 0), 0);
+  const totalSpent = budgetedRows.reduce((s, r) => s + r.spent, 0);
+  const unbudgetedSpent = rows.filter(r => !r.budget).reduce((s, r) => s + r.spent, 0);
   const overCount = rows.filter(r => r.budget && r.spent > r.budget.monthly_limit).length;
   const closeCount = rows.filter(r => {
     if (!r.budget || r.spent > r.budget.monthly_limit) return false;
@@ -83,7 +88,10 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
             />
           </div>
           <div className="flex items-center justify-between mt-1.5">
-            <span className="text-xs text-muted-foreground">{budgetPct}% used</span>
+            <span className="text-xs text-muted-foreground">
+              {budgetPct}% used
+              {unbudgetedSpent > 0 && ` · $${fmt(unbudgetedSpent)} unbudgeted`}
+            </span>
             <div className="flex items-center gap-2">
               {overCount > 0 && (
                 <span className="text-[10px] font-bold text-red-500 flex items-center gap-0.5">

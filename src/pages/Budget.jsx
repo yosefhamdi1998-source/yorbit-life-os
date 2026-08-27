@@ -95,8 +95,12 @@ export default function Budget() {
     budget: budgets.find(b => b.category === cat && b.month === thisMonth),
   })).filter(d => d.spent > 0 || d.budget);
 
-  const totalBudget = rows.reduce((s, r) => s + (r.budget?.monthly_limit || 0), 0);
-  const totalSpent = rows.reduce((s, r) => s + r.spent, 0);
+  // Only measure spending against categories that actually have a limit —
+  // otherwise unbudgeted spending inflates the total against a smaller
+  // budget and the page reports being over while every category is fine.
+  const budgetedRows = rows.filter(r => r.budget);
+  const totalBudget = budgetedRows.reduce((s, r) => s + (r.budget?.monthly_limit || 0), 0);
+  const totalSpent = budgetedRows.reduce((s, r) => s + r.spent, 0);
   const budgetPct = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
   const overCount = rows.filter(r => r.budget && r.spent > r.budget.monthly_limit).length;
 

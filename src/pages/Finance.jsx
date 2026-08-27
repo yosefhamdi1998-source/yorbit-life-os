@@ -289,7 +289,7 @@ export default function Finance() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
       {/* Header */}
-      <div className="flex items-end justify-between mb-4 gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
             {format(new Date(), 'MMMM yyyy')}
