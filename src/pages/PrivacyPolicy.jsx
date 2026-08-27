@@ -43,7 +43,10 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="AI Insights">
-          <p>MoneyGlow uses an AI model to generate personalized financial summaries and coaching tips. Your anonymized spending categories and amounts are sent to the AI model to produce these insights. No personally identifiable information is included in AI requests.</p>
+          <p>MoneyGlow uses Anthropic's Claude AI models to power two kinds of AI features, which send different amounts of data:</p>
+          <p><strong className="text-foreground">Dashboard AI Briefing and the Coach page:</strong> Only aggregated numbers are sent — category totals, your savings rate, and budget status. No individual transaction records are included.</p>
+          <p><strong className="text-foreground">AI Advisor Chat:</strong> To hold a real conversation about your finances, this feature sends your budgets, bills, and recent transactions (including any titles or notes you've entered) to Anthropic. If you'd rather keep certain details out of what's sent to our AI provider, avoid including them in transaction titles, goal names, or chat messages.</p>
+          <p>Anthropic processes this data under its own privacy policy and API terms, which govern how they handle it on their end.</p>
           <p>AI-generated content is informational only. It is not financial, legal, tax, or investment advice.</p>
         </Section>
 
@@ -61,7 +64,7 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="Third-Party Services">
-          <p>MoneyGlow may use third-party services for authentication and infrastructure. These services have their own privacy policies. We do not share your financial data with them beyond what is required to operate the app.</p>
+          <p>MoneyGlow is built on Supabase, which provides our database, authentication, and backend hosting — all of your data is stored there. We use Anthropic's Claude models for AI features (see "AI Insights" above). If you enable bank sync, a provider such as Plaid or Teller handles the connection directly (see "What We Collect"). These providers have their own privacy policies. We do not share your financial data with any of them beyond what is required to operate the app.</p>
         </Section>
 
         <Section title="Children">
