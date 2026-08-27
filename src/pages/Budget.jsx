@@ -100,8 +100,12 @@ export default function Budget() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-lg mx-auto space-y-3">
-        {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-secondary animate-pulse" />)}
+      <div className="p-4 max-w-lg mx-auto space-y-4">
+        <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
+        <div className="h-32 rounded-2xl bg-secondary/60 animate-pulse" />
+        <div className="space-y-3">
+          {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-secondary/60 animate-pulse" />)}
+        </div>
       </div>
     );
   }
