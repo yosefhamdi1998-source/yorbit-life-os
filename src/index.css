@@ -6,24 +6,27 @@
 
 @layer base {
   :root {
-    --background: 210 60% 98%;
-    --foreground: 210 40% 10%;
+    /* Neutral, very slightly cool ground with pure-white cards floating on
+       it — the contrast between the two is what makes cards read as
+       physical objects rather than tinted panels. */
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 210 40% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 40% 10%;
+    --popover-foreground: 222 47% 11%;
     --primary: 217 91% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 94%;
-    --secondary-foreground: 210 30% 30%;
-    --muted: 210 40% 94%;
-    --muted-foreground: 210 20% 42%;
+    --secondary: 220 16% 95%;
+    --secondary-foreground: 220 25% 28%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 12% 42%;
     --accent: 38 95% 56%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 210 30% 90%;
-    --input: 210 30% 90%;
+    --border: 220 15% 91%;
+    --input: 220 15% 91%;
     --ring: 217 91% 50%;
     --radius: 0.875rem;
 
@@ -151,24 +154,25 @@
   }
 
   /* Card styles */
+  /* Solid white on the neutral ground with a hairline border and a short,
+     tight shadow. Reads as a crisp physical card; the old translucent
+     blue-tinted blur muddied every surface it sat on. */
   .sky-card {
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 4px 24px rgba(37, 99, 235, 0.06), 0 1px 4px rgba(0,0,0,0.04);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.04);
   }
   .dark .sky-card {
     background: hsl(220, 22%, 13%);
     border: 1px solid hsl(220, 18%, 20%);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
   }
 
   .glow-primary {
     box-shadow: 0 0 24px rgba(37, 99, 235, 0.2);
   }
   .glow-card {
-    box-shadow: 0 2px 16px rgba(37, 99, 235, 0.06), 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.04);
   }
   .dark .glow-card {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);

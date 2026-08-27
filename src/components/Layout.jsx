@@ -48,10 +48,10 @@ const pageVariants = {
 const TAB_PATHS = ['/', '/finance', '/budget', '/bills', '/coach'];
 
 export default function Layout() {
-  const [dark, setDark] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' ||
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
+  // Light is the product's default look; dark is opt-in via the toggle.
+  // (Previously it followed the OS, so anyone on a dark system never saw
+  // the intended design.)
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const location = useLocation();
   const navigate = useNavigate();
   // Remember last path visited under each tab root
