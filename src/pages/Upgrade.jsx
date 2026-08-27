@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
-import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Receipt, Star, Lock, Infinity } from 'lucide-react';
+import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Receipt, Lock, Infinity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
@@ -29,12 +29,6 @@ const PRICES = {
   monthly: { id: 'price_1Tp0ZJCvjMbso8E2tQSWOW8X', amount: '$4.99', period: '/month', annual: null, badge: null, note: 'Billed monthly' },
   yearly:  { id: 'price_1Tp0ZMCvjMbso8E2xyERKi7E', amount: '$29.99', period: '/year', annual: '$2.50/mo', badge: 'BEST VALUE · Save 50%', note: 'Billed annually' },
 };
-
-const TESTIMONIALS = [
-  { name: 'Sarah M.', text: 'MoneyGlow Pro paid for itself in the first week. I found $200/month I was wasting on subscriptions!', stars: 5 },
-  { name: 'James R.', text: 'The AI coach is unreal. It tells me exactly what to do, not generic advice.', stars: 5 },
-  { name: 'Priya K.', text: 'Finally hit my emergency fund goal. The goal tracker kept me motivated every day.', stars: 5 },
-];
 
 export default function Upgrade() {
   const [plan, setPlan] = useState('yearly');
@@ -139,7 +133,7 @@ export default function Upgrade() {
               </div>
               <div className="flex-1">
                 <p className="text-white font-black text-lg leading-none">Go Pro Today</p>
-                <p className="text-white/70 text-xs mt-0.5">Join 10,000+ members taking control</p>
+                <p className="text-white/70 text-xs mt-0.5">Your money, on autopilot</p>
               </div>
               <span className="bg-yellow-300 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
                 7-DAY FREE TRIAL
@@ -147,9 +141,9 @@ export default function Upgrade() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: '💰', label: 'Avg savings', value: '$340/mo' },
-                { icon: '🎯', label: 'Goals hit', value: '3× more' },
-                { icon: '⚡', label: 'AI insights', value: 'Daily' },
+                { icon: '🤖', label: 'AI coaching', value: 'Daily' },
+                { icon: '🎯', label: 'Goals', value: 'Unlimited' },
+                { icon: '📊', label: 'Budgets', value: 'Every category' },
               ].map(({ icon, label, value }) => (
                 <div key={label} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
                   <div className="text-xl mb-0.5">{icon}</div>
@@ -227,24 +221,6 @@ export default function Upgrade() {
               <p className="text-xs text-foreground font-medium">{label}</p>
               <p className="text-xs text-muted-foreground text-center">{free}</p>
               <p className="text-xs text-emerald-600 font-bold text-center">{pro}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Social Proof */}
-      <div className="px-4 mb-5">
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">What Pro members say</p>
-        <div className="space-y-3">
-          {TESTIMONIALS.map(({ name, text, stars }) => (
-            <div key={name} className="sky-card rounded-2xl p-4">
-              <div className="flex items-center gap-1 mb-2">
-                {Array.from({ length: stars }).map((_, i) => (
-                  <Star key={i} className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                ))}
-              </div>
-              <p className="text-sm text-foreground leading-snug mb-2">"{text}"</p>
-              <p className="text-xs text-muted-foreground font-semibold">— {name}</p>
             </div>
           ))}
         </div>
