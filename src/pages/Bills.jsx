@@ -320,7 +320,7 @@ export default function Bills() {
               <div className="space-y-2">
                 <Input placeholder="Bill name (e.g. Rent, Netflix)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="number" placeholder="Amount ($)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} min="0" />
+                  <Input type="number" placeholder="Amount ($)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} min="0.01" max="10000000" />
                   <Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
                 </div>
                 <MobileSelect

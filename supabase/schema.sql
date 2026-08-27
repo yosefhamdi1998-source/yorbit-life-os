@@ -64,8 +64,8 @@ create trigger on_auth_user_created
 create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  title text not null,
-  amount numeric not null,
+  title text not null check (char_length(title) <= 200),
+  amount numeric not null check (amount > 0 and amount <= 10000000),
   type text not null default 'expense' check (type in ('income','expense')),
   category text not null default 'other' check (category in (
     'housing','food','transport','entertainment','health','shopping',
@@ -81,8 +81,8 @@ create index if not exists idx_transactions_user_date on public.transactions(use
 create table if not exists public.bills (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null,
-  amount numeric not null,
+  name text not null check (char_length(name) <= 200),
+  amount numeric not null check (amount > 0 and amount <= 10000000),
   due_date date not null,
   category text not null default 'other' check (category in (
     'housing','utilities','phone','insurance','subscription','credit_card','loan','other')),
@@ -102,7 +102,7 @@ create table if not exists public.budgets (
   category text not null check (category in (
     'housing','food','transport','entertainment','health','shopping',
     'education','savings','other')),
-  monthly_limit numeric not null,
+  monthly_limit numeric not null check (monthly_limit > 0 and monthly_limit <= 10000000),
   month text not null,
   created_date timestamptz not null default now(),
   updated_date timestamptz not null default now()
@@ -406,6 +406,31 @@ begin
     alter publication supabase_realtime add table public.advisor_messages;
   end if;
 end $$;
+
+-- ============================================================
+-- 3c. Data validation guards
+--    Found by deliberately stress-testing the live app: neither the client
+--    nor the database stopped a negative or absurdly large amount (a
+--    $999,999,999,999.99 test transaction briefly showed the Dashboard's
+--    "Net saved this month" as roughly negative one trillion dollars).
+--    The client's <input min="0"> is only a UI hint - it does nothing to
+--    stop a direct API call. These constraints are the real boundary.
+--    Written as ALTER so they also apply to a database schema.sql already
+--    ran against (the create table statements above only affect fresh
+--    installs, since IF NOT EXISTS skips existing tables entirely).
+-- ============================================================
+alter table public.transactions drop constraint if exists transactions_amount_check;
+alter table public.transactions add constraint transactions_amount_check check (amount > 0 and amount <= 10000000);
+alter table public.transactions drop constraint if exists transactions_title_check;
+alter table public.transactions add constraint transactions_title_check check (char_length(title) <= 200);
+
+alter table public.bills drop constraint if exists bills_amount_check;
+alter table public.bills add constraint bills_amount_check check (amount > 0 and amount <= 10000000);
+alter table public.bills drop constraint if exists bills_name_check;
+alter table public.bills add constraint bills_name_check check (char_length(name) <= 200);
+
+alter table public.budgets drop constraint if exists budgets_monthly_limit_check;
+alter table public.budgets add constraint budgets_monthly_limit_check check (monthly_limit > 0 and monthly_limit <= 10000000);
 
 -- ============================================================
 -- 4. updated_date auto-touch trigger, applied to every table above

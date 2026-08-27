@@ -177,7 +177,7 @@ export default function Budget() {
                 {EXPENSE_CATS.map(c => <SelectItem key={c} value={c}>{CAT_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Input type="number" placeholder="Monthly limit ($)" value={form.monthly_limit} onChange={e => setForm(f => ({ ...f, monthly_limit: e.target.value }))} min="1" />
+            <Input type="number" placeholder="Monthly limit ($)" value={form.monthly_limit} onChange={e => setForm(f => ({ ...f, monthly_limit: e.target.value }))} min="1" max="10000000" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</Button>

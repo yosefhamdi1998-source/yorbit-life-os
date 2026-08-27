@@ -1,0 +1,124 @@
+##############################################################################
+# MoneyGlow — Codemagic CI/CD config
+#
+# WHY THIS EXISTS: submitting an iOS app requires Xcode, which only runs on
+# macOS. Nobody on this project has a Mac. Codemagic runs Xcode on its own
+# cloud Mac machines and can build, code-sign, and submit to App Store
+# Connect / Google Play entirely from this file — no local Mac needed.
+#
+# WHAT YOU STILL HAVE TO DO BEFORE THIS CAN RUN FOR REAL (none of this can
+# be done from a repo file — they're account signups and dashboard clicks):
+#   1. Create an account at codemagic.io and connect this GitHub repo.
+#   2. Apple Developer Program membership ($99/yr) — developer.apple.com.
+#   3. In App Store Connect, create the app listing (bundle ID: app.moneyglow).
+#   4. Generate an App Store Connect API key (Users and Access > Keys) and
+#      add it in Codemagic's dashboard under this app's environment variables
+#      as a group named `app_store_credentials` containing:
+#        APP_STORE_CONNECT_ISSUER_ID
+#        APP_STORE_CONNECT_KEY_IDENTIFIER
+#        APP_STORE_CONNECT_PRIVATE_KEY
+#      Codemagic can also auto-generate/manage signing certificates for you
+#      via that same API key — see "Automatic code signing" in their docs.
+#   5. For Android: a Google Play Console account + a service account JSON
+#      key, added in Codemagic as group `google_play_credentials` with
+#      GCLOUD_SERVICE_ACCOUNT_CREDENTIALS.
+#   6. Fill in the bundle identifiers below if they ever change from
+#      app.moneyglow (must match what's registered in App Store
+#      Connect / Play Console exactly).
+#
+# Nothing above lives in this file or this repo — API keys and credentials
+# are stored only in Codemagic's own encrypted environment variable groups,
+# never committed to git.
+##############################################################################
+
+workflows:
+  ios-app-store:
+    name: iOS — build & submit to App Store Connect
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - app_store_credentials
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "app.moneyglow"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build the web app
+        script: npm run build
+      - name: Sync Capacitor iOS project
+        script: |
+          npx cap sync ios
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App && pod install
+      - name: Set up automatic code signing
+        script: |
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd $CM_BUILD_DIR
+          agvtool new-version -all $(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID") + 1))
+      - name: Build ipa for App Store distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Flip to true once you're ready for a real App Store review, not just TestFlight:
+        submit_to_app_store: false
+
+  android-play-store:
+    name: Android — build & submit to Google Play (internal track)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - google_play_credentials
+      vars:
+        PACKAGE_NAME: "app.moneyglow"
+      node: 20
+      java: 17
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build the web app
+        script: npm run build
+      - name: Sync Capacitor Android project
+        script: |
+          npx cap sync android
+      - name: Build Android App Bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MoneyGlow</string>
+    <string name="title_activity_main">MoneyGlow</string>
+    <string name="package_name">app.moneyglow</string>
+    <string name="custom_url_scheme">app.moneyglow</string>
+</resources>

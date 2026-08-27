@@ -1,14 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * Capacitor config for MoneyGlow iOS build.
- *
- * SETUP STEPS (run in terminal after `npm run build`):
- *   1. npm install @capacitor/core @capacitor/cli @capacitor/ios
- *   2. npx cap init "MoneyGlow" "app.moneyglow" --web-dir=dist
- *   3. npx cap add ios
- *   4. npm run build && npx cap copy ios && npx cap sync ios
- *   5. npx cap open ios   ← opens Xcode; archive & upload from there
+ * Capacitor config for MoneyGlow. @capacitor/core, cli, ios, and android
+ * are installed. The ios/ platform can only be generated on macOS (Xcode
+ * is required) - see codemagic.yaml for the cloud build pipeline that
+ * handles this without needing a local Mac. android/ can be generated
+ * locally: `npm run build && npx cap add android`.
  */
 const config: CapacitorConfig = {
   appId: 'app.moneyglow',

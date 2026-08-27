@@ -148,7 +148,8 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                   placeholder="Amount ($)"
                   value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                  min="0"
+                  min="0.01"
+                  max="10000000"
                   inputMode="decimal"
                   className="h-12 text-base"
                 />
