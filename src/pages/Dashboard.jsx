@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay } from 'date-fns';
-import { TrendingUp, TrendingDown, DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
+import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval } from 'date-fns';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
 import AnimatedNumber from '@/components/AnimatedNumber';
@@ -86,6 +87,20 @@ export default function Dashboard() {
 
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
+  // Running net balance for each day so far this month, for the trend chart.
+  const cashFlowSeries = (() => {
+    const start = startOfMonth(new Date());
+    const days = eachDayOfInterval({ start, end: new Date() });
+    let running = 0;
+    return days.map(d => {
+      const key = format(d, 'yyyy-MM-dd');
+      for (const t of monthTx) {
+        if (t.date === key) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
+      }
+      return { day: format(d, 'MMM d'), net: Math.round(running) };
+    });
+  })();
+
   // Local midnight, so "Due in Nd" counts calendar days (a bill due tomorrow
   // showed "Due in 0d" when compared against the current time of day).
   const today = startOfDay(new Date());
@@ -123,56 +138,81 @@ export default function Dashboard() {
       </button>
       <QuickAddTransactionSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onSave={handleQuickAdd} />
 
-      {/* ── Hero card ─────────────────────────────────────────────────── */}
-      <div
-        className="mt-4 mb-5 rounded-2xl overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 55%, #7c3aed 100%)' }}
-      >
-        <div className="px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-5">
-            <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
-              {format(new Date(), 'MMMM yyyy')}
-            </p>
-            <Link to="/upgrade">
-              <div className="flex items-center gap-1 bg-white/15 hover:bg-white/25 transition-colors rounded-full px-2.5 py-1">
-                <Zap className="w-3 h-3 text-yellow-300" />
-                <span className="text-white text-[11px] font-bold">Go Pro</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Primary metric */}
-          <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
-          <p className="text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5">
-            {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
+      {/* ── Page heading ──────────────────────────────────────────────── */}
+      <div className="flex items-end justify-between mt-5 mb-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+            {format(new Date(), 'MMMM yyyy')}
           </p>
-
-          {/* Income / Expenses */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center gap-2.5 min-w-0">
-              <TrendingUp className="w-4 h-4 text-emerald-300 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Income</p>
-                <p className="text-white font-black text-lg lg:text-2xl leading-tight truncate"><AnimatedNumber prefix="$" value={monthIncome} /></p>
-              </div>
-            </div>
-            <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center gap-2.5 min-w-0">
-              <TrendingDown className="w-4 h-4 text-red-300 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Expenses</p>
-                <p className="text-white font-black text-lg lg:text-2xl leading-tight truncate"><AnimatedNumber prefix="$" value={monthExpenses} /></p>
-              </div>
-            </div>
-          </div>
-
-          {savingsRate > 0 && (
-            <p className="text-white/45 text-xs mt-3">
-              {savingsRate >= 20 ? '🔥 Great savings rate' : savingsRate >= 10 ? '📈 Building momentum' : '💡 Room to save more'} · {savingsRate}% saved
-            </p>
-          )}
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-none">Overview</h1>
         </div>
+        <Link to="/upgrade">
+          <div className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 transition-colors rounded-full px-3 py-1.5">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span className="text-primary text-xs font-bold">Go Pro</span>
+          </div>
+        </Link>
       </div>
+
+      {/* ── Key figures ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: 'Total income', value: monthIncome, tone: 'text-emerald-600 dark:text-emerald-400', prefix: '$' },
+          { label: 'Total expenses', value: monthExpenses, tone: 'text-red-600 dark:text-red-400', prefix: '$' },
+          { label: 'Net saved', value: netSaved, tone: netSaved >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400', prefix: '$' },
+          { label: 'Savings rate', value: savingsRate, tone: 'text-foreground', suffix: '%' },
+        ].map(({ label, value, tone, prefix, suffix }) => (
+          <div key={label} className="sky-card rounded-2xl px-4 py-4 lg:px-5 lg:py-5">
+            <p className={`text-2xl lg:text-[28px] font-black tracking-tight leading-none mb-1.5 ${tone}`}>
+              {prefix && value < 0 ? '−' : ''}
+              <AnimatedNumber prefix={prefix || ''} value={Math.abs(value)} suffix={suffix || ''} />
+            </p>
+            <p className="text-[10px] lg:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Cash flow trend ───────────────────────────────────────────── */}
+      {monthTx.length > 0 && (
+        <div className="sky-card rounded-2xl px-4 pt-4 pb-2 lg:px-5 lg:pt-5 mb-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Cash flow this month
+            </p>
+            <p className={`text-sm font-bold ${netSaved >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              {netSaved >= 0 ? '+' : '−'}${fmt(Math.abs(netSaved))}
+            </p>
+          </div>
+          <div className="h-40 lg:h-56 -ml-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={cashFlowSeries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="cashFlowFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={false} axisLine={false} minTickGap={28} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  tickLine={false} axisLine={false} width={52}
+                  tickFormatter={v => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+                    borderRadius: 12, fontSize: 12 }}
+                  labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                  formatter={v => [`$${fmt(v)}`, 'Net']}
+                />
+                <Area type="monotone" dataKey="net" stroke="#2563EB" strokeWidth={2.5}
+                  fill="url(#cashFlowFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Net Worth */}
       {netWorthEntries.length > 0 && (
