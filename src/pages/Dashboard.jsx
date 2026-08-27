@@ -9,6 +9,7 @@ import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
 import StatCard from '@/components/StatCard';
+import Sparkline from '@/components/Sparkline';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
@@ -98,6 +99,23 @@ export default function Dashboard() {
         if (t.date === key) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
       }
       return { day: format(d, 'MMM d'), net: Math.round(running) };
+    });
+  })();
+
+  // Net worth as it was actually recorded over time: entries in the order
+  // they were added, accumulated. Not a projection — every point is a real
+  // state the account was in. Needs 2+ points to say anything, so it stays
+  // hidden until then.
+  const netWorthTrend = (() => {
+    if (netWorthEntries.length < 2) return [];
+    const sorted = [...netWorthEntries]
+      .filter(e => e.created_date)
+      .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    if (sorted.length < 2) return [];
+    let running = 0;
+    return sorted.map(e => {
+      running += e.type === 'liability' ? -(e.value || 0) : (e.value || 0);
+      return running;
     });
   })();
 
@@ -204,13 +222,18 @@ export default function Dashboard() {
 
       {/* Net Worth */}
       {netWorthEntries.length > 0 && (
-        <div className="mb-5 sky-card rounded-2xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Net Worth</p>
-              <p className="text-2xl lg:text-3xl font-black text-foreground">${fmt(netWorth)}</p>
+        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Net Worth</p>
+              <p className="text-2xl lg:text-3xl font-black text-foreground tabular-nums leading-none">${fmt(netWorth)}</p>
             </div>
-            <div className="flex gap-4 text-right">
+            {netWorthTrend.length > 1 && (
+              <div className="hidden sm:block shrink-0">
+                <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={104} height={34} />
+              </div>
+            )}
+            <div className="flex gap-4 text-right shrink-0">
               <div>
                 <p className="text-[10px] font-semibold uppercase text-muted-foreground">Assets</p>
                 <p className="text-sm lg:text-base font-bold text-emerald-500">${fmt(totalAssets)}</p>
