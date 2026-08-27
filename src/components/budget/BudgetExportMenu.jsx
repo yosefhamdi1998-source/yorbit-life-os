@@ -69,7 +69,7 @@ export default function BudgetExportMenu({ rows, totalSpent, totalBudget, month 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button size="icon" variant="outline" className="border-border min-h-[44px] min-w-[44px]" title="Export">
+        <Button size="icon" variant="outline" className="border-border min-h-[44px] min-w-[44px]" title="Export" aria-label="Export budget">
           <Download className="w-4 h-4" />
         </Button>
       </PopoverTrigger>

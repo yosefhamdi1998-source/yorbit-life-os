@@ -232,6 +232,19 @@ export default function Finance() {
     }
   };
 
+  const deleteNW = async (id) => {
+    const existing = netWorth.find(n => n.id === id);
+    if (!window.confirm(`Delete ${existing?.name || 'this entry'}?`)) return;
+    setNetWorth(prev => prev.filter(n => n.id !== id));
+    try {
+      await base44.entities.NetWorthEntry.delete(id);
+      toast({ title: 'Entry deleted' });
+    } catch (error) {
+      if (existing) setNetWorth(prev => [existing, ...prev]);
+      toast({ title: "Couldn't delete entry", description: "Please try again in a moment.", variant: 'destructive' });
+    }
+  };
+
   const thisMonth = format(new Date(), 'yyyy-MM');
   const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM');
 
@@ -399,7 +412,7 @@ export default function Finance() {
             <div className="bg-card border border-border rounded-2xl p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-sm">Add Entry</p>
-                <button onClick={() => setShowNWForm(false)} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
+                <button onClick={() => setShowNWForm(false)} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
               </div>
               <div className="space-y-3">
                 <Input placeholder="Name (e.g. Savings Account)" value={nwForm.name} onChange={e => setNwForm(f => ({ ...f, name: e.target.value }))} />
@@ -435,9 +448,19 @@ export default function Finance() {
                 <h4 className={`font-bold text-sm ${color} mb-3`}>{label} · ${fmt(total)}</h4>
                 <div className="space-y-2">
                   {netWorth.filter(n => n.type === type).map(n => (
-                    <div key={n.id} className="bg-card border border-border rounded-xl p-3 flex justify-between">
-                      <div><p className="text-sm font-medium">{n.name}</p><p className="text-xs text-muted-foreground capitalize">{n.category}</p></div>
-                      <span className={`font-bold ${color}`}>{type === 'liability' ? '-' : ''}${fmt(n.value)}</span>
+                    <div key={n.id} className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-2">
+                      <div className="min-w-0"><p className="text-sm font-medium truncate">{n.name}</p><p className="text-xs text-muted-foreground capitalize">{n.category}</p></div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className={`font-bold ${color}`}>{type === 'liability' ? '-' : ''}${fmt(n.value)}</span>
+                        <button
+                          onClick={() => deleteNW(n.id)}
+                          className="p-2 -m-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors"
+                          title="Delete entry"
+                          aria-label={`Delete ${n.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {netWorth.filter(n => n.type === type).length === 0 && (

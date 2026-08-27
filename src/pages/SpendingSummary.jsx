@@ -202,14 +202,14 @@ export default function SpendingSummary() {
 
       {/* Period navigator */}
       <div className="flex items-center justify-between bg-card border border-border rounded-2xl p-3 mb-4">
-        <Button variant="ghost" size="icon" onClick={goPrev} className="min-h-[44px] min-w-[44px]">
+        <Button variant="ghost" size="icon" onClick={goPrev} aria-label="Previous period" className="min-h-[44px] min-w-[44px]">
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="text-center">
           <p className="font-bold text-sm">{label}</p>
           <p className="text-[11px] text-muted-foreground">${fmt(totalSpending)} spent</p>
         </div>
-        <Button variant="ghost" size="icon" onClick={goNext} disabled={nextDisabled} className="min-h-[44px] min-w-[44px] disabled:opacity-30">
+        <Button variant="ghost" size="icon" onClick={goNext} disabled={nextDisabled} aria-label="Next period" className="min-h-[44px] min-w-[44px] disabled:opacity-30">
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>

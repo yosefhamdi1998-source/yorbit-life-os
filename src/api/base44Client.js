@@ -14,6 +14,16 @@ const FUNCTION_MAP = {
   saveBill: 'save-bill',
 };
 
+// Surface Edge Function errors to the UI without leaking raw provider
+// internals (e.g. upstream API billing/key errors serialized as JSON blobs)
+// into user-facing toasts. Short, human-written messages pass through.
+function friendlyMessage(message, fallback) {
+  if (!message) return fallback;
+  const internal = /anthropic|openai|api.?key|credit balance|internal server error|non-2xx|\{"type":/i;
+  if (internal.test(message) || message.length > 180) return fallback;
+  return message;
+}
+
 async function invokeFunction(name, body) {
   const slug = FUNCTION_MAP[name] || name;
   const { data, error } = await supabase.functions.invoke(slug, { body: body || {} });
@@ -25,7 +35,7 @@ async function invokeFunction(name, body) {
       const ctx = await error.context?.json?.();
       if (ctx?.error) message = ctx.error;
     } catch (_) { /* keep default message */ }
-    throw new Error(message);
+    throw new Error(friendlyMessage(message, 'Something went wrong. Please try again in a moment.'));
   }
   return data;
 }
@@ -46,7 +56,7 @@ async function invokeLLM({ prompt, response_json_schema }) {
       const ctx = await error.context?.json?.();
       if (ctx?.error) message = ctx.error;
     } catch (_) { /* keep default message */ }
-    throw new Error(message);
+    throw new Error(friendlyMessage(message, 'The AI coach is temporarily unavailable. Please try again later.'));
   }
   return data.result;
 }
@@ -109,7 +119,7 @@ const agents = {
         const ctx = await error.context?.json?.();
         if (ctx?.error) message = ctx.error;
       } catch (_) { /* keep default message */ }
-      throw new Error(message);
+      throw new Error(friendlyMessage(message, 'The AI coach is temporarily unavailable. Please try again later.'));
     }
   },
 };

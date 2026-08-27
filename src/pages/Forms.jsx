@@ -139,7 +139,7 @@ export default function Forms() {
       <div className="p-4 lg:p-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-5 gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedForm(null)} className="min-h-[44px] min-w-[44px] shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedForm(null)} aria-label="Back to forms" className="min-h-[44px] min-w-[44px] shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="w-11 h-11 rounded-2xl gradient-primary flex items-center justify-center text-xl shrink-0">
@@ -151,10 +151,10 @@ export default function Forms() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" onClick={() => setEditForm(selectedForm)} className="min-h-[44px] min-w-[44px]">
+            <Button variant="ghost" size="icon" onClick={() => setEditForm(selectedForm)} aria-label="Edit form" className="min-h-[44px] min-w-[44px]">
               <Pencil className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleDeleteForm(selectedForm)} className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="icon" onClick={() => handleDeleteForm(selectedForm)} aria-label="Delete form" className="min-h-[44px] min-w-[44px] text-muted-foreground hover:text-destructive">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -198,10 +198,10 @@ export default function Forms() {
                 </div>
                 {record.notes && <p className="text-sm text-muted-foreground mt-3 pt-3 border-t border-border">{record.notes}</p>}
                 <div className="flex justify-end gap-1 mt-3">
-                  <Button variant="ghost" size="icon" onClick={() => setRecordModal({ record })} className="min-h-[40px] min-w-[40px]">
+                  <Button variant="ghost" size="icon" onClick={() => setRecordModal({ record })} aria-label="Edit record" className="min-h-[40px] min-w-[40px]">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteRecord(record)} className="min-h-[40px] min-w-[40px] text-muted-foreground hover:text-destructive">
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteRecord(record)} aria-label="Delete record" className="min-h-[40px] min-w-[40px] text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -234,7 +234,7 @@ export default function Forms() {
         icon={FileText}
         gradient="gradient-primary"
         action={
-          <Button size="icon" onClick={() => setShowCreate(true)} className="min-h-[44px] min-w-[44px]">
+          <Button size="icon" onClick={() => setShowCreate(true)} aria-label="New form" className="min-h-[44px] min-w-[44px]">
             <Plus className="w-5 h-5" />
           </Button>
         }

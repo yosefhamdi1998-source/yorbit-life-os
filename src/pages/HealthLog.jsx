@@ -40,6 +40,32 @@ export default function HealthLog() {
 
   const closeForm = () => { setShowForm(false); setForm(DEFAULT_FORM()); };
 
+  // Prefill from the existing log for a date (if any) so "Log Today" edits
+  // today's entry instead of silently creating a duplicate for the same day.
+  const formFromLog = (log) => ({
+    date: log.date,
+    weight: log.weight ?? '',
+    sleep_hours: log.sleep_hours ?? '',
+    water_intake: log.water_intake ?? '',
+    steps: log.steps ?? '',
+    workout: log.workout || '',
+    workout_duration: log.workout_duration ?? '',
+    mood: log.mood ?? '',
+    energy: log.energy ?? '',
+    notes: log.notes || '',
+  });
+
+  const openForm = () => {
+    const existing = logs.find(l => l.date === todayStr());
+    setForm(existing ? formFromLog(existing) : DEFAULT_FORM());
+    setShowForm(true);
+  };
+
+  const handleDateChange = (date) => {
+    const existing = logs.find(l => l.date === date);
+    setForm(f => (existing ? formFromLog(existing) : { ...f, date }));
+  };
+
   const num = (v) => (v === '' || v == null ? null : parseFloat(v));
 
   const hasAnyValue = [form.weight, form.sleep_hours, form.water_intake, form.steps, form.workout, form.workout_duration, form.mood, form.energy, form.notes]
@@ -49,7 +75,7 @@ export default function HealthLog() {
     if (!hasAnyValue) return;
     setSaving(true);
     try {
-      await base44.entities.HealthLog.create({
+      const payload = {
         date: form.date,
         weight: num(form.weight),
         sleep_hours: num(form.sleep_hours),
@@ -60,8 +86,17 @@ export default function HealthLog() {
         mood: num(form.mood),
         energy: num(form.energy),
         notes: form.notes || null,
-      });
-      toast({ title: 'Log saved' });
+      };
+      // One log per day: update the existing entry for this date instead of
+      // creating a duplicate.
+      const existing = logs.find(l => l.date === form.date);
+      if (existing) {
+        await base44.entities.HealthLog.update(existing.id, payload);
+        toast({ title: 'Log updated' });
+      } else {
+        await base44.entities.HealthLog.create(payload);
+        toast({ title: 'Log saved' });
+      }
       closeForm();
       loadLogs(false);
     } catch {
@@ -99,19 +134,19 @@ export default function HealthLog() {
         subtitle="Sleep, steps, weight, and how you feel"
         icon={HeartPulse}
         gradient="gradient-health"
-        action={<Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5"><Plus className="w-4 h-4" /> Log Today</Button>}
+        action={<Button size="sm" onClick={openForm} className="gap-1.5"><Plus className="w-4 h-4" /> Log Today</Button>}
       />
 
       {showForm && (
         <div className="bg-card border border-border rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">Log an Entry</p>
-            <button onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
+            <button onClick={closeForm} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
           <div className="space-y-2">
-            <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            <Input type="date" value={form.date} onChange={e => handleDateChange(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
               <Input type="number" placeholder="Weight (lbs)" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: e.target.value }))} />
               <Input type="number" placeholder="Sleep (hrs)" value={form.sleep_hours} onChange={e => setForm(f => ({ ...f, sleep_hours: e.target.value }))} />
@@ -142,7 +177,7 @@ export default function HealthLog() {
           </div>
           <p className="font-bold mb-1">No logs yet</p>
           <p className="text-sm text-muted-foreground mb-5">Track sleep, steps, and how you're feeling day to day.</p>
-          <Button onClick={() => setShowForm(true)} className="gap-1.5"><Plus className="w-4 h-4" /> Log today</Button>
+          <Button onClick={openForm} className="gap-1.5"><Plus className="w-4 h-4" /> Log today</Button>
         </div>
       ) : (
         <div className="space-y-2.5">
