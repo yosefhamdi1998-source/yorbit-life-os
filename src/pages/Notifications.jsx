@@ -97,6 +97,9 @@ export default function Notifications() {
           <p className="text-sm text-muted-foreground mt-1">
             We’ll alert you here 3 days before any recurring subscription renews.
           </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate('/bills')}>
+            <Receipt className="w-4 h-4 mr-1.5" /> View Bills
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">

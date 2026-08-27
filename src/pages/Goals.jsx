@@ -25,6 +25,7 @@ const CAT_GRADIENTS = { career: 'gradient-goals', health: 'gradient-health', fin
 
 export default function Goals() {
   const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'personal', target_date: '', milestones: [], status: 'active', target_amount: '', savings_amount: 0 });
   const [milestone, setMilestone] = useState('');
@@ -41,6 +42,8 @@ export default function Goals() {
       setGoals(data);
     } catch (error) {
       toast({ title: "Couldn't load goals", description: "Please check your connection and try again.", variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -166,6 +169,21 @@ export default function Goals() {
 
   const active = goals.filter(g => g.status === 'active');
   const completed = goals.filter(g => g.status === 'completed');
+
+  if (loading) {
+    return (
+      <div className="p-4 max-w-3xl mx-auto space-y-4">
+        <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
+          <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
+          <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
+        </div>
+        <div className="h-40 rounded-2xl bg-gradient-to-br from-blue-200/60 to-purple-200/60 animate-pulse" />
+        <div className="h-40 rounded-2xl bg-secondary/60 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
