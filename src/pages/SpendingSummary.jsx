@@ -7,7 +7,7 @@ import {
   subYears, addYears, isSameYear, isAfter, isBefore, isSameDay, parseISO,
   differenceInCalendarDays,
 } from 'date-fns';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid, Sankey } from 'recharts';
 import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
@@ -46,6 +46,39 @@ const PieTooltip = ({ active, payload }) => {
   }
   return null;
 };
+
+// Sankey draws only the ribbons; nodes and their labels are ours to render.
+function SankeyNode({ x, y, width, height, index, payload, containerWidth }) {
+  const isLeaf = x + width + 6 > containerWidth - 130;
+  const color = payload.color || '#94A3B8';
+  if (height < 1) return null;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill={color} rx={3} />
+      <text
+        x={isLeaf ? x + width + 8 : x + width + 8}
+        y={y + height / 2}
+        textAnchor="start"
+        dominantBaseline="middle"
+        className="fill-foreground"
+        style={{ fontSize: 11, fontWeight: 700 }}
+      >
+        {payload.name}
+      </text>
+      <text
+        x={x + width + 8}
+        y={y + height / 2 + 13}
+        textAnchor="start"
+        dominantBaseline="middle"
+        className="fill-muted-foreground"
+        style={{ fontSize: 10, fontWeight: 600 }}
+      >
+        ${(payload.value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+        {payload.pct != null ? ` (${payload.pct}%)` : ''}
+      </text>
+    </g>
+  );
+}
 
 function defaultCursor(period) {
   const now = new Date();
@@ -116,6 +149,43 @@ export default function SpendingSummary() {
   })).filter(d => d.spent > 0).sort((a, b) => b.spent - a.spent), [periodTx]);
 
   const topCategory = catData[0];
+
+  // Income → Spending/Savings → categories. Needs income in the period to
+  // have a source to flow from, so it hides itself when there is none.
+  const sankeyData = useMemo(() => {
+    const income = transactions
+      .filter(t => t.type === 'income' && inRange(t.date, start, end))
+      .reduce((s, t) => s + (t.amount || 0), 0);
+    if (income <= 0 || catData.length === 0) return null;
+
+    const spent = catData.reduce((s, c) => s + c.spent, 0);
+    if (spent <= 0) return null;
+
+    const leftOver = Math.max(0, income - spent);
+    const pct = v => Math.round((v / income) * 100);
+
+    const nodes = [
+      { name: 'Income', value: income, pct: 100, color: '#0EA5E9' },
+      { name: 'Spending', value: spent, pct: pct(spent), color: '#F97316' },
+      ...(leftOver > 0 ? [{ name: 'Left over', value: leftOver, pct: pct(leftOver), color: '#10B981' }] : []),
+      ...catData.map(c => ({
+        name: `${CAT_ICONS[c.name] || ''} ${c.name}`,
+        value: c.spent,
+        pct: pct(c.spent),
+        color: CAT_COLORS[c.name] || '#94A3B8',
+      })),
+    ];
+
+    const spendingIdx = 1;
+    const catOffset = leftOver > 0 ? 3 : 2;
+    const links = [
+      { source: 0, target: spendingIdx, value: spent },
+      ...(leftOver > 0 ? [{ source: 0, target: 2, value: leftOver }] : []),
+      ...catData.map((c, i) => ({ source: spendingIdx, target: catOffset + i, value: c.spent })),
+    ];
+
+    return { nodes, links };
+  }, [transactions, start, end, catData]);
 
   // Trend buckets: daily for monthly/biweekly, monthly for yearly
   const trendData = useMemo(() => {
@@ -226,6 +296,37 @@ export default function SpendingSummary() {
               tone={changePct === null ? 'default' : changePct > 0 ? 'negative' : 'positive'}
             />
           </div>
+
+          {/* Money flow — where income ends up */}
+          {sankeyData && (
+            <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
+              <div className="flex items-baseline justify-between mb-1">
+                <p className="font-bold text-sm">Money Flow</p>
+                <p className="text-xs text-muted-foreground font-medium">{label}</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Every dollar of income, traced to where it ended up.
+              </p>
+              <div className="h-[280px] lg:h-[380px] -mx-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <Sankey
+                    data={sankeyData}
+                    nodePadding={26}
+                    nodeWidth={12}
+                    margin={{ top: 8, right: 130, bottom: 8, left: 8 }}
+                    link={{ stroke: '#93A3B8', strokeOpacity: 0.28 }}
+                    node={<SankeyNode />}
+                  >
+                    <Tooltip
+                      contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+                        borderRadius: 12, fontSize: 12 }}
+                      formatter={v => [`$${fmt(v)}`, 'Amount']}
+                    />
+                  </Sankey>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Donut */}
           <div className="bg-card border border-border rounded-2xl p-4 mb-4">
