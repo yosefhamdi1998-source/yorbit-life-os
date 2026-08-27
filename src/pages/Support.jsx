@@ -60,7 +60,7 @@ export default function Support() {
               },
               {
                 q: 'Can I export my data?',
-                a: 'Yes. Go to Settings → Export My Data to download all your transactions, budgets, goals, and bills as a JSON file.'
+                a: 'Yes. Go to Settings → Export My Data to download all your transactions, budgets, goals, bills, and net worth entries as a JSON file.'
               },
             ].map(({ q, a }) => (
               <div key={q} className="border-b border-border/50 last:border-0 pb-4 last:pb-0">

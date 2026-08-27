@@ -27,6 +27,7 @@ export default function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteResult, setDeleteResult] = useState(''); // 'success' | 'manual' | ''
+  const [deleteDataOpen, setDeleteDataOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -51,20 +52,28 @@ export default function Settings() {
   const handleDeleteData = async () => {
     setDeleting(true);
     try {
-      const [transactions, budgets, goals, bills] = await Promise.all([
+      const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache] = await Promise.all([
         base44.entities.Transaction.list('-date', 1000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
+        base44.entities.Goal.list(),
         base44.entities.Bill.list(),
+        base44.entities.NetWorthEntry.list(),
+        base44.entities.AIInsightCache.list(),
       ]);
       await Promise.all([
         ...transactions.map(t => base44.entities.Transaction.delete(t.id)),
         ...budgets.map(b => base44.entities.Budget.delete(b.id)),
-        ...goals.map(g => base44.entities.SavingsGoal.delete(g.id)),
+        ...savingsGoals.map(g => base44.entities.SavingsGoal.delete(g.id)),
+        ...goals.map(g => base44.entities.Goal.delete(g.id)),
         ...bills.map(b => base44.entities.Bill.delete(b.id)),
+        ...netWorth.map(n => base44.entities.NetWorthEntry.delete(n.id)),
+        ...aiCache.map(c => base44.entities.AIInsightCache.delete(c.id)),
       ]);
+      setDeleteDataOpen(false);
+      toast({ title: 'Data deleted', description: 'All your financial data has been removed.' });
     } catch {
-      // Best effort — continue even if some deletes fail
+      toast({ title: "Couldn't delete everything", description: 'Some items may remain. Please try again.', variant: 'destructive' });
     }
     setDeleting(false);
   };
@@ -86,13 +95,15 @@ export default function Settings() {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const [transactions, budgets, goals, bills] = await Promise.all([
+      const [transactions, budgets, savings_goals, goals, bills, net_worth_entries] = await Promise.all([
         base44.entities.Transaction.list('-date', 1000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
+        base44.entities.Goal.list(),
         base44.entities.Bill.list(),
+        base44.entities.NetWorthEntry.list(),
       ]);
-      const data = { exported_at: new Date().toISOString(), transactions, budgets, goals, bills };
+      const data = { exported_at: new Date().toISOString(), transactions, budgets, savings_goals, goals, bills, net_worth_entries };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -306,7 +317,7 @@ export default function Settings() {
         {/* Export Data */}
         <div className="bg-card border border-border rounded-2xl p-5">
           <h3 className="font-bold text-sm mb-1">Export My Data</h3>
-          <p className="text-sm text-muted-foreground mb-4">Download all your transactions, budgets, goals, and bills as a JSON file.</p>
+          <p className="text-sm text-muted-foreground mb-4">Download all your transactions, budgets, goals, bills, and net worth entries as a JSON file.</p>
           <Button
             variant="outline"
             onClick={handleExportData}
@@ -343,7 +354,7 @@ export default function Settings() {
           </div>
 
           {/* Delete My Data only */}
-          <AlertDialog>
+          <AlertDialog open={deleteDataOpen} onOpenChange={setDeleteDataOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-full min-h-[44px] gap-2 border-destructive/40 text-destructive hover:bg-destructive/5" disabled={deleting}>
                 <Trash2 className="w-4 h-4" /> Delete My Data
@@ -353,7 +364,7 @@ export default function Settings() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete all your financial data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete all your transactions, budgets, goals, and bills. Your account remains. This cannot be undone.
+                  This will permanently delete all your transactions, budgets, goals, bills, and net worth entries. Your account remains. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
