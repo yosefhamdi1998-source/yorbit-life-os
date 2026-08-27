@@ -102,7 +102,7 @@ export default function Budget() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-lg mx-auto space-y-4">
+      <div className="py-4 space-y-4">
         <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="h-32 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="space-y-3">
@@ -113,7 +113,7 @@ export default function Budget() {
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PageHeader
         title="Budget"
         subtitle="Track spending against your limits"

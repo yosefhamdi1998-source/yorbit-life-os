@@ -83,7 +83,7 @@ export default function LaunchChecklist() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="p-4 max-w-lg mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PageHeader
         title="Launch Checklist"
         subtitle="Pre-launch readiness tracker"

@@ -231,9 +231,15 @@ export default function Layout() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className="pb-32 lg:pb-8"
           >
-            <ErrorBoundary key={location.pathname}>
-              <Outlet />
-            </ErrorBoundary>
+            {/* Single shared content container: every page inherits the same
+                width and edge padding, so navigating never resizes content.
+                Phone: edge-to-edge with 16px gutters. Tablet: 24px. Desktop:
+                32px, capped at 768px so lines stay readable on wide screens. */}
+            <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+              <ErrorBoundary key={location.pathname}>
+                <Outlet />
+              </ErrorBoundary>
+            </div>
           </motion.div>
         </AnimatePresence>
       </main>

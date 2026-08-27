@@ -136,7 +136,7 @@ export default function Forms() {
   // Detail view
   if (selectedForm) {
     return (
-      <div className="p-4 lg:p-6 max-w-4xl mx-auto">
+      <div className="py-4 lg:py-6">
         <div className="flex items-center justify-between mb-5 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => setSelectedForm(null)} aria-label="Back to forms" className="min-h-[44px] min-w-[44px] shrink-0">
@@ -227,7 +227,7 @@ export default function Forms() {
 
   // List view
   return (
-    <div className="p-4 lg:p-6 max-w-4xl mx-auto">
+    <div className="py-4 lg:py-6">
       <PageHeader
         title="Forms"
         subtitle="Build custom forms & track anything"

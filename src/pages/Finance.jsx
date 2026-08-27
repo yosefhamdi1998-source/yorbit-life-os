@@ -266,7 +266,7 @@ export default function Finance() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="py-4">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-2xl bg-secondary animate-pulse" />
           <div className="space-y-2 flex-1">
@@ -284,7 +284,7 @@ export default function Finance() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
       {/* Header */}

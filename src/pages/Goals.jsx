@@ -188,7 +188,7 @@ export default function Goals() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-3xl mx-auto space-y-4">
+      <div className="py-4 space-y-4">
         <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="grid grid-cols-3 gap-2">
           <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
@@ -202,7 +202,7 @@ export default function Goals() {
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="py-4">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <PageHeader
         title="Goals"

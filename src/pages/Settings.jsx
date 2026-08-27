@@ -121,7 +121,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto pb-8">
+    <div className="py-6 pb-8">
       <PageHeader
         title="Settings"
         subtitle="Account & privacy"

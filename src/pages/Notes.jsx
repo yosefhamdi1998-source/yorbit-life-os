@@ -96,14 +96,14 @@ export default function Notes() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-3xl mx-auto space-y-3">
+      <div className="py-4 space-y-3">
         {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl bg-secondary animate-pulse" />)}
       </div>
     );
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="py-4">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <PageHeader
         title="Notes"

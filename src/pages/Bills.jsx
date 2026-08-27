@@ -217,7 +217,7 @@ export default function Bills() {
   const usedCategories = [...new Set(bills.map(b => b.category).filter(Boolean))];
 
   if (loading) return (
-    <div className="px-4 py-6 max-w-5xl mx-auto space-y-4 lg:px-8">
+    <div className="py-6 space-y-4">
       <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
       <div className="grid grid-cols-3 gap-3">
         {[1,2,3].map(i => <div key={i} className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />)}
@@ -229,7 +229,7 @@ export default function Bills() {
   );
 
   return (
-    <div className="px-4 py-6 max-w-5xl mx-auto pb-8 lg:px-8">
+    <div className="py-6 pb-8">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <PageHeader
         title="Bills"
@@ -264,7 +264,7 @@ export default function Bills() {
       )}
 
       {/* Two-column layout on desktop */}
-      <div className="lg:grid lg:grid-cols-[320px_1fr] lg:gap-6 lg:items-start">
+      <div>
 
         {/* Left column: filters + form */}
         <div className="space-y-3 mb-4 lg:mb-0">

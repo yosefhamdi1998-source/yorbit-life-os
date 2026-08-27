@@ -10,7 +10,7 @@ const Section = ({ title, children }) => (
 
 export default function PrivacyPolicy() {
   return (
-    <div className="p-6 max-w-xl mx-auto pb-12">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
       <PageHeader
         title="Privacy Policy"
         subtitle="Last updated: June 2026"

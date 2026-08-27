@@ -132,7 +132,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
 
   if (loading || proStatusLoading) {
     return (
-      <div className="p-4 max-w-lg mx-auto space-y-3">
+      <div className="py-4 space-y-3">
         {[1,2,3].map(i => <div key={i} className="h-24 rounded-2xl bg-secondary animate-pulse" />)}
       </div>
     );
@@ -140,7 +140,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
 
   if (!isPro) {
     return (
-      <div className="p-4 max-w-lg mx-auto pb-8">
+      <div className="py-4 pb-8">
         <PageHeader
           title="AI Coach"
           subtitle="Personalized financial guidance, powered by AI"
@@ -169,7 +169,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PageHeader
         title="AI Coach"
         subtitle="Personalized financial guidance, powered by AI"

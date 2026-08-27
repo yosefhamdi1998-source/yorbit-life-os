@@ -161,7 +161,7 @@ Restore Purchases: Available in Settings and on the Upgrade page.`;
 
 export default function AppStoreCopy() {
   return (
-    <div className="p-4 max-w-2xl mx-auto pb-12">
+    <div className="py-4 pb-12">
       <PageHeader
         title="App Store Copy"
         subtitle="Ready-to-paste listing content"

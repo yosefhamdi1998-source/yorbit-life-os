@@ -100,7 +100,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-xl mx-auto px-4 pt-4 space-y-4">
+      <div className="pt-4 space-y-4">
         <div className="h-40 rounded-2xl bg-gradient-to-br from-blue-200/60 to-purple-200/60 animate-pulse" />
         <div className="h-24 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="h-32 rounded-2xl bg-secondary/60 animate-pulse" />
@@ -109,7 +109,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="w-full max-w-xl mx-auto pb-8 overflow-x-hidden">
+    <div className="pb-8 overflow-x-hidden">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
       {/* Quick Add floating button */}

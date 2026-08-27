@@ -11,7 +11,7 @@ export default function More() {
   const items = sidebarItems.filter(i => !BOTTOM_TAB_PATHS.has(i.path));
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
+    <div className="py-4">
       <PageHeader title="More" subtitle="Everything else in MoneyGlow" icon={Grid2x2} gradient="gradient-primary" showBack />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         {items.map(({ path, icon: Icon, label }) => (

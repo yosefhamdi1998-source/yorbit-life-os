@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 export default function Support() {
   return (
-    <div className="p-6 max-w-xl mx-auto pb-12">
+    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
       <PageHeader
         title="Support"
         subtitle="We're here to help"

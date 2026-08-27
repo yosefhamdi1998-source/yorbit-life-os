@@ -161,7 +161,7 @@ export default function SpendingSummary() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="py-4">
         <div className="h-12 w-12 rounded-2xl bg-secondary animate-pulse mb-4" />
         <div className="h-24 rounded-2xl bg-secondary animate-pulse mb-3" />
         <div className="h-64 rounded-2xl bg-secondary animate-pulse" />
@@ -170,7 +170,7 @@ export default function SpendingSummary() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PageHeader
         title="Spending Summary"
         subtitle="Where your money goes"

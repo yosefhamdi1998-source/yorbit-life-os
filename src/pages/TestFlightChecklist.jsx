@@ -169,7 +169,7 @@ export default function TestFlightChecklist() {
   const totalItems = CHECKLIST.reduce((s, c) => s + c.items.length, 0);
 
   return (
-    <div className="p-4 max-w-xl mx-auto pb-12">
+    <div className="py-4 pb-12">
       <PageHeader
         title="TestFlight Checklist"
         subtitle={`${totalItems} items to verify before submission`}

@@ -103,7 +103,7 @@ export default function Upgrade() {
   };
 
   return (
-    <div className="min-h-screen pb-16 max-w-lg mx-auto">
+    <div className="min-h-screen pb-16">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-6 pb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="min-h-[44px] min-w-[44px] shrink-0">

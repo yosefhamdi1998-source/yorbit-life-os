@@ -67,7 +67,7 @@ export default function Notifications() {
   const unreadCount = (items || []).filter((n) => !n.is_read).length;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="py-6">
       <PageHeader
         title="Notifications"
         subtitle={unreadCount ? `${unreadCount} unread` : 'All caught up'}

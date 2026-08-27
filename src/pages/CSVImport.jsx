@@ -149,7 +149,7 @@ export default function CSVImport() {
   };
 
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto lg:px-8 lg:py-10">
+    <div className="py-6 lg:py-10">
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate('/finance')} className="min-h-[44px] min-w-[44px]">
           <ArrowLeft className="w-5 h-5" />

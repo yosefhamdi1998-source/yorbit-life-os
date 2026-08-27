@@ -111,14 +111,14 @@ export default function BankSync() {
 
   if (loading) {
     return (
-      <div className="p-4 max-w-lg mx-auto space-y-3">
+      <div className="py-4 space-y-3">
         {[1,2].map(i => <div key={i} className="h-20 rounded-2xl bg-secondary animate-pulse" />)}
       </div>
     );
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto pb-8">
+    <div className="py-4 pb-8">
       <PageHeader
         title="Connected Accounts"
         subtitle="Auto-import transactions from your bank"
