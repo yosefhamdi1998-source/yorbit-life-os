@@ -8,9 +8,9 @@ import {
   differenceInCalendarDays,
 } from 'date-fns';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid } from 'recharts';
-import { ChevronLeft, ChevronRight, BarChart3, TrendingDown, CalendarDays, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import AnimatedNumber from '@/components/AnimatedNumber';
+import StatCard from '@/components/StatCard';
 import ExportButtons from '@/components/finance/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -77,19 +77,6 @@ const inRange = (dateStr, start, end) => {
   const d = parseISO(dateStr);
   return (isAfter(d, start) || isSameDay(d, start)) && (isBefore(d, end) || isSameDay(d, end));
 };
-
-function StatCard({ label, value, sub, icon: Icon, color, bg }) {
-  return (
-    <div className="sky-card rounded-xl p-3">
-      <div className={`w-7 h-7 ${bg} rounded-lg flex items-center justify-center mb-1.5`}>
-        <Icon className={`w-3.5 h-3.5 ${color}`} />
-      </div>
-      <p className="text-lg font-black leading-none mb-0.5">{value}</p>
-      <p className="text-[11px] text-muted-foreground">{label}</p>
-      {sub && <p className="text-[10px] text-muted-foreground/80 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
 
 export default function SpendingSummary() {
   const navigate = useNavigate();
@@ -226,10 +213,18 @@ export default function SpendingSummary() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-            <StatCard label="Total Spent" value={<AnimatedNumber prefix="$" value={totalSpending} />} icon={TrendingDown} color="text-red-500" bg="bg-red-500/10" />
-            <StatCard label={avgLabel} value={<AnimatedNumber prefix="$" value={avgPerBucket} />} icon={CalendarDays} color="text-blue-500" bg="bg-blue-500/10" />
-            <StatCard label="Top Category" value={topCategory ? `${CAT_ICONS[topCategory.name]}` : '—'} sub={topCategory ? `$${fmt(topCategory.spent)}` : ''} icon={Trophy} color="text-amber-500" bg="bg-amber-500/10" />
-            <StatCard label="vs Previous" value={changePct === null ? '—' : `${changePct > 0 ? '+' : ''}${changePct}%`} icon={TrendingDown} color={changePct === null ? 'text-muted-foreground' : changePct > 0 ? 'text-red-500' : 'text-emerald-500'} bg={changePct === null ? 'bg-secondary' : changePct > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'} />
+            <StatCard label="Total spent" value={totalSpending} prefix="$" tone="negative" />
+            <StatCard label={avgLabel} value={avgPerBucket} prefix="$" />
+            <StatCard
+              label="Top category"
+              value={topCategory ? `${CAT_ICONS[topCategory.name]} ${topCategory.name}` : '—'}
+              sub={topCategory ? `$${fmt(topCategory.spent)}` : ''}
+            />
+            <StatCard
+              label="vs previous"
+              value={changePct === null ? '—' : `${changePct > 0 ? '+' : ''}${changePct}%`}
+              tone={changePct === null ? 'default' : changePct > 0 ? 'negative' : 'positive'}
+            />
           </div>
 
           {/* Donut */}

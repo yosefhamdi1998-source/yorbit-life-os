@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
-import AnimatedNumber from '@/components/AnimatedNumber';
+import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -246,20 +246,9 @@ export default function Bills() {
       {/* Summary */}
       {bills.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="bg-card border border-border rounded-2xl p-3 lg:p-4 text-center">
-            <p className="text-lg lg:text-2xl font-black">
-              <AnimatedNumber value={totalDue} format={n => `$${n > 1000 ? (n / 1000).toFixed(1) + 'k' : n.toFixed(0)}`} />
-            </p>
-            <p className="text-[10px] lg:text-xs text-muted-foreground mt-0.5">Total Due</p>
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-3 lg:p-4 text-center">
-            <p className={`text-lg lg:text-2xl font-black ${overdue > 0 ? 'text-red-500' : 'text-foreground'}`}>{overdue}</p>
-            <p className="text-[10px] lg:text-xs text-muted-foreground mt-0.5">Overdue</p>
-          </div>
-          <div className="bg-card border border-border rounded-2xl p-3 lg:p-4 text-center">
-            <p className={`text-lg lg:text-2xl font-black ${dueSoon > 0 ? 'text-amber-500' : 'text-foreground'}`}>{dueSoon}</p>
-            <p className="text-[10px] lg:text-xs text-muted-foreground mt-0.5">Due This Week</p>
-          </div>
+          <StatCard label="Total due" value={totalDue} prefix="$" />
+          <StatCard label="Overdue" value={overdue} tone={overdue > 0 ? 'negative' : 'default'} />
+          <StatCard label="Due this week" value={dueSoon} tone={dueSoon > 0 ? 'warning' : 'default'} />
         </div>
       )}
 

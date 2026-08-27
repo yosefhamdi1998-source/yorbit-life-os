@@ -8,7 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
-import AnimatedNumber from '@/components/AnimatedNumber';
+import StatCard from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
@@ -156,22 +156,10 @@ export default function Dashboard() {
 
       {/* ── Key figures ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        {[
-          { label: 'Total income', value: monthIncome, tone: 'text-emerald-600 dark:text-emerald-400', prefix: '$' },
-          { label: 'Total expenses', value: monthExpenses, tone: 'text-red-600 dark:text-red-400', prefix: '$' },
-          { label: 'Net saved', value: netSaved, tone: netSaved >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400', prefix: '$' },
-          { label: 'Savings rate', value: savingsRate, tone: 'text-foreground', suffix: '%' },
-        ].map(({ label, value, tone, prefix, suffix }) => (
-          <div key={label} className="sky-card rounded-2xl px-4 py-4 lg:px-5 lg:py-5">
-            <p className={`text-2xl lg:text-[28px] font-black tracking-tight leading-none mb-1.5 ${tone}`}>
-              {prefix && value < 0 ? '−' : ''}
-              <AnimatedNumber prefix={prefix || ''} value={Math.abs(value)} suffix={suffix || ''} />
-            </p>
-            <p className="text-[10px] lg:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {label}
-            </p>
-          </div>
-        ))}
+        <StatCard label="Total income" value={monthIncome} prefix="$" tone="positive" />
+        <StatCard label="Total expenses" value={monthExpenses} prefix="$" tone="negative" />
+        <StatCard label="Net saved" value={netSaved} prefix="$" tone={netSaved >= 0 ? 'default' : 'negative'} />
+        <StatCard label="Savings rate" value={savingsRate} suffix="%" />
       </div>
 
       {/* ── Cash flow trend ───────────────────────────────────────────── */}

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/PageHeader';
 import BudgetExportMenu from '@/components/budget/BudgetExportMenu';
-import AnimatedNumber from '@/components/AnimatedNumber';
+import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 
@@ -139,22 +139,29 @@ export default function Budget() {
 
       {/* Budget Health Overview */}
       {totalBudget > 0 && (
-        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Budget Health</p>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div><p className="text-xs text-muted-foreground">Total Budget</p><p className="text-xl font-black"><AnimatedNumber prefix="$" value={totalBudget} /></p></div>
-            <div><p className="text-xs text-muted-foreground">Total Spent</p><p className={`text-xl font-black ${totalSpent > totalBudget ? 'text-red-500' : ''}`}><AnimatedNumber prefix="$" value={totalSpent} /></p></div>
-            <div><p className="text-xs text-muted-foreground">Remaining</p><p className={`text-xl font-black ${totalBudget - totalSpent < 0 ? 'text-red-500' : 'text-emerald-500'}`}><AnimatedNumber prefix="$" value={Math.abs(totalBudget - totalSpent)} /></p></div>
-            <div><p className="text-xs text-muted-foreground">Over Limit</p><p className={`text-xl font-black ${overCount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{overCount}</p></div>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <StatCard label="Total budget" value={totalBudget} prefix="$" />
+            <StatCard label="Total spent" value={totalSpent} prefix="$" tone={totalSpent > totalBudget ? 'negative' : 'default'} />
+            <StatCard label="Remaining" value={Math.abs(totalBudget - totalSpent)} prefix="$" tone={totalBudget - totalSpent < 0 ? 'negative' : 'positive'} />
+            <StatCard label="Over limit" value={overCount} tone={overCount > 0 ? 'negative' : 'positive'} />
           </div>
-          <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${budgetPct > 100 ? 'bg-red-500' : budgetPct > 85 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-              style={{ width: `${budgetPct}%` }}
-            />
+          <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Budget used</p>
+              <p className="text-sm font-bold tabular-nums">{budgetPct}%</p>
+            </div>
+            <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${budgetPct > 100 ? 'bg-red-500' : budgetPct > 85 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                style={{ width: `${budgetPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              ${fmt(totalSpent)} of ${fmt(totalBudget)} this month
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">{budgetPct}% of monthly budget used</p>
-        </div>
+        </>
       )}
 
       {/* Add Budget Form */}

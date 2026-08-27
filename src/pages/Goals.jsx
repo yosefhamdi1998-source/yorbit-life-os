@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import PageHeader from '@/components/PageHeader';
+import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -217,21 +218,14 @@ export default function Goals() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        <div className="bg-card border border-border rounded-2xl p-3 text-center">
-          <p className="text-xl font-black text-blue-500">{active.length}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Active</p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-3 text-center">
-          <p className="text-xl font-black text-green-500">{completed.length}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Completed</p>
-        </div>
-        <div className="bg-card border border-border rounded-2xl p-3 text-center">
-          <p className="text-xl font-black">
-            {goals.length > 0 ? Math.round(goals.reduce((s, g) => s + (g.progress || 0), 0) / goals.length) : 0}%
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Avg Progress</p>
-        </div>
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <StatCard label="Active" value={active.length} tone="primary" />
+        <StatCard label="Completed" value={completed.length} tone="positive" />
+        <StatCard
+          label="Avg progress"
+          value={goals.length > 0 ? Math.round(goals.reduce((s, g) => s + (g.progress || 0), 0) / goals.length) : 0}
+          suffix="%"
+        />
       </div>
 
       {/* Form */}
