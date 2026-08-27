@@ -207,13 +207,13 @@ const auth = {
 
   logout(redirectUrl) {
     supabase.auth.signOut().finally(() => {
-      if (redirectUrl) window.location.href = redirectUrl;
+      if (redirectUrl) window.location.href = redirectUrl === '/' ? (APP_BASE || '/') : redirectUrl;
     });
   },
 
   redirectToLogin(returnTo) {
     const encoded = encodeURIComponent(returnTo || window.location.href);
-    window.location.href = `/login?returnTo=${encoded}`;
+    window.location.href = `${APP_BASE}/login?returnTo=${encoded}`;
   },
 };
 

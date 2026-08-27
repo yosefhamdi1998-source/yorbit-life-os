@@ -54,7 +54,7 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await base44.auth.resetPassword({ newPassword });
-      window.location.href = "/login";
+      window.location.href = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/login`;
     } catch (err) {
       setError(err.message || "Failed to reset password");
     } finally {

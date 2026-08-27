@@ -5,5 +5,6 @@ export const FEATURES = {
   aiCoach: true,
   financialGoals: true,
   bankSync: true,          // Bank sync enabled
+  googleLogin: false,      // Requires Google OAuth client configured in Supabase — hide the button until then
   launchChecklist: false,  // dev/internal — set true locally; MUST be false before App Store release
 };
