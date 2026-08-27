@@ -216,7 +216,7 @@ export default function Layout() {
 
       {/* ── Main content ─────────────────────────────────────────────── */}
       <main
-        className="flex-1 lg:ml-56 overflow-x-hidden overflow-y-auto w-full"
+        className="flex-1 lg:ml-56 overflow-x-hidden overflow-y-auto w-full lg:w-auto"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 56px)', minHeight: '100dvh' }}
       >
         {/* Reset top padding on desktop since there's no top bar */}
@@ -233,9 +233,9 @@ export default function Layout() {
           >
             {/* Single shared content container: every page inherits the same
                 width and edge padding, so navigating never resizes content.
-                Phone: edge-to-edge with 16px gutters. Tablet: 24px. Desktop:
-                32px, capped at 768px so lines stay readable on wide screens. */}
-            <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                The cap grows with the viewport so big screens fill out
+                instead of stranding the content in a narrow column. */}
+            <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
               <ErrorBoundary key={location.pathname}>
                 <Outlet />
               </ErrorBoundary>
