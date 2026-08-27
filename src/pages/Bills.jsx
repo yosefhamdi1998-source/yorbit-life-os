@@ -7,7 +7,7 @@ import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { toast } from '@/components/ui/use-toast';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 
@@ -182,7 +182,10 @@ export default function Bills() {
     loadBills(false);
   };
 
-  const today = new Date();
+  // Compare against local midnight so a bill due *today* is neither "overdue"
+  // nor "due in 0 days" off-by-one (parseISO returns local midnight; comparing
+  // against `new Date()` mid-day made today's bills count as overdue).
+  const today = startOfDay(new Date());
   const filteredBills = bills.filter(b => {
     if (categoryFilter !== 'all' && b.category !== categoryFilter) return false;
     if (searchQuery) {
@@ -407,7 +410,7 @@ export default function Bills() {
                                 {isOverdue ? (
                                   <span className="flex items-center gap-1 text-xs text-red-500 font-medium"><AlertTriangle className="w-3 h-3" />Overdue</span>
                                 ) : isDueSoon ? (
-                                  <span className="flex items-center gap-1 text-xs text-amber-500 font-medium"><Clock className="w-3 h-3" />Due in {daysUntil} day{daysUntil !== 1 ? 's' : ''}</span>
+                                  <span className="flex items-center gap-1 text-xs text-amber-500 font-medium"><Clock className="w-3 h-3" />{daysUntil === 0 ? 'Due today' : daysUntil === 1 ? 'Due tomorrow' : `Due in ${daysUntil} days`}</span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">Due {format(parseISO(bill.due_date), 'MMM d')}</span>
                                 )}

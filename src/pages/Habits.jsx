@@ -131,7 +131,7 @@ export default function Habits() {
                   key={icon}
                   onClick={() => setForm(f => ({ ...f, icon }))}
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all"
-                  style={{ background: form.icon === icon ? 'var(--primary)' : 'var(--secondary)' }}
+                  style={{ background: form.icon === icon ? 'hsl(var(--primary))' : 'hsl(var(--secondary))' }}
                 >
                   {icon}
                 </button>

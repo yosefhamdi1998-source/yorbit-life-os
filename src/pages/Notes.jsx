@@ -137,7 +137,7 @@ export default function Notes() {
                   key={c}
                   onClick={() => setForm(f => ({ ...f, color: c }))}
                   className="w-7 h-7 rounded-full shrink-0 transition-transform active:scale-90"
-                  style={{ background: c, outline: form.color === c ? '2px solid var(--foreground)' : 'none', outlineOffset: 2 }}
+                  style={{ background: c, outline: form.color === c ? '2px solid hsl(var(--foreground))' : 'none', outlineOffset: 2 }}
                 />
               ))}
             </div>

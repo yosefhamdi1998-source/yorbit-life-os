@@ -105,7 +105,7 @@ export default function Journal() {
                   key={m.value}
                   onClick={() => setForm(f => ({ ...f, mood: m.value }))}
                   className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl transition-all"
-                  style={{ background: form.mood === m.value ? 'var(--secondary)' : 'transparent', outline: form.mood === m.value ? '2px solid var(--primary)' : 'none' }}
+                  style={{ background: form.mood === m.value ? 'hsl(var(--secondary))' : 'transparent', outline: form.mood === m.value ? '2px solid hsl(var(--primary))' : 'none' }}
                 >
                   <span className="text-2xl">{m.emoji}</span>
                   <span className="text-[10px] font-medium text-muted-foreground">{m.label}</span>

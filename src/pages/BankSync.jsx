@@ -23,9 +23,14 @@ export default function BankSync() {
   const [error, setError] = useState(null);
 
   const loadAccounts = useCallback(async () => {
-    const data = await base44.entities.ConnectedAccount.list('-created_date', 20);
-    setAccounts(data.filter(a => a.sync_status !== 'disconnected'));
-    setLoading(false);
+    try {
+      const data = await base44.entities.ConnectedAccount.list('-created_date', 20);
+      setAccounts(data.filter(a => a.sync_status !== 'disconnected'));
+    } catch {
+      setError("We couldn't load your connected accounts. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
@@ -46,9 +51,10 @@ export default function BankSync() {
     try {
       await loadPlaidScript();
 
-      // Get link token from backend
+      // Get link token from backend — the Edge Function returns { link_token } directly
       const res = await base44.functions.invoke('plaidCreateLinkToken', {});
-      const { link_token } = res.data;
+      const { link_token } = res;
+      if (!link_token) throw new Error('No link token returned');
 
       // Open Plaid Link
       const handler = window.Plaid.create({
@@ -62,8 +68,8 @@ export default function BankSync() {
               accounts: metadata.accounts,
             });
             await loadAccounts();
-            // Auto-sync the newly added accounts
-            for (const acct of exchangeRes.data.accounts || []) {
+            // Auto-sync the newly added accounts ({ accounts } comes back flat)
+            for (const acct of exchangeRes.accounts || []) {
               await syncAccount(acct.id);
             }
           } catch (e) {
@@ -89,7 +95,7 @@ export default function BankSync() {
     setError(null);
     try {
       const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id });
-      const { imported, skipped } = res.data;
+      const { imported, skipped } = res;
       setSyncResult({ imported, skipped });
       await loadAccounts();
     } catch (e) {

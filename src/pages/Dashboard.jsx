@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay } from 'date-fns';
 import { TrendingUp, TrendingDown, DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -43,7 +43,7 @@ export default function Dashboard() {
       return { tr, b, sg, bl, nw };
     } catch {
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
-      return { tr: [], b: [], sg: [], bl: [] };
+      return null; // null = load failed (distinct from "user has no data")
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!localStorage.getItem('onboarding_done')) {
-      loadData().then(({ tr, b, sg, bl }) => {
+      loadData().then((result) => {
+        if (!result) return; // network error — don't mistake it for a brand-new user
+        const { tr, b, sg, bl } = result;
         const hasData = tr.length > 0 || b.length > 0 || sg.length > 0 || bl.length > 0;
         if (!hasData) navigate('/onboarding', { replace: true });
       });
@@ -84,7 +86,9 @@ export default function Dashboard() {
 
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
-  const today = new Date();
+  // Local midnight, so "Due in Nd" counts calendar days (a bill due tomorrow
+  // showed "Due in 0d" when compared against the current time of day).
+  const today = startOfDay(new Date());
   const upcomingBills = bills
     .filter(b => !b.is_paid && b.due_date)
     .filter(b => {

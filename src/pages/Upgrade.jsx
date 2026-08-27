@@ -57,8 +57,14 @@ export default function Upgrade() {
     const successUrl = `${window.location.origin}/settings?success=1`;
     const cancelUrl = `${window.location.origin}/upgrade`;
     try {
+      // The create-checkout Edge Function returns { url, sessionId } directly
       const res = await base44.functions.invoke('createCheckout', { priceId: PRICES[plan].id, successUrl, cancelUrl });
-      if (res.data?.url) { window.location.href = res.data.url; } else { setLoading(false); }
+      if (res?.url) {
+        window.location.href = res.url;
+      } else {
+        setLoading(false);
+        toast({ title: "Couldn't open checkout", description: "Please try again in a moment.", variant: 'destructive' });
+      }
     } catch {
       setLoading(false);
       toast({ title: "Couldn't open checkout", description: "Please try again in a moment.", variant: 'destructive' });
