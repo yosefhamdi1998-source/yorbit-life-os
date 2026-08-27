@@ -235,7 +235,7 @@ export default function Layout() {
                 width and edge padding, so navigating never resizes content.
                 The cap grows with the viewport so big screens fill out
                 instead of stranding the content in a narrow column. */}
-            <div className="w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-3xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <ErrorBoundary key={location.pathname}>
                 <Outlet />
               </ErrorBoundary>

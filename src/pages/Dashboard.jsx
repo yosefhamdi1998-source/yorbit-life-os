@@ -125,10 +125,10 @@ export default function Dashboard() {
 
       {/* ── Hero card ─────────────────────────────────────────────────── */}
       <div
-        className="mx-4 mt-4 mb-5 rounded-2xl overflow-hidden"
+        className="mt-4 mb-5 rounded-2xl overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 55%, #7c3aed 100%)' }}
       >
-        <div className="px-5 pt-5 pb-5">
+        <div className="px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
           {/* Header row */}
           <div className="flex items-center justify-between mb-5">
             <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">
@@ -144,7 +144,7 @@ export default function Dashboard() {
 
           {/* Primary metric */}
           <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
-          <p className="text-white text-4xl font-black tracking-tight leading-none mb-5">
+          <p className="text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5">
             {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
           </p>
 
@@ -154,14 +154,14 @@ export default function Dashboard() {
               <TrendingUp className="w-4 h-4 text-emerald-300 shrink-0" />
               <div className="min-w-0">
                 <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Income</p>
-                <p className="text-white font-black text-lg leading-tight truncate"><AnimatedNumber prefix="$" value={monthIncome} /></p>
+                <p className="text-white font-black text-lg lg:text-2xl leading-tight truncate"><AnimatedNumber prefix="$" value={monthIncome} /></p>
               </div>
             </div>
             <div className="bg-white/10 rounded-xl px-4 py-3 flex items-center gap-2.5 min-w-0">
               <TrendingDown className="w-4 h-4 text-red-300 shrink-0" />
               <div className="min-w-0">
                 <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5">Expenses</p>
-                <p className="text-white font-black text-lg leading-tight truncate"><AnimatedNumber prefix="$" value={monthExpenses} /></p>
+                <p className="text-white font-black text-lg lg:text-2xl leading-tight truncate"><AnimatedNumber prefix="$" value={monthExpenses} /></p>
               </div>
             </div>
           </div>
@@ -176,28 +176,30 @@ export default function Dashboard() {
 
       {/* Net Worth */}
       {netWorthEntries.length > 0 && (
-        <div className="mx-4 mb-5 sky-card rounded-2xl p-4">
+        <div className="mb-5 sky-card rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Net Worth</p>
-              <p className="text-2xl font-black text-foreground">${fmt(netWorth)}</p>
+              <p className="text-2xl lg:text-3xl font-black text-foreground">${fmt(netWorth)}</p>
             </div>
             <div className="flex gap-4 text-right">
               <div>
                 <p className="text-[10px] font-semibold uppercase text-muted-foreground">Assets</p>
-                <p className="text-sm font-bold text-emerald-500">${fmt(totalAssets)}</p>
+                <p className="text-sm lg:text-base font-bold text-emerald-500">${fmt(totalAssets)}</p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase text-muted-foreground">Liabilities</p>
-                <p className="text-sm font-bold text-red-500">${fmt(totalLiabilities)}</p>
+                <p className="text-sm lg:text-base font-bold text-red-500">${fmt(totalLiabilities)}</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Content sections ──────────────────────────────────────────── */}
-      <div className="px-4 space-y-5">
+      {/* ── Content sections ──────────────────────────────────────────
+          One column on phone; two side-by-side columns from lg up, so
+          cards stay a readable width instead of stretching into bands. */}
+      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
 
         {/* Onboarding CTA */}
         {isNewUser && (
