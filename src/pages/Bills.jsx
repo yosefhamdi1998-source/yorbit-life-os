@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import { toast } from '@/components/ui/use-toast';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -237,7 +238,9 @@ export default function Bills() {
       {bills.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-card border border-border rounded-2xl p-3 lg:p-4 text-center">
-            <p className="text-lg lg:text-2xl font-black">${totalDue > 1000 ? (totalDue / 1000).toFixed(1) + 'k' : totalDue.toFixed(0)}</p>
+            <p className="text-lg lg:text-2xl font-black">
+              <AnimatedNumber value={totalDue} format={n => `$${n > 1000 ? (n / 1000).toFixed(1) + 'k' : n.toFixed(0)}`} />
+            </p>
             <p className="text-[10px] lg:text-xs text-muted-foreground mt-0.5">Total Due</p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-3 lg:p-4 text-center">

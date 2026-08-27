@@ -10,6 +10,7 @@ import {
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid } from 'recharts';
 import { ChevronLeft, ChevronRight, BarChart3, TrendingDown, CalendarDays, Trophy } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import ExportButtons from '@/components/finance/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -225,8 +226,8 @@ export default function SpendingSummary() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-            <StatCard label="Total Spent" value={`$${fmt(totalSpending)}`} icon={TrendingDown} color="text-red-500" bg="bg-red-500/10" />
-            <StatCard label={avgLabel} value={`$${fmt(avgPerBucket)}`} icon={CalendarDays} color="text-blue-500" bg="bg-blue-500/10" />
+            <StatCard label="Total Spent" value={<AnimatedNumber prefix="$" value={totalSpending} />} icon={TrendingDown} color="text-red-500" bg="bg-red-500/10" />
+            <StatCard label={avgLabel} value={<AnimatedNumber prefix="$" value={avgPerBucket} />} icon={CalendarDays} color="text-blue-500" bg="bg-blue-500/10" />
             <StatCard label="Top Category" value={topCategory ? `${CAT_ICONS[topCategory.name]}` : '—'} sub={topCategory ? `$${fmt(topCategory.spent)}` : ''} icon={Trophy} color="text-amber-500" bg="bg-amber-500/10" />
             <StatCard label="vs Previous" value={changePct === null ? '—' : `${changePct > 0 ? '+' : ''}${changePct}%`} icon={TrendingDown} color={changePct === null ? 'text-muted-foreground' : changePct > 0 ? 'text-red-500' : 'text-emerald-500'} bg={changePct === null ? 'bg-secondary' : changePct > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'} />
           </div>

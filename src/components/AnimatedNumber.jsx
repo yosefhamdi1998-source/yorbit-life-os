@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
 // Animates a numeric value counting up/down to its target whenever it changes.
-export default function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0 }) {
+// Pass `format` for custom display (e.g. "1.2k" abbreviation) instead of
+// prefix/suffix/decimals - it receives the in-flight animated number.
+export default function AnimatedNumber({ value, prefix = '', suffix = '', decimals = 0, format }) {
   const target = Number.isFinite(value) ? value : 0;
   const [display, setDisplay] = useState(target);
   const fromRef = useRef(target);
@@ -28,6 +30,8 @@ export default function AnimatedNumber({ value, prefix = '', suffix = '', decima
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [target]);
+
+  if (format) return <span>{format(display)}</span>;
 
   return (
     <span>
