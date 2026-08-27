@@ -162,8 +162,10 @@ export default function Finance() {
 
   const [nwForm, setNwForm] = useState({ name: '', type: 'asset', value: '', category: 'cash' });
 
-  const loadData = async () => {
-    setLoading(true);
+  // showSkeleton only on the initial load — refreshes after a save/delete or
+  // pull-to-refresh update in place instead of flashing the full-page skeleton.
+  const loadData = async (showSkeleton = false) => {
+    if (showSkeleton) setLoading(true);
     const timeout = setTimeout(() => setLoading(false), 5000);
     try {
       const [tx, b, nw] = await Promise.all([
@@ -181,7 +183,7 @@ export default function Finance() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(true); }, []);
 
   const { pullY, refreshing, threshold } = usePullToRefresh(loadData);
 
