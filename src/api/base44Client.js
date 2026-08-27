@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient';
 import { entities } from './entities';
 
+// Subpath the app is served under ('' at a root domain, '/yorbit-life-os'
+// on GitHub Pages) - auth redirect URLs must include it or emailed links
+// land on a 404.
+const APP_BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 // Maps the camelCase function names used throughout the app
 // (base44.functions.invoke('plaidCreateLinkToken', {...})) to the
 // kebab-case slugs Supabase Edge Functions are deployed under.
@@ -156,7 +161,7 @@ const auth = {
   loginWithProvider(provider, redirectPath = '/') {
     supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}${redirectPath}` },
+      options: { redirectTo: `${window.location.origin}${APP_BASE}${redirectPath}` },
     });
   },
 
@@ -187,7 +192,7 @@ const auth = {
 
   async resetPasswordRequest(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}${APP_BASE}/reset-password`,
     });
     if (error) throw new Error(error.message);
   },
