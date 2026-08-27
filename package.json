@@ -46,6 +46,7 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@revenuecat/purchases-capacitor": "^10.4.0",
+    "@sentry/react": "^10.71.0",
     "@stripe/react-stripe-js": "^3.0.0",
     "@stripe/stripe-js": "^5.2.0",
     "@supabase/supabase-js": "^2.45.4",

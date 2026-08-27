@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import { AlertTriangle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { reportError } from '@/lib/errorReporting';
 
 // Catches render-time errors anywhere below it in the tree and shows a
 // recoverable screen instead of leaving the whole app blank.
@@ -16,6 +17,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('Uncaught render error:', error, info?.componentStack);
+    reportError(error, { componentStack: info?.componentStack });
   }
 
   handleReload = () => {
