@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, TrendingUp, TrendingDown, X, Trash2, Search, PiggyBank, Upload, Receipt, Link2, BarChart3 } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3 } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -10,6 +10,7 @@ import { MobileSelect } from '@/components/ui/mobile-select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SpendingByCategoryChart from '@/components/finance/SpendingByCategoryChart';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import StatCard from '@/components/StatCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, format } from 'date-fns';
@@ -288,8 +289,13 @@ export default function Finance() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-black tracking-tight">Money</h1>
+      <div className="flex items-end justify-between mb-4 gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+            {format(new Date(), 'MMMM yyyy')}
+          </p>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-none">Money</h1>
+        </div>
         <div className="flex gap-1.5 items-center">
           <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary" aria-label="Spending Summary">
             <BarChart3 className="w-4 h-4" />
@@ -312,21 +318,11 @@ export default function Finance() {
       </div>
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-        {[
-          { label: 'Income', value: `$${fmt(monthIncome)}`, icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Spending', value: `$${fmt(monthExpenses)}`, icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-500/10' },
-          { label: 'Net Saved', value: `$${fmt(Math.max(0, netSaved))}`, icon: PiggyBank, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Savings Rate', value: `${savingsRate}%`, icon: TrendingUp, color: savingsRate >= 20 ? 'text-emerald-500' : 'text-amber-500', bg: savingsRate >= 20 ? 'bg-emerald-500/10' : 'bg-amber-500/10' },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="sky-card rounded-xl p-3">
-            <div className={`w-6 h-6 ${bg} rounded-lg flex items-center justify-center mb-1.5`}>
-              <Icon className={`w-3 h-3 ${color}`} />
-            </div>
-            <p className="text-base font-black leading-none mb-0.5">{value}</p>
-            <p className="text-[11px] text-muted-foreground">{label}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <StatCard label="Income" value={monthIncome} prefix="$" tone="positive" />
+        <StatCard label="Spending" value={monthExpenses} prefix="$" tone="negative" />
+        <StatCard label="Net saved" value={netSaved} prefix="$" tone={netSaved >= 0 ? 'default' : 'negative'} />
+        <StatCard label="Savings rate" value={savingsRate} suffix="%" tone={savingsRate >= 20 ? 'positive' : 'warning'} />
       </div>
 
       {/* Add Transaction Bottom Sheet */}
