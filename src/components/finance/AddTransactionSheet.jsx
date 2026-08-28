@@ -75,10 +75,15 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim() || !form.amount) return;
+    if (!form.amount) return;
     setSaving(true);
     try {
-      await onSave({ ...form, amount: parseFloat(form.amount) });
+      // Amount is the only thing worth insisting on. Requiring a description
+      // too meant typing an amount, tapping Save and getting nothing, because
+      // the button stayed disabled without saying why.
+      const title = form.title.trim()
+        || form.category.charAt(0).toUpperCase() + form.category.slice(1);
+      await onSave({ ...form, title, amount: parseFloat(form.amount) });
       onClose();
     } catch {
       // Parent already shows the error toast
@@ -147,7 +152,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
               {/* Fields */}
               <div className="space-y-3">
                 <Input
-                  placeholder="Description (e.g. Grocery run)"
+                  placeholder="Description (optional)"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   className="h-12 text-base"
@@ -192,7 +197,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={!form.title.trim() || !form.amount || saving}
+                  disabled={!form.amount || saving}
                   className={`flex-1 h-12 text-white border-0 gap-1.5 ${
                     form.type === 'income'
                       ? 'bg-emerald-600 hover:bg-emerald-700'
