@@ -13,7 +13,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate } from 'react-router-dom';
-import { subMonths, format } from 'date-fns';
+import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
@@ -45,6 +45,22 @@ function getCatOptions(type) {
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
+// "Today" / "Yesterday" / "Tue, Aug 25" — parseISO so a yyyy-MM-dd string
+// isn't read as UTC midnight and shown as the previous day.
+function dateHeading(dateStr) {
+  if (!dateStr || dateStr === 'unknown') return 'No date';
+  try {
+    const d = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    const diff = differenceInCalendarDays(today, startOfDay(d));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return format(d, 'EEE, MMM d');
+  } catch {
+    return dateStr;
+  }
+}
+
 // ─── Transaction List ─────────────────────────────────────────────────────────
 function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
   const [search, setSearch] = useState('');
@@ -62,6 +78,17 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
     }
     return list;
   }, [transactions, filter, search, thisMonth]);
+
+  // Rows arrive newest-first; bucket them by day, preserving that order.
+  const grouped = useMemo(() => {
+    const buckets = new Map();
+    for (const tx of filtered.slice(0, 60)) {
+      const key = tx.date || 'unknown';
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(tx);
+    }
+    return [...buckets.entries()];
+  }, [filtered]);
 
   if (transactions.length === 0) {
     return (
@@ -99,50 +126,64 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
           <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.slice(0, 60).map(tx => (
-            <div
-              key={tx.id}
-              className={`sky-card rounded-xl overflow-hidden transition-opacity ${tx.id?.startsWith('temp-') ? 'opacity-50' : ''}`}
-            >
-              <div className="flex items-center gap-3 p-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base" style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}>
-                  {CAT_ICONS[tx.category] || '💸'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{tx.title}</p>
-                  <p className="text-xs text-muted-foreground capitalize truncate">{tx.category} · {tx.date}</p>
-                </div>
-                <span className={`font-bold text-sm shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
-                  {tx.type === 'income' ? '+' : '-'}${tx.amount?.toFixed(2)}
-                </span>
-                {!tx.id?.startsWith('temp-') && (
-                  <button
-                    onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors ml-1 shrink-0 p-2 -mr-1 rounded-lg"
-                    title="Delete transaction"
-                    aria-label="Delete transaction"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+        // One card holding date-grouped rows, rather than a stack of floating
+        // cards: the eye follows a single edge down the list instead of
+        // re-finding it on every row.
+        <div className="sky-card rounded-2xl overflow-hidden">
+          {grouped.map(([date, txs]) => (
+            <div key={date}>
+              <div className="px-4 py-2 bg-secondary/40 border-y border-border/50 first:border-t-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {dateHeading(date)}
+                </p>
               </div>
-              {confirmId === tx.id && (
-                <div className="flex items-center justify-between px-3 pb-3 gap-2 border-t border-border/40">
-                  <p className="text-xs text-muted-foreground">Delete this transaction?</p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmId(null)}>Cancel</Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-7 text-xs"
-                      onClick={() => { onDelete(tx.id); setConfirmId(null); }}
-                    >
-                      Delete
-                    </Button>
+              <div className="divide-y divide-border/50">
+                {txs.map(tx => (
+                  <div key={tx.id} className={tx.id?.startsWith('temp-') ? 'opacity-50' : ''}>
+                    <div className="flex items-center gap-3 px-4 py-3 group">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+                        style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}
+                      >
+                        {CAT_ICONS[tx.category] || '💸'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{tx.title}</p>
+                        <p className="text-xs text-muted-foreground capitalize truncate">{tx.category}</p>
+                      </div>
+                      <span className={`font-bold text-sm shrink-0 tabular-nums ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                        {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
+                      </span>
+                      {!tx.id?.startsWith('temp-') && (
+                        <button
+                          onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
+                          className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 p-2 -mr-2 rounded-lg"
+                          title="Delete transaction"
+                          aria-label="Delete transaction"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {confirmId === tx.id && (
+                      <div className="flex items-center justify-between px-4 pb-3 gap-2">
+                        <p className="text-xs text-muted-foreground">Delete this transaction?</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmId(null)}>Cancel</Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs"
+                            onClick={() => { onDelete(tx.id); setConfirmId(null); }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           ))}
         </div>
