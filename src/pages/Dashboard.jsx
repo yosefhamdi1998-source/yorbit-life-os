@@ -9,6 +9,7 @@ import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
 import StatCard from '@/components/StatCard';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import Sparkline from '@/components/Sparkline';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -65,6 +66,7 @@ export default function Dashboard() {
   }, [loadData]);
 
   const { pullY, refreshing, threshold } = usePullToRefresh(loadData);
+  useAutoOpenForm(() => setQuickAddOpen(true));
 
   const handleQuickAdd = async (data) => {
     try {
@@ -145,15 +147,10 @@ export default function Dashboard() {
     <div className="pb-8 overflow-x-hidden">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
-      {/* Quick Add floating button */}
-      <button
-        onClick={() => setQuickAddOpen(true)}
-        className="fixed bottom-[84px] right-4 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform lg:hidden"
-        style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 4px 16px rgba(16,185,129,0.35)' }}
-        aria-label="Quick add expense"
-      >
-        <Zap className="w-5 h-5 text-white" strokeWidth={2.5} />
-      </button>
+      {/* Opened from the shared quick-action button in the layout. This page
+          used to render its own floating button at the identical position,
+          where the layout's button covered it completely and swallowed every
+          tap. */}
       <QuickAddTransactionSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onSave={handleQuickAdd} />
 
       {/* ── Page heading ──────────────────────────────────────────────── */}

@@ -3,11 +3,14 @@ import { Plus, DollarSign, Target, Receipt, PiggyBank } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// `?add=1` is read by useAutoOpenForm on the destination page, so these land
+// with the create form already open instead of dropping the user on a list
+// and making them find the Add button.
 const ACTIONS = [
-  { icon: DollarSign, label: 'Add Transaction', path: '/finance', color: '#10b981' },
-  { icon: PiggyBank, label: 'Set Budget', path: '/budget', color: '#3b82f6' },
-  { icon: Target, label: 'New Goal', path: '/goals', color: '#7c3aed' },
-  { icon: Receipt, label: 'Add Bill', path: '/bills?add=true', color: '#f59e0b' },
+  { icon: DollarSign, label: 'Add Transaction', path: '/finance?add=1', color: '#10b981' },
+  { icon: PiggyBank, label: 'Set Budget', path: '/budget?add=1', color: '#3b82f6' },
+  { icon: Target, label: 'New Goal', path: '/goals?add=1', color: '#7c3aed' },
+  { icon: Receipt, label: 'Add Bill', path: '/bills?add=1', color: '#f59e0b' },
 ];
 
 // Pages where FAB should NOT appear

@@ -15,6 +15,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate } from 'react-router-dom';
 import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
@@ -200,6 +201,7 @@ export default function Finance() {
   const [netWorth, setNetWorth] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTxForm, setShowTxForm] = useState(false);
+  useAutoOpenForm(() => setShowTxForm(true));
   const [showNWForm, setShowNWForm] = useState(false);
 
   const [nwForm, setNwForm] = useState({ name: '', type: 'asset', value: '', category: 'cash' });

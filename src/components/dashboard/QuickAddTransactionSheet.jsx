@@ -56,17 +56,21 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
   };
 
   return (
+    // Keyed array, not a fragment: AnimatePresence tracks exits by key, and
+    // an unkeyed fragment can leave the full-screen backdrop mounted after
+    // close, swallowing every tap.
     <AnimatePresence>
-      {open && (
-        <>
+      {open && [
           <motion.div
+            key="backdrop"
             className="fixed inset-0 bg-black/40 z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-          />
+          />,
           <motion.div
+            key="sheet"
             className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             initial={{ y: '100%' }}
@@ -123,9 +127,8 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
                 {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Add</>}
               </Button>
             </div>
-          </motion.div>
-        </>
-      )}
+          </motion.div>,
+      ]}
     </AnimatePresence>
   );
 }

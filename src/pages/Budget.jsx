@@ -9,6 +9,7 @@ import BudgetExportMenu from '@/components/budget/BudgetExportMenu';
 import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', other: '💸' };
@@ -28,6 +29,7 @@ export default function Budget() {
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  useAutoOpenForm(() => setShowForm(true));
   const [form, setForm] = useState({ category: 'food', monthly_limit: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
 
@@ -24,6 +25,7 @@ export default function Bills() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  useAutoOpenForm(() => setShowForm(true));
   const [editingBill, setEditingBill] = useState(null);
   const [form, setForm] = useState({ name: '', amount: '', due_date: '', category: 'other', is_recurring: true });
   const [saving, setSaving] = useState(false);

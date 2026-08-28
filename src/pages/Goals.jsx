@@ -13,6 +13,7 @@ import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import confetti from 'canvas-confetti';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 function celebrateGoal() {
   const colors = ['#2563EB', '#7C3AED', '#F59E0B', '#10B981'];
@@ -28,6 +29,7 @@ export default function Goals() {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  useAutoOpenForm(() => setShowForm(true));
   const [form, setForm] = useState({ title: '', description: '', category: 'personal', target_date: '', milestones: [], status: 'active', target_amount: '', savings_amount: 0 });
   const [milestone, setMilestone] = useState('');
   const [saving, setSaving] = useState(false);
