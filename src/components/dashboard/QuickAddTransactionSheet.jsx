@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +18,24 @@ const DEFAULTS = () => ({ amount: '', category: 'food' });
 export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
   const [form, setForm] = useState(DEFAULTS());
   const [saving, setSaving] = useState(false);
+
+  // Mount/visibility are tracked explicitly and torn down on a timer rather
+  // than relying on an exit animation to finish. An exit that never completes
+  // used to leave the full-screen backdrop mounted and eating every tap,
+  // which read as the whole app freezing.
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const raf = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setShown(false);
+    const t = setTimeout(() => setMounted(false), 260);
+    return () => clearTimeout(t);
+  }, [open]);
 
   useEffect(() => {
     if (open) setForm(DEFAULTS());
@@ -55,28 +72,18 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    // Keyed array, not a fragment: AnimatePresence tracks exits by key, and
-    // an unkeyed fragment can leave the full-screen backdrop mounted after
-    // close, swallowing every tap.
-    <AnimatePresence>
-      {open && [
-          <motion.div
-            key="backdrop"
-            className="fixed inset-0 bg-black/40 z-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />,
-          <motion.div
-            key="sheet"
-            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl"
+    <>
+      <div
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 ${shown ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
           >
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 rounded-full bg-border" />
@@ -127,8 +134,7 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
                 {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Add</>}
               </Button>
             </div>
-          </motion.div>,
-      ]}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }
