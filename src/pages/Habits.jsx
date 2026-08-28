@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
+import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format, subDays } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -101,6 +102,8 @@ export default function Habits() {
   }
 
   const today = todayStr();
+  const doneTodayCount = habits.filter(h => (h.completions || []).includes(today)).length;
+  const bestStreak = habits.reduce((m, h) => Math.max(m, computeStreak(h.completions || [])), 0);
 
   return (
     <div className="py-4">
@@ -112,6 +115,18 @@ export default function Habits() {
         gradient="gradient-habits"
         action={<Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5"><Plus className="w-4 h-4" /> New Habit</Button>}
       />
+
+      {habits.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <StatCard
+            label="Done today"
+            value={`${doneTodayCount}/${habits.length}`}
+            tone={doneTodayCount === habits.length ? 'positive' : 'default'}
+          />
+          <StatCard label="Best streak" value={bestStreak} suffix={bestStreak === 1 ? ' day' : ' days'} tone="warning" />
+          <StatCard label="Tracking" value={habits.length} />
+        </div>
+      )}
 
       {showForm && (
         <div className="sky-card rounded-2xl p-4 mb-4">

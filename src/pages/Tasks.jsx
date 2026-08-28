@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
+import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -84,6 +85,8 @@ export default function Tasks() {
 
   const visible = tasks.filter(t => filter === 'all' ? true : filter === 'done' ? t.status === 'done' : t.status !== 'done');
   const activeCount = tasks.filter(t => t.status !== 'done').length;
+  const doneCount = tasks.filter(t => t.status === 'done').length;
+  const donePct = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
 
   if (loading) {
     return (
@@ -98,11 +101,19 @@ export default function Tasks() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <PageHeader
         title="Tasks"
-        subtitle={`${activeCount} to do`}
+        subtitle="Everything you're keeping track of"
         icon={CheckSquare}
         gradient="gradient-tasks"
         action={<Button size="sm" onClick={() => setShowForm(true)} className="gap-1.5"><Plus className="w-4 h-4" /> Add Task</Button>}
       />
+
+      {tasks.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <StatCard label="To do" value={activeCount} tone={activeCount > 0 ? 'primary' : 'default'} />
+          <StatCard label="Done" value={doneCount} tone="positive" />
+          <StatCard label="Completed" value={donePct} suffix="%" />
+        </div>
+      )}
 
       {tasks.length > 0 && (
         <div className="flex gap-1.5 mb-4">
