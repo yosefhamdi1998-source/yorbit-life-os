@@ -2,26 +2,27 @@
   "name": "MoneyGlow: Budget & AI Coach",
   "short_name": "MoneyGlow",
   "description": "Track your money. Know your next move. MoneyGlow helps you track income, expenses, bills, budgets, and goals with AI-powered insights.",
-  "start_url": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#EAF6FF",
+  "background_color": "#F6F7F9",
   "theme_color": "#2563EB",
   "icons": [
     {
-      "src": "https://media.base44.com/images/public/6a1a08af1b08f6ace95e7c1d/5700b7d97_generated_image.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://media.base44.com/images/public/6a1a08af1b08f6ace95e7c1d/5700b7d97_generated_image.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://media.base44.com/images/public/6a1a08af1b08f6ace95e7c1d/5700b7d97_generated_image.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
