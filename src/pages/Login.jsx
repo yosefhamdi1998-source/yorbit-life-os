@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Set by the email confirmation link, so a confirmed account lands on an
+  // acknowledgement rather than a bare form that looks like nothing happened.
+  const [params] = useSearchParams();
+  const justConfirmed = params.get("confirmed") === "1";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,6 +71,12 @@ export default function Login() {
             </div>
           </div>
         </>
+      )}
+
+      {justConfirmed && !error && (
+        <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm">
+          Email confirmed. Log in below to get started.
+        </div>
       )}
 
       {error && (

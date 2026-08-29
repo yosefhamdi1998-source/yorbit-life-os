@@ -166,7 +166,14 @@ const auth = {
   },
 
   async register({ email, password }) {
-    const { error } = await supabase.auth.signUp({ email, password });
+    // Say explicitly where the confirmation link should land. Without this
+    // Supabase falls back to the project's Site URL, which drops the user at
+    // the domain root — a dead page when the app is served from a subpath.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}${APP_BASE}/login?confirmed=1` },
+    });
     if (error) throw new Error(error.message);
   },
 
@@ -186,7 +193,11 @@ const auth = {
   setToken() {},
 
   async resendOtp(email) {
-    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}${APP_BASE}/login?confirmed=1` },
+    });
     if (error) throw new Error(error.message);
   },
 
