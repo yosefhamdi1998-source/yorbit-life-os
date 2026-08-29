@@ -148,6 +148,19 @@ const auth = {
     return { ...data.user, role: profile?.role || 'user' };
   },
 
+  // Confirmation and magic links arrive with the session in the URL hash,
+  // which supabase-js consumes asynchronously — pages that render before that
+  // finishes need to know when it lands.
+  onAuthStateChange(callback) {
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
+    return () => data?.subscription?.unsubscribe();
+  },
+
+  async getSession() {
+    const { data } = await supabase.auth.getSession();
+    return data?.session || null;
+  },
+
   async isAuthenticated() {
     const { data } = await supabase.auth.getSession();
     return !!data?.session;

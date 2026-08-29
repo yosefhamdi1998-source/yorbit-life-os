@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,21 @@ export default function Login() {
   // acknowledgement rather than a bare form that looks like nothing happened.
   const [params] = useSearchParams();
   const justConfirmed = params.get("confirmed") === "1";
+
+  // A confirmation link lands here with the session in the URL hash, so the
+  // account is already signed in by the time this renders — sitting on the
+  // form would look like the link did nothing. Also surface the hash error
+  // Supabase returns for an expired or reused link.
+  const [linkError, setLinkError] = useState("");
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (hash.get("error_description")) {
+      setLinkError(hash.get("error_description").replace(/\+/g, " "));
+    }
+    const home = import.meta.env.BASE_URL;
+    base44.auth.getSession().then((session) => { if (session) window.location.replace(home); });
+    return base44.auth.onAuthStateChange((session) => { if (session) window.location.replace(home); });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +88,13 @@ export default function Login() {
         </>
       )}
 
-      {justConfirmed && !error && (
+      {linkError && (
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {linkError}. Request a new link below.
+        </div>
+      )}
+
+      {justConfirmed && !error && !linkError && (
         <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm">
           Email confirmed. Log in below to get started.
         </div>
