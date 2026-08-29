@@ -75,9 +75,17 @@ export default function Register() {
     return (
       <AuthLayout
         icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title="Check your email"
+        subtitle={`We sent a message to ${email}`}
       >
+        {/* Supabase can be configured to email either a confirmation link or a
+            6-digit code. Rather than assume, tell the user to use whichever
+            their message actually contains — a code-only screen strands anyone
+            whose email holds a link. */}
+        <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+          If the email has a <strong className="text-foreground">confirmation link</strong>, click it and you&apos;re done —
+          then come back and log in. If it has a <strong className="text-foreground">6-digit code</strong>, enter it below.
+        </p>
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
             {error}
@@ -115,8 +123,13 @@ export default function Register() {
             "Verify"
           )}
         </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
+        <p className="text-center text-sm text-muted-foreground mt-5">
+          <Link to="/login" className="text-primary font-medium hover:underline">
+            Already confirmed? Log in
+          </Link>
+        </p>
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          Didn't receive it?{" "}
           <button onClick={handleResend} className="text-primary font-medium hover:underline">
             Resend
           </button>
