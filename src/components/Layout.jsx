@@ -77,9 +77,10 @@ export default function Layout() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('theme', dark ? 'dark' : 'light');
-    document.body.style.background = dark
-      ? 'hsl(220, 25%, 8%)'
-      : 'linear-gradient(160deg, #EAF6FF 0%, #F7FBFF 50%, #EEF2FF 100%)';
+    // Background comes from the `body` rule in index.css keyed off the .dark
+    // class above — this used to also set an inline style with the old
+    // pale-blue gradient, which (inline always beats stylesheet) silently
+    // overrode that CSS on every single page, undoing the flat-background fix.
   }, [dark]);
 
   return (
