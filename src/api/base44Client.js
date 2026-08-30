@@ -182,12 +182,16 @@ const auth = {
     // Say explicitly where the confirmation link should land. Without this
     // Supabase falls back to the project's Site URL, which drops the user at
     // the domain root — a dead page when the app is served from a subpath.
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}${APP_BASE}/login?confirmed=1` },
     });
     if (error) throw new Error(error.message);
+    // With email confirmation switched off, Supabase returns a live session
+    // here and the account is usable immediately. With it on, session is null
+    // and the caller has to fall back to the confirm-your-email step.
+    return { session: data?.session || null };
   },
 
   async verifyOtp({ email, otpCode }) {

@@ -29,7 +29,14 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      const { session } = await base44.auth.register({ email, password });
+      // When email confirmation is disabled the account is live right away —
+      // go straight into the app rather than asking for a code that will
+      // never arrive.
+      if (session) {
+        window.location.replace(import.meta.env.BASE_URL);
+        return;
+      }
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed");
