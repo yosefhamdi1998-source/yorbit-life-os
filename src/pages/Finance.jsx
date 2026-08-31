@@ -335,15 +335,22 @@ export default function Finance() {
   // calendar year (this year and the 2 before it) — the rest of the page
   // (transaction list, spending chart) stays month-scoped, since that's
   // what "Spending" and "Net Worth" tabs are already built around.
+  // Three trailing-period toggles (Monthly first, as the default/most
+  // common view), plus a separate year dropdown — not 4 flat year pills
+  // competing for space with the periods.
   const PERIOD_OPTIONS = [
+    { key: 'month', label: 'Monthly' },
     { key: 'biweekly', label: 'Bi-Weekly' },
-    { key: 'month', label: 'This Month' },
-    { key: `year-${thisYearNum}`, label: `${thisYearNum}` },
-    { key: `year-${thisYearNum - 1}`, label: `${thisYearNum - 1}` },
-    { key: `year-${thisYearNum - 2}`, label: `${thisYearNum - 2}` },
-    { key: `year-${thisYearNum - 3}`, label: `${thisYearNum - 3}` },
+    { key: 'weekly', label: 'Weekly' },
   ];
+  const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
+    .map(y => ({ value: `year-${y}`, label: `${y}` }));
+  const isYearPeriod = summaryPeriod.startsWith('year-');
   const summaryTx = useMemo(() => {
+    if (summaryPeriod === 'weekly') {
+      const cutoff = startOfDay(subDays(new Date(), 6));
+      return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
+    }
     if (summaryPeriod === 'biweekly') {
       const cutoff = startOfDay(subDays(new Date(), 13));
       return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
@@ -419,7 +426,7 @@ export default function Finance() {
       </div>
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
-      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+      <div className="flex items-center gap-1.5 mb-3">
         {PERIOD_OPTIONS.map(p => (
           <button
             key={p.key}
@@ -429,7 +436,15 @@ export default function Finance() {
             {p.label}
           </button>
         ))}
-        <Link to="/spending-summary" className="shrink-0 ml-1 text-xs text-primary font-semibold flex items-center gap-0.5">
+        <div className={`shrink-0 ml-auto rounded-full ${isYearPeriod ? 'ring-2 ring-primary' : ''}`}>
+          <MobileSelect
+            value={isYearPeriod ? summaryPeriod : `year-${thisYearNum}`}
+            onValueChange={v => setSummaryPeriod(v)}
+            options={YEAR_OPTIONS}
+            className="w-[92px]"
+          />
+        </div>
+        <Link to="/spending-summary" className="shrink-0 text-xs text-primary font-semibold flex items-center gap-0.5">
           Older <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
