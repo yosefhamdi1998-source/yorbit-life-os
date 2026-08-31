@@ -1,18 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, PieChart } from 'lucide-react';
-
-// Kept in sync with SpendingSummary.jsx's palette/icons so a category looks
-// the same wherever it shows up in the app.
-const CAT_COLORS = {
-  housing: '#7C3AED', food: '#F97316', transport: '#3B82F6', entertainment: '#EC4899',
-  health: '#EF4444', shopping: '#F59E0B', education: '#10B981', savings: '#059669',
-  salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8',
-};
-const CAT_ICONS = {
-  housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊',
-  shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻',
-  investment: '📈', other: '💸',
-};
+import { CAT_COLORS, CategoryBadge } from '@/lib/categoryVisuals';
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
@@ -42,26 +30,20 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
           Full breakdown <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
-      <div className="px-4 pb-4 space-y-3">
+      <div className="px-4 pb-4 space-y-4">
         {rows.map(({ cat, spent }) => {
           const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
           const color = CAT_COLORS[cat] || '#94A3B8';
           return (
             <div key={cat} className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
-                style={{ backgroundColor: color + '1F' }}
-              >
-                {CAT_ICONS[cat] || '💸'}
-              </div>
+              <CategoryBadge category={cat} size="w-10 h-10" iconSize="w-[18px] h-[18px]" />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-semibold capitalize text-foreground truncate">{cat}</span>
-                  <span className="text-sm font-bold text-foreground tabular-nums shrink-0">
-                    ${fmt(spent)} <span className="text-muted-foreground font-medium">· {pct}%</span>
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold capitalize text-foreground truncate">{cat}</span>
+                  <span className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmt(spent)}</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: color + '22' }}>
+                <p className="text-xs text-muted-foreground font-medium mt-0.5">{pct}% of spending</p>
+                <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ backgroundColor: color + '22' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${pct}%`, background: color }}
