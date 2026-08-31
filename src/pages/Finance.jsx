@@ -36,6 +36,7 @@ const NW_CAT_OPTIONS = ['cash', 'investment', 'property', 'vehicle', 'crypto', '
   value: c,
   label: c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' '),
 }));
+const NW_CAT_ICONS = { cash: '💵', investment: '📈', property: '🏠', vehicle: '🚗', crypto: '🪙', loan: '🏦', mortgage: '🏡', credit_card: '💳', other: '💼' };
 
 function getCatOptions(type) {
   return (type === 'income' ? INCOME_CATS : EXPENSE_CATS).map(c => ({
@@ -539,19 +540,23 @@ export default function Finance() {
                 <h4 className={`font-bold text-sm ${color} mb-3`}>{label} · ${fmt(total)}</h4>
                 <div className="space-y-2">
                   {netWorth.filter(n => n.type === type).map(n => (
-                    <div key={n.id} className="sky-card rounded-xl p-3 flex items-center justify-between gap-2">
-                      <div className="min-w-0"><p className="text-sm font-medium truncate">{n.name}</p><p className="text-xs text-muted-foreground capitalize">{n.category}</p></div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className={`font-bold ${color}`}>{type === 'liability' ? '-' : ''}${fmt(n.value)}</span>
-                        <button
-                          onClick={() => deleteNW(n.id)}
-                          className="p-2 -m-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-secondary transition-colors"
-                          title="Delete entry"
-                          aria-label={`Delete ${n.name}`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    <div key={n.id} className="sky-card rounded-xl p-3 flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base ${type === 'asset' ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                        {NW_CAT_ICONS[n.category] || '💼'}
                       </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{n.name}</p>
+                        <p className="text-xs text-muted-foreground capitalize truncate">{(n.category || '').replace(/_/g, ' ')}</p>
+                      </div>
+                      <span className={`font-bold text-sm shrink-0 tabular-nums ${color}`}>{type === 'liability' ? '-' : ''}${fmt(n.value)}</span>
+                      <button
+                        onClick={() => deleteNW(n.id)}
+                        className="p-2 -m-1 -mr-2 rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-secondary transition-colors shrink-0"
+                        title="Delete entry"
+                        aria-label={`Delete ${n.name}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                   {netWorth.filter(n => n.type === type).length === 0 && (

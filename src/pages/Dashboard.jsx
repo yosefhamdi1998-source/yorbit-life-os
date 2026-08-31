@@ -278,32 +278,37 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Net Worth — centered hero figure, like the "Net saved" card above it,
-          instead of numbers pinned to opposite edges of the card. */}
+      {/* Net Worth — same left-aligned label-then-number pattern as the "Net
+          saved" hero above it, so the two cards read as one family instead
+          of one centered and one edge-pinned. */}
       {netWorthEntries.length > 0 && (
-        <div className="mb-5 sky-card rounded-2xl p-5 lg:p-6 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Net Worth</p>
-          <p className={`text-3xl lg:text-4xl font-black tabular-nums leading-none mb-3 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Net Worth</p>
+            {netWorthTrend.length > 1 && (
+              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
+            )}
+          </div>
+          <p className={`text-3xl lg:text-4xl font-black tabular-nums leading-none mb-4 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
             ${fmt(netWorth)}
           </p>
-          {netWorthTrend.length > 1 && (
-            <div className="flex justify-center mb-4">
-              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={140} height={36} />
-            </div>
-          )}
           <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
-            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <div className="text-left">
+            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
-                <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none">${fmt(totalAssets)}</p>
+                <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
               </div>
             </div>
-            <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
-              <TrendingDown className="w-3.5 h-3.5 text-red-500 shrink-0" />
-              <div className="text-left">
+            <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+                <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+              </div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
-                <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none">${fmt(totalLiabilities)}</p>
+                <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
               </div>
             </div>
           </div>
