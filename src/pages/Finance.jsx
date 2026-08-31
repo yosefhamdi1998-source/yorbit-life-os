@@ -341,6 +341,7 @@ export default function Finance() {
     { key: `year-${thisYearNum}`, label: `${thisYearNum}` },
     { key: `year-${thisYearNum - 1}`, label: `${thisYearNum - 1}` },
     { key: `year-${thisYearNum - 2}`, label: `${thisYearNum - 2}` },
+    { key: `year-${thisYearNum - 3}`, label: `${thisYearNum - 3}` },
   ];
   const summaryTx = useMemo(() => {
     if (summaryPeriod === 'biweekly') {

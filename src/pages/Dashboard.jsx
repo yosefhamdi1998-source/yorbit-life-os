@@ -248,9 +248,9 @@ export default function Dashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                   tickLine={false} axisLine={false} minTickGap={28} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
                   tickLine={false} axisLine={false} width={52}
                   tickFormatter={v => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`} />
                 <Tooltip

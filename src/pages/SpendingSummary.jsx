@@ -61,17 +61,17 @@ function SankeyNode({ x, y, width, height, index, payload, containerWidth }) {
         textAnchor="start"
         dominantBaseline="middle"
         className="fill-foreground"
-        style={{ fontSize: 11, fontWeight: 700 }}
+        style={{ fontSize: 14, fontWeight: 800 }}
       >
         {payload.name}
       </text>
       <text
         x={x + width + 8}
-        y={y + height / 2 + 13}
+        y={y + height / 2 + 15}
         textAnchor="start"
         dominantBaseline="middle"
         className="fill-muted-foreground"
-        style={{ fontSize: 10, fontWeight: 600 }}
+        style={{ fontSize: 12, fontWeight: 700 }}
       >
         ${(payload.value || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
         {payload.pct != null ? ` (${payload.pct}%)` : ''}
@@ -351,8 +351,8 @@ export default function SpendingSummary() {
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
-                  <XAxis dataKey="key" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
+                  <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
                   <Bar dataKey="spent" radius={[6, 6, 0, 0]} fill="#2563EB" />
                 </BarChart>
@@ -367,8 +367,8 @@ export default function SpendingSummary() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
-                  <XAxis dataKey="key" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={period === 'monthly' ? 3 : 1} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
+                  <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} interval={period === 'monthly' ? 3 : 1} />
+                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} labelFormatter={(d) => `${d}`} />
                   <Area type="monotone" dataKey="spent" stroke="#2563EB" strokeWidth={2} fill="url(#dailyGrad)" />
                 </AreaChart>
@@ -382,8 +382,8 @@ export default function SpendingSummary() {
             <ResponsiveContainer width="100%" height={Math.max(140, catData.length * 36)}>
               <BarChart data={catData} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
                 <CartesianGrid horizontal={false} stroke="hsl(var(--border))" opacity={0.4} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} width={90} tickFormatter={(v) => `${CAT_ICONS[v] || ''} ${v}`} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} width={90} tickFormatter={(v) => `${CAT_ICONS[v] || ''} ${v}`} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
                 <Bar dataKey="spent" radius={[6, 6, 6, 6]}>
                   {catData.map((e) => <Cell key={e.name} fill={CAT_COLORS[e.name] || '#94A3B8'} />)}
