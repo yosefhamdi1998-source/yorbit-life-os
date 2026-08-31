@@ -12,9 +12,9 @@
        gradient still reads as the one bold color moment on the page. */
     --background: 224 38% 95%;
     --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
+    --card: 220 25% 99%;
     --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
+    --popover: 220 25% 99%;
     --popover-foreground: 222 47% 11%;
     --primary: 217 91% 50%;
     --primary-foreground: 0 0% 100%;
@@ -163,7 +163,9 @@
   .sky-card {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.04);
+    /* A near-invisible shadow read as flat rather than clean against a
+       colored ground — real depth needs a real (if soft) shadow. */
+    box-shadow: 0 1px 2px rgba(30, 41, 82, 0.06), 0 6px 16px -4px rgba(30, 41, 82, 0.10);
   }
   .dark .sky-card {
     background: hsl(220, 22%, 13%);
@@ -175,7 +177,7 @@
     box-shadow: 0 0 24px rgba(37, 99, 235, 0.2);
   }
   .glow-card {
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 6px rgba(16, 24, 40, 0.04);
+    box-shadow: 0 1px 2px rgba(30, 41, 82, 0.06), 0 6px 16px -4px rgba(30, 41, 82, 0.10);
   }
   .dark .glow-card {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);

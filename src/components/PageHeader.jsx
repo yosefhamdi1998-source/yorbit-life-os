@@ -3,10 +3,11 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useGoBack from '@/hooks/useGoBack';
 
-// `icon` and `gradient` are still accepted from callers but no longer
-// rendered — the header is now a plain eyebrow + title, matching the
-// dashboard and leaving color to the content below it.
-export default function PageHeader({ title, subtitle, action, showBack }) {
+// A plain text-only header across every page (icon dropped entirely) read
+// as one long grey blur when flipping between sections — bringing back a
+// small, page-colored icon badge gives each section an identity at a
+// glance without returning to the old oversized gradient tile.
+export default function PageHeader({ title, subtitle, icon: Icon, gradient, action, showBack }) {
   const location = useLocation();
   const ROOT_PATHS = ['/', '/finance', '/budget', '/bills', '/coach'];
   const isRoot = ROOT_PATHS.includes(location.pathname);
@@ -29,6 +30,11 @@ export default function PageHeader({ title, subtitle, action, showBack }) {
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
+        )}
+        {Icon && (
+          <div className={`w-10 h-10 rounded-xl ${gradient || 'gradient-primary'} flex items-center justify-center shadow-sm shrink-0`}>
+            <Icon className="w-5 h-5 text-white" strokeWidth={2.2} />
+          </div>
         )}
         <div className="min-w-0">
           {subtitle && (
