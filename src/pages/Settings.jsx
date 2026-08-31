@@ -20,6 +20,8 @@ import PageHeader from '@/components/PageHeader';
 import { FEATURES } from '@/lib/features';
 import { APP_STORE_URL } from '@/lib/appStoreConfig';
 import { toast } from '@/components/ui/use-toast';
+import { BACKGROUND_THEMES, getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
+import { Palette } from 'lucide-react';
 
 export default function Settings() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -31,6 +33,15 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [bgTheme, setBgTheme] = useState(getBackgroundTheme);
+
+  const chooseBackground = (key) => {
+    // Dark mode's own class rule still wins — applyBackgroundTheme only
+    // touches the light-mode variables when dark is active, so this is safe
+    // to call regardless of which mode the user is currently in.
+    applyBackgroundTheme(key, document.documentElement.classList.contains('dark'));
+    setBgTheme(key);
+  };
 
   const handleLogout = () => {
     base44.auth.logout('/');
@@ -145,7 +156,7 @@ export default function Settings() {
         {/* Upgrade to Pro */}
         <Link to="/upgrade">
           <div className="rounded-2xl p-5 flex items-center justify-between active:opacity-80 transition-opacity"
-            style={{ background: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)' }}>
+            style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
@@ -161,6 +172,32 @@ export default function Settings() {
             </div>
           </div>
         </Link>
+
+        {/* Background theme */}
+        <div className="sky-card rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Palette className="w-4 h-4 text-muted-foreground" />
+            <p className="font-bold text-sm">Background</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">Pick the accent color for your app. Works with both light and dark mode.</p>
+          <div className="grid grid-cols-5 gap-3">
+            {Object.entries(BACKGROUND_THEMES).map(([key, theme]) => (
+              <button
+                key={key}
+                onClick={() => chooseBackground(key)}
+                className="flex flex-col items-center gap-1.5"
+                aria-label={`${theme.label} background`}
+                aria-pressed={bgTheme === key}
+              >
+                <span
+                  className={`w-11 h-11 rounded-full transition-all ${bgTheme === key ? 'ring-2 ring-offset-2 ring-offset-card ring-primary scale-105' : 'opacity-80 hover:opacity-100'}`}
+                  style={{ background: theme.swatch }}
+                />
+                <span className="text-[10px] font-medium text-muted-foreground truncate w-full text-center">{theme.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Rate the app */}
         <div className="sky-card rounded-2xl p-5 flex items-center justify-between">

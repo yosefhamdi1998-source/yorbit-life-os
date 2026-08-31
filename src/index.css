@@ -31,6 +31,13 @@
     --ring: 217 91% 50%;
     --radius: 0.875rem;
 
+    /* Defaults for the user-selectable background themes (Ocean) — real
+       values here, not just a runtime fallback, so first paint is never a
+       flash of some other color before JS applies the saved choice. */
+    --hero-from: #1e40af;
+    --hero-via: #4f46e5;
+    --hero-to: #7c3aed;
+
     --sky-hero-start: #8EC5FC;
     --sky-hero-end: #E0C3FC;
 

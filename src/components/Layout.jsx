@@ -11,6 +11,7 @@ import { FEATURES } from '@/lib/features';
 import QuickAddFAB from '@/components/QuickAddFAB';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { recordRoute } from '@/hooks/useGoBack';
+import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
 
 const bottomNavItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -81,6 +82,9 @@ export default function Layout() {
     // class above — this used to also set an inline style with the old
     // pale-blue gradient, which (inline always beats stylesheet) silently
     // overrode that CSS on every single page, undoing the flat-background fix.
+    // Re-applying the chosen background theme here (not just once on mount)
+    // is what keeps it correctly scoped to light mode as dark toggles.
+    applyBackgroundTheme(getBackgroundTheme(), dark);
   }, [dark]);
 
   return (

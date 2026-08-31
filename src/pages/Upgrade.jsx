@@ -119,7 +119,7 @@ export default function Upgrade() {
       <div className="mx-4 mb-5">
         <div
           className="rounded-3xl p-6 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 50%, #7c3aed 100%)', minHeight: 200 }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 50%, var(--hero-to) 100%)', minHeight: 200 }}
         >
           {/* Aurora blobs */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
@@ -261,7 +261,7 @@ export default function Upgrade() {
               onClick={handleIOSPurchase}
               disabled={loading || !iosOfferings}
               className="w-full h-14 rounded-2xl text-base font-bold text-white shadow-xl shadow-primary/30 gap-2 active:scale-[0.98] transition-all"
-              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
             >
               <Zap className="w-5 h-5 text-yellow-300" />
               {loading ? 'Processing…' : !iosOfferings ? 'Loading…' : `Start 7-Day Free Trial`}
@@ -276,7 +276,7 @@ export default function Upgrade() {
               onClick={handleCheckout}
               disabled={loading}
               className="w-full h-14 rounded-2xl text-base font-bold text-white shadow-xl shadow-primary/30 gap-2 active:scale-[0.98] transition-all"
-              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
             >
               <Zap className="w-5 h-5 text-yellow-300" />
               {loading ? 'Opening checkout…' : `Start 7-Day Free Trial`}

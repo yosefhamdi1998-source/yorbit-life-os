@@ -149,7 +149,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
         />
         <div
           className="rounded-3xl p-6 text-center"
-          style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 50%, #7c3aed 100%)' }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 50%, var(--hero-to) 100%)' }}
         >
           <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-white" strokeWidth={1.6} />

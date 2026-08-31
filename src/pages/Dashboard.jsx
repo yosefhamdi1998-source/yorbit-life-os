@@ -181,7 +181,7 @@ export default function Dashboard() {
           calm so the gradient has somewhere to land. */}
       <div
         className="mt-5 mb-5 rounded-3xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 55%, #7c3aed 100%)' }}
+        style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)' }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="aurora-blob aurora-sky1" style={{ opacity: 0.45 }} />
