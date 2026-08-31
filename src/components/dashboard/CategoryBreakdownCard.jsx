@@ -45,21 +45,28 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
       <div className="px-4 pb-4 space-y-3">
         {rows.map(({ cat, spent }) => {
           const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
+          const color = CAT_COLORS[cat] || '#94A3B8';
           return (
-            <div key={cat}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold capitalize text-foreground flex items-center gap-1.5">
-                  <span>{CAT_ICONS[cat] || '💸'}</span> {cat}
-                </span>
-                <span className="text-sm font-bold text-foreground tabular-nums">
-                  ${fmt(spent)} <span className="text-muted-foreground font-medium">· {pct}%</span>
-                </span>
+            <div key={cat} className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+                style={{ backgroundColor: color + '1F' }}
+              >
+                {CAT_ICONS[cat] || '💸'}
               </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${pct}%`, background: CAT_COLORS[cat] || '#94A3B8' }}
-                />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold capitalize text-foreground truncate">{cat}</span>
+                  <span className="text-sm font-bold text-foreground tabular-nums shrink-0">
+                    ${fmt(spent)} <span className="text-muted-foreground font-medium">· {pct}%</span>
+                  </span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: color + '22' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%`, background: color }}
+                  />
+                </div>
               </div>
             </div>
           );

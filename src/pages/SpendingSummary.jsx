@@ -400,13 +400,21 @@ export default function SpendingSummary() {
                 const pct = totalSpending > 0 ? Math.round((spent / totalSpending) * 100) : 0;
                 const color = CAT_COLORS[name] || '#94A3B8';
                 return (
-                  <div key={name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold capitalize">{CAT_ICONS[name]} {name}</span>
-                      <span className="text-xs font-bold">${fmt(spent)} <span className="text-[10px] text-muted-foreground font-medium">{pct}%</span></span>
+                  <div key={name} className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+                      style={{ backgroundColor: color + '1F' }}
+                    >
+                      {CAT_ICONS[name] || '💸'}
                     </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: color + '22' }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold capitalize text-foreground truncate">{name}</span>
+                        <span className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmt(spent)} <span className="text-xs text-muted-foreground font-medium">{pct}%</span></span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: color + '22' }}>
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
                     </div>
                   </div>
                 );

@@ -13,7 +13,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate, Link } from 'react-router-dom';
-import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
+import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
@@ -229,7 +229,7 @@ export default function Finance() {
   const [showTxForm, setShowTxForm] = useState(false);
   useAutoOpenForm(() => setShowTxForm(true));
   const [showNWForm, setShowNWForm] = useState(false);
-  const [summaryPeriod, setSummaryPeriod] = useState('month'); // 'month' | 'year'
+  const [summaryPeriod, setSummaryPeriod] = useState('month'); // 'biweekly' | 'month' | 'year-YYYY'
 
   const [nwForm, setNwForm] = useState({ name: '', type: 'asset', value: '', category: 'cash' });
 
@@ -317,11 +317,11 @@ export default function Finance() {
   };
 
   const thisMonth = format(new Date(), 'yyyy-MM');
-  const thisYear = format(new Date(), 'yyyy');
+  const thisYearNum = new Date().getFullYear();
+  const thisYear = String(thisYearNum);
   const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM');
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
-  const yearTx = transactions.filter(t => t.date?.startsWith(thisYear));
   const lastMonthTx = transactions.filter(t => t.date?.startsWith(lastMonthStr));
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
@@ -331,13 +331,31 @@ export default function Finance() {
   const netSaved = monthIncome - monthExpenses;
   const savingsRate = monthIncome > 0 ? Math.round((netSaved / monthIncome) * 100) : 0;
 
-  // Summary row can show this month or the running year total — the rest of
-  // the page (transaction list, spending chart) stays month-scoped, since
-  // that's what "Spending" and "Net Worth" tabs are already built around.
-  const yearExpenses = yearTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  const yearIncome = yearTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const summaryIncome = summaryPeriod === 'year' ? yearIncome : monthIncome;
-  const summaryExpenses = summaryPeriod === 'year' ? yearExpenses : monthExpenses;
+  // Summary row can show any of: trailing 2 weeks, this month, or a whole
+  // calendar year (this year and the 2 before it) — the rest of the page
+  // (transaction list, spending chart) stays month-scoped, since that's
+  // what "Spending" and "Net Worth" tabs are already built around.
+  const PERIOD_OPTIONS = [
+    { key: 'biweekly', label: 'Bi-Weekly' },
+    { key: 'month', label: 'This Month' },
+    { key: `year-${thisYearNum}`, label: `${thisYearNum}` },
+    { key: `year-${thisYearNum - 1}`, label: `${thisYearNum - 1}` },
+    { key: `year-${thisYearNum - 2}`, label: `${thisYearNum - 2}` },
+  ];
+  const summaryTx = useMemo(() => {
+    if (summaryPeriod === 'biweekly') {
+      const cutoff = startOfDay(subDays(new Date(), 13));
+      return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
+    }
+    if (summaryPeriod === 'month') return monthTx;
+    if (summaryPeriod.startsWith('year-')) {
+      const y = summaryPeriod.slice(5);
+      return transactions.filter(t => t.date?.startsWith(y));
+    }
+    return monthTx;
+  }, [summaryPeriod, transactions, monthTx]);
+  const summaryIncome = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  const summaryExpenses = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryNetSaved = summaryIncome - summaryExpenses;
   const summarySavingsRate = summaryIncome > 0 ? Math.round((summaryNetSaved / summaryIncome) * 100) : 0;
 
@@ -400,18 +418,18 @@ export default function Finance() {
       </div>
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
-      <div className="flex items-center gap-1.5 mb-3">
-        {[{ key: 'month', label: 'This Month' }, { key: 'year', label: `This Year (${thisYear})` }].map(p => (
+      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+        {PERIOD_OPTIONS.map(p => (
           <button
             key={p.key}
             onClick={() => setSummaryPeriod(p.key)}
-            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${summaryPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${summaryPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
           >
             {p.label}
           </button>
         ))}
-        <Link to="/spending-summary" className="ml-auto text-xs text-primary font-semibold flex items-center gap-0.5">
-          Multi-year <ChevronRight className="w-3 h-3" />
+        <Link to="/spending-summary" className="shrink-0 ml-1 text-xs text-primary font-semibold flex items-center gap-0.5">
+          Older <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
