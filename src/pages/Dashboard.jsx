@@ -8,14 +8,36 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
-import StatCard from '@/components/StatCard';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import Sparkline from '@/components/Sparkline';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 const CAT_BILL_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
+// Tinted icon chips instead of uniform gray — a small thing that reads as
+// considerably less flat across a whole list of rows.
+const CAT_TINT = {
+  housing: 'bg-violet-500/12 text-violet-600 dark:text-violet-400',
+  food: 'bg-orange-500/12 text-orange-600 dark:text-orange-400',
+  transport: 'bg-blue-500/12 text-blue-600 dark:text-blue-400',
+  entertainment: 'bg-pink-500/12 text-pink-600 dark:text-pink-400',
+  health: 'bg-red-500/12 text-red-600 dark:text-red-400',
+  shopping: 'bg-amber-500/12 text-amber-600 dark:text-amber-400',
+  education: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
+  savings: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
+  salary: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
+  freelance: 'bg-indigo-500/12 text-indigo-600 dark:text-indigo-400',
+  investment: 'bg-sky-500/12 text-sky-600 dark:text-sky-400',
+  utilities: 'bg-amber-500/12 text-amber-600 dark:text-amber-400',
+  phone: 'bg-sky-500/12 text-sky-600 dark:text-sky-400',
+  insurance: 'bg-blue-500/12 text-blue-600 dark:text-blue-400',
+  subscription: 'bg-pink-500/12 text-pink-600 dark:text-pink-400',
+  credit_card: 'bg-red-500/12 text-red-600 dark:text-red-400',
+  loan: 'bg-orange-500/12 text-orange-600 dark:text-orange-400',
+  other: 'bg-slate-500/12 text-slate-600 dark:text-slate-400',
+};
 
 function fmt(n) {
   return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -153,28 +175,55 @@ export default function Dashboard() {
           tap. */}
       <QuickAddTransactionSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onSave={handleQuickAdd} />
 
-      {/* ── Page heading ──────────────────────────────────────────────── */}
-      <div className="flex items-end justify-between mt-5 mb-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-            {format(new Date(), 'MMMM yyyy')}
-          </p>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-none">Overview</h1>
+      {/* ── Hero ──────────────────────────────────────────────────────
+          A flat stat row read as sterile on its own — this is the one
+          moment on the page that gets real color, everything below stays
+          calm so the gradient has somewhere to land. */}
+      <div
+        className="mt-5 mb-5 rounded-3xl overflow-hidden relative"
+        style={{ background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 55%, #7c3aed 100%)' }}
+      >
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="aurora-blob aurora-sky1" style={{ opacity: 0.45 }} />
+          <div className="aurora-blob aurora-sky2" style={{ opacity: 0.35 }} />
         </div>
-        <Link to="/upgrade">
-          <div className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 transition-colors rounded-full px-3 py-1.5">
-            <Zap className="w-3.5 h-3.5 text-primary" />
-            <span className="text-primary text-xs font-bold">Go Pro</span>
+        <div className="relative px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">
+              {format(new Date(), 'MMMM yyyy')}
+            </p>
+            <Link to="/upgrade">
+              <div className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-full px-3 py-1.5">
+                <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                <span className="text-white text-xs font-bold">Go Pro</span>
+              </div>
+            </Link>
           </div>
-        </Link>
-      </div>
 
-      {/* ── Key figures ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard label="Total income" value={monthIncome} prefix="$" tone="positive" />
-        <StatCard label="Total expenses" value={monthExpenses} prefix="$" tone="negative" />
-        <StatCard label="Net saved" value={netSaved} prefix="$" tone={netSaved >= 0 ? 'default' : 'negative'} />
-        <StatCard label="Savings rate" value={savingsRate} suffix="%" />
+          <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
+          <p className="text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5 tabular-nums">
+            {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
+          </p>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="bg-white/10 rounded-xl px-3 py-2.5">
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Income</p>
+              <p className="text-white font-black text-base leading-tight tabular-nums truncate">
+                <AnimatedNumber prefix="$" value={monthIncome} />
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5">
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Expenses</p>
+              <p className="text-white font-black text-base leading-tight tabular-nums truncate">
+                <AnimatedNumber prefix="$" value={monthExpenses} />
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5">
+              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Savings rate</p>
+              <p className="text-white font-black text-base leading-tight tabular-nums truncate">{savingsRate}%</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Cash flow trend ───────────────────────────────────────────── */}
@@ -326,7 +375,9 @@ export default function Dashboard() {
                 const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
                 return (
                   <div key={bill.id} className="flex items-center gap-3">
-                    <span className="text-lg shrink-0">{CAT_BILL_ICONS[bill.category] || '💸'}</span>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${CAT_TINT[bill.category] || CAT_TINT.other}`}>
+                      {CAT_BILL_ICONS[bill.category] || '💸'}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{bill.name}</p>
                       <p className={`text-xs font-medium ${isOverdue ? 'text-red-500' : isDueSoon ? 'text-amber-500' : 'text-muted-foreground'}`}>
@@ -353,7 +404,7 @@ export default function Dashboard() {
             <div className="divide-y divide-border/40">
               {transactions.slice(0, 5).map(tx => (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-secondary/70 flex items-center justify-center text-base shrink-0">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${CAT_TINT[tx.category] || CAT_TINT.other}`}>
                     {CAT_ICONS[tx.category] || '💸'}
                   </div>
                   <div className="flex-1 min-w-0">

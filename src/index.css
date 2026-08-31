@@ -6,10 +6,11 @@
 
 @layer base {
   :root {
-    /* Neutral, very slightly cool ground with pure-white cards floating on
-       it — the contrast between the two is what makes cards read as
-       physical objects rather than tinted panels. */
-    --background: 220 20% 97%;
+    /* A visibly blue-violet ground (not a flat gray) with pure-white cards
+       floating on it — enough hue to feel like a designed product rather
+       than a bare document, while staying calm enough that the hero
+       gradient still reads as the one bold color moment on the page. */
+    --background: 224 38% 95%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -17,16 +18,16 @@
     --popover-foreground: 222 47% 11%;
     --primary: 217 91% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 16% 95%;
+    --secondary: 222 30% 92%;
     --secondary-foreground: 220 25% 28%;
-    --muted: 220 16% 95%;
+    --muted: 222 30% 92%;
     --muted-foreground: 220 12% 42%;
     --accent: 38 95% 56%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 15% 91%;
-    --input: 220 15% 91%;
+    --border: 222 25% 88%;
+    --input: 222 25% 88%;
     --ring: 217 91% 50%;
     --radius: 0.875rem;
 
