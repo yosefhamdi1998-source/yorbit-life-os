@@ -7,6 +7,7 @@ import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOf
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
+import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import Sparkline from '@/components/Sparkline';
@@ -58,7 +59,7 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     try {
       const [tr, b, sg, bl, nw] = await Promise.all([
-        base44.entities.Transaction.list('-date', 100),
+        base44.entities.Transaction.list('-date', 1000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Bill.list('due_date', 20),
@@ -259,7 +260,18 @@ export default function Dashboard() {
                   formatter={v => [`$${fmt(v)}`, 'Net']}
                 />
                 <Area type="monotone" dataKey="net" stroke="#2563EB" strokeWidth={2.5}
-                  fill="url(#cashFlowFill)" />
+                  fill="url(#cashFlowFill)"
+                  dot={(props) => {
+                    const isLast = props.index === cashFlowSeries.length - 1;
+                    if (!isLast) return <g key={props.index} />;
+                    return (
+                      <g key={props.index}>
+                        <circle cx={props.cx} cy={props.cy} r={7} fill="#2563EB" fillOpacity={0.18} />
+                        <circle cx={props.cx} cy={props.cy} r={3.5} fill="#2563EB" stroke="white" strokeWidth={1.5} />
+                      </g>
+                    );
+                  }}
+                  activeDot={{ r: 4.5, fill: '#2563EB', stroke: 'white', strokeWidth: 1.5 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -269,25 +281,23 @@ export default function Dashboard() {
       {/* Net Worth */}
       {netWorthEntries.length > 0 && (
         <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Net Worth</p>
               <p className="text-2xl lg:text-3xl font-black text-foreground tabular-nums leading-none">${fmt(netWorth)}</p>
             </div>
             {netWorthTrend.length > 1 && (
-              <div className="hidden sm:block shrink-0">
-                <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={104} height={34} />
-              </div>
+              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={88} height={32} />
             )}
-            <div className="flex gap-4 text-right shrink-0">
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Assets</p>
-                <p className="text-sm lg:text-base font-bold text-emerald-500">${fmt(totalAssets)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Liabilities</p>
-                <p className="text-sm lg:text-base font-bold text-red-500">${fmt(totalLiabilities)}</p>
-              </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-border/50">
+            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Assets</p>
+              <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums">${fmt(totalAssets)}</p>
+            </div>
+            <div className="bg-red-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Liabilities</p>
+              <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums">${fmt(totalLiabilities)}</p>
             </div>
           </div>
         </div>
@@ -321,6 +331,10 @@ export default function Dashboard() {
 
         {/* Budget Summary */}
         <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
+
+        {/* Category Breakdown — where the money actually went this month,
+            including categories (investment, savings) budgets don't track */}
+        <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
 
         {/* Goal Progress */}
         {savingsGoals.length > 0 && (

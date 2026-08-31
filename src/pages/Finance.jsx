@@ -17,7 +17,7 @@ import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } fro
 import { toast } from '@/components/ui/use-toast';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
+const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
 const CAT_COLORS = { housing: '#7C3AED', food: '#F97316', transport: '#3B82F6', entertainment: '#EC4899', health: '#EF4444', shopping: '#F59E0B', education: '#10B981', savings: '#059669', salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8' };
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
@@ -67,6 +67,7 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [confirmId, setConfirmId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(60);
 
   const filtered = useMemo(() => {
     let list = [...transactions];
@@ -80,16 +81,22 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
     return list;
   }, [transactions, filter, search, thisMonth]);
 
-  // Rows arrive newest-first; bucket them by day, preserving that order.
+  // Changing filters/search should show the newest matches again, not
+  // whatever page you'd scrolled down to under the old list.
+  useEffect(() => { setVisibleCount(60); }, [filter, search]);
+
+  // Rows arrive newest-first; bucket the currently-revealed slice by day,
+  // preserving that order. "Load more" grows visibleCount instead of a
+  // silent hard cap that hid everything past the newest 60.
   const grouped = useMemo(() => {
     const buckets = new Map();
-    for (const tx of filtered.slice(0, 60)) {
+    for (const tx of filtered.slice(0, visibleCount)) {
       const key = tx.date || 'unknown';
       if (!buckets.has(key)) buckets.set(key, []);
       buckets.get(key).push(tx);
     }
     return [...buckets.entries()];
-  }, [filtered]);
+  }, [filtered, visibleCount]);
 
   if (transactions.length === 0) {
     return (
@@ -187,6 +194,17 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
               </div>
             </div>
           ))}
+          {visibleCount < filtered.length && (
+            <div className="p-3 border-t border-border/50">
+              <Button
+                variant="outline"
+                className="w-full text-sm"
+                onClick={() => setVisibleCount(c => c + 60)}
+              >
+                Load more ({filtered.length - visibleCount} left)
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -213,7 +231,7 @@ export default function Finance() {
     const timeout = setTimeout(() => setLoading(false), 5000);
     try {
       const [tx, b, nw] = await Promise.all([
-        base44.entities.Transaction.list('-date', 100),
+        base44.entities.Transaction.list('-date', 1000),
         base44.entities.Budget.list(),
         base44.entities.NetWorthEntry.list(),
       ]);

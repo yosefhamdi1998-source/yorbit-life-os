@@ -25,7 +25,7 @@ const CAT_ICONS = {
   shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻',
   investment: '📈', other: '💸',
 };
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
+const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const PERIODS = [
   { key: 'monthly', label: 'Monthly' },
   { key: 'biweekly', label: 'Bi-Weekly' },

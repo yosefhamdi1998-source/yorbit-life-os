@@ -11,8 +11,8 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
-const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', other: '💸' };
+const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
+const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
 const BUDGET_SUGGESTIONS = [
   { cat: 'food', amount: 400 },
   { cat: 'transport', amount: 200 },
@@ -41,7 +41,7 @@ export default function Budget() {
   const loadData = async () => {
     try {
       const [tx, b] = await Promise.all([
-        base44.entities.Transaction.list('-date', 200),
+        base44.entities.Transaction.list('-date', 1000),
         base44.entities.Budget.list(),
       ]);
       setTransactions(tx);

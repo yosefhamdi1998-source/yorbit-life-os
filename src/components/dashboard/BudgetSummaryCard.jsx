@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, ChevronRight, PiggyBank } from 'lucide-react';
 
-const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', other: '💸' };
+const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
 export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) {
-  const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
+  const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
 

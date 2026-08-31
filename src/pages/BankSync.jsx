@@ -84,7 +84,7 @@ export default function BankSync() {
       });
       handler.open();
     } catch (e) {
-      setError("We couldn't start the bank connection. Please try again.");
+      setError(e.message || "We couldn't start the bank connection. Please try again.");
       setConnecting(false);
     }
   };

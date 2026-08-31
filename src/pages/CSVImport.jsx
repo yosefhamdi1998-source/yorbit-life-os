@@ -71,8 +71,8 @@ export default function CSVImport() {
     reader.onload = (ev) => {
       const { headers: h, rows: r } = parseCSV(ev.target.result);
       if (h.length === 0) { setError('Could not parse CSV. Make sure it has headers.'); return; }
-      if (r.length > 200) {
-        setError(`Your file has ${r.length} rows. For now, import up to 200 transactions at a time. Please trim your CSV and try again.`);
+      if (r.length > 1000) {
+        setError(`Your file has ${r.length} rows. Import up to 1,000 transactions at a time. Please split your CSV and try again.`);
         return;
       }
       setHeaders(h);
@@ -125,7 +125,7 @@ export default function CSVImport() {
     setImportProgress(0);
     let imported = 0, skipped = 0, failed = 0;
 
-    const existing = await base44.entities.Transaction.list('-date', 500);
+    const existing = await base44.entities.Transaction.list('-date', 1000);
     const existingKeys = new Set(existing.map(t => `${t.date}|${t.title}|${t.amount}`));
     const toImport = preview.filter(r => !existingKeys.has(`${r.date}|${r.title}|${r.amount}`));
     skipped = preview.length - toImport.length;
