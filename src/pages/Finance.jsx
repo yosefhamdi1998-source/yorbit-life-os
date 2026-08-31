@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3 } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -12,7 +12,7 @@ import SpendingByCategoryChart from '@/components/finance/SpendingByCategoryChar
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
@@ -112,6 +112,13 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
   return (
     <div>
       <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground font-medium">
+            {filter === 'all' && !search.trim()
+              ? `${transactions.length} transaction${transactions.length === 1 ? '' : 's'} total`
+              : `${filtered.length} of ${transactions.length} transactions`}
+          </p>
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search transactions…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -221,6 +228,7 @@ export default function Finance() {
   const [showTxForm, setShowTxForm] = useState(false);
   useAutoOpenForm(() => setShowTxForm(true));
   const [showNWForm, setShowNWForm] = useState(false);
+  const [summaryPeriod, setSummaryPeriod] = useState('month'); // 'month' | 'year'
 
   const [nwForm, setNwForm] = useState({ name: '', type: 'asset', value: '', category: 'cash' });
 
@@ -308,9 +316,11 @@ export default function Finance() {
   };
 
   const thisMonth = format(new Date(), 'yyyy-MM');
+  const thisYear = format(new Date(), 'yyyy');
   const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM');
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
+  const yearTx = transactions.filter(t => t.date?.startsWith(thisYear));
   const lastMonthTx = transactions.filter(t => t.date?.startsWith(lastMonthStr));
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
@@ -319,6 +329,16 @@ export default function Finance() {
   const totalLiabilities = netWorth.filter(n => n.type === 'liability').reduce((s, n) => s + (n.value || 0), 0);
   const netSaved = monthIncome - monthExpenses;
   const savingsRate = monthIncome > 0 ? Math.round((netSaved / monthIncome) * 100) : 0;
+
+  // Summary row can show this month or the running year total — the rest of
+  // the page (transaction list, spending chart) stays month-scoped, since
+  // that's what "Spending" and "Net Worth" tabs are already built around.
+  const yearExpenses = yearTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  const yearIncome = yearTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  const summaryIncome = summaryPeriod === 'year' ? yearIncome : monthIncome;
+  const summaryExpenses = summaryPeriod === 'year' ? yearExpenses : monthExpenses;
+  const summaryNetSaved = summaryIncome - summaryExpenses;
+  const summarySavingsRate = summaryIncome > 0 ? Math.round((summaryNetSaved / summaryIncome) * 100) : 0;
 
   const catData = EXPENSE_CATS.map(cat => ({
     name: cat,
@@ -379,11 +399,25 @@ export default function Finance() {
       </div>
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
+      <div className="flex items-center gap-1.5 mb-3">
+        {[{ key: 'month', label: 'This Month' }, { key: 'year', label: `This Year (${thisYear})` }].map(p => (
+          <button
+            key={p.key}
+            onClick={() => setSummaryPeriod(p.key)}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${summaryPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <Link to="/spending-summary" className="ml-auto text-xs text-primary font-semibold flex items-center gap-0.5">
+          Multi-year <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <StatCard label="Income" value={monthIncome} prefix="$" tone="positive" />
-        <StatCard label="Spending" value={monthExpenses} prefix="$" tone="negative" />
-        <StatCard label="Net saved" value={netSaved} prefix="$" tone={netSaved >= 0 ? 'default' : 'negative'} />
-        <StatCard label="Savings rate" value={savingsRate} suffix="%" tone={savingsRate >= 20 ? 'positive' : 'warning'} />
+        <StatCard label="Income" value={summaryIncome} prefix="$" tone="positive" icon={TrendingUp} />
+        <StatCard label="Spending" value={summaryExpenses} prefix="$" tone="negative" icon={TrendingDown} />
+        <StatCard label="Net saved" value={summaryNetSaved} prefix="$" tone={summaryNetSaved >= 0 ? 'default' : 'negative'} icon={PiggyBank} />
+        <StatCard label="Savings rate" value={summarySavingsRate} suffix="%" tone={summarySavingsRate >= 20 ? 'positive' : 'warning'} icon={Percent} />
       </div>
 
       {/* Add Transaction Bottom Sheet */}

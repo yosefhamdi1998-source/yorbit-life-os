@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -278,26 +278,33 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Net Worth */}
+      {/* Net Worth — centered hero figure, like the "Net saved" card above it,
+          instead of numbers pinned to opposite edges of the card. */}
       {netWorthEntries.length > 0 && (
-        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Net Worth</p>
-              <p className="text-2xl lg:text-3xl font-black text-foreground tabular-nums leading-none">${fmt(netWorth)}</p>
+        <div className="mb-5 sky-card rounded-2xl p-5 lg:p-6 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Net Worth</p>
+          <p className={`text-3xl lg:text-4xl font-black tabular-nums leading-none mb-3 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+            ${fmt(netWorth)}
+          </p>
+          {netWorthTrend.length > 1 && (
+            <div className="flex justify-center mb-4">
+              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={140} height={36} />
             </div>
-            {netWorthTrend.length > 1 && (
-              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={88} height={32} />
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-border/50">
-            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Assets</p>
-              <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums">${fmt(totalAssets)}</p>
+          )}
+          <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
+            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
+                <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none">${fmt(totalAssets)}</p>
+              </div>
             </div>
-            <div className="bg-red-500/10 rounded-xl px-3 py-2.5">
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-0.5">Liabilities</p>
-              <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums">${fmt(totalLiabilities)}</p>
+            <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2">
+              <TrendingDown className="w-3.5 h-3.5 text-red-500 shrink-0" />
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
+                <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none">${fmt(totalLiabilities)}</p>
+              </div>
             </div>
           </div>
         </div>

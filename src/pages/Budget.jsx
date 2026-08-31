@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { PiggyBank, Plus, X, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { PiggyBank, Plus, X, CheckCircle, AlertTriangle, Clock, Wallet, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -147,10 +147,10 @@ export default function Budget() {
       {totalBudget > 0 && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <StatCard label="Total budget" value={totalBudget} prefix="$" />
-            <StatCard label="Total spent" value={totalSpent} prefix="$" tone={totalSpent > totalBudget ? 'negative' : 'default'} />
-            <StatCard label="Remaining" value={Math.abs(totalBudget - totalSpent)} prefix="$" tone={totalBudget - totalSpent < 0 ? 'negative' : 'positive'} />
-            <StatCard label="Over limit" value={overCount} tone={overCount > 0 ? 'negative' : 'positive'} />
+            <StatCard label="Total budget" value={totalBudget} prefix="$" icon={Wallet} />
+            <StatCard label="Total spent" value={totalSpent} prefix="$" tone={totalSpent > totalBudget ? 'negative' : 'default'} icon={CreditCard} />
+            <StatCard label="Remaining" value={Math.abs(totalBudget - totalSpent)} prefix="$" tone={totalBudget - totalSpent < 0 ? 'negative' : 'positive'} icon={PiggyBank} />
+            <StatCard label="Over limit" value={overCount} tone={overCount > 0 ? 'negative' : 'positive'} icon={AlertTriangle} />
           </div>
           <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
             <div className="flex items-baseline justify-between mb-2.5">

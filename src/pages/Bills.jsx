@@ -248,9 +248,9 @@ export default function Bills() {
       {/* Summary */}
       {bills.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <StatCard label="Total due" value={totalDue} prefix="$" />
-          <StatCard label="Overdue" value={overdue} tone={overdue > 0 ? 'negative' : 'default'} />
-          <StatCard label="Due this week" value={dueSoon} tone={dueSoon > 0 ? 'warning' : 'default'} />
+          <StatCard label="Total due" value={totalDue} prefix="$" icon={Receipt} />
+          <StatCard label="Overdue" value={overdue} tone={overdue > 0 ? 'negative' : 'default'} icon={AlertTriangle} />
+          <StatCard label="Due this week" value={dueSoon} tone={dueSoon > 0 ? 'warning' : 'default'} icon={Clock} />
         </div>
       )}
 
