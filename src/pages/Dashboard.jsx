@@ -4,8 +4,13 @@ import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
+import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
+import { computeHealthScore } from '@/lib/financialHealth';
+import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
+import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
+import SavingsProgressCard from '@/components/dashboard/SavingsProgressCard';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -43,6 +48,8 @@ const CAT_TINT = {
 function fmt(n) {
   return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
+
+const HEALTH_SCORE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
@@ -186,23 +193,44 @@ export default function Dashboard() {
   // the same period switcher as the chart below it, instead of always
   // being locked to the literal calendar month — a fresh month with no
   // transactions yet used to make the whole hero read as "$0, broken."
-  const thisYearNum = new Date().getFullYear();
-  const heroTx = cashFlowPeriod === 'week' ? transactions.filter(t => t.date && parseISO(t.date) >= startOfDay(subDays(latestTxDate, 6)))
-    : cashFlowPeriod === 'year' ? transactions.filter(t => t.date?.startsWith(String(thisYearNum)))
-    : cashFlowPeriod === 'lastyear' ? transactions.filter(t => t.date?.startsWith(String(thisYearNum - 1)))
-    : monthTx;
-  const heroIncome = heroTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const heroExpenses = heroTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  const heroNetSaved = heroIncome - heroExpenses;
+  // Uses the shared periods.js module — the one canonical Week/Month/
+  // Year/Last Year implementation, also used by Goals and Save More.
+  const heroTx = filterByPeriod(transactions, cashFlowPeriod, latestTxDate);
+  const { income: heroIncome, expenses: heroExpenses, net: heroNetSaved } = sumByType(heroTx);
   const heroSavingsRate = heroIncome > 0 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
-  const heroPeriodLabel = cashFlowPeriod === 'week' ? 'Last 7 Days'
-    : cashFlowPeriod === 'year' ? String(thisYearNum)
-    : cashFlowPeriod === 'lastyear' ? String(thisYearNum - 1)
-    : format(new Date(), 'MMMM yyyy');
-  const heroPeriodPhrase = cashFlowPeriod === 'week' ? 'this week'
-    : cashFlowPeriod === 'year' ? 'this year'
-    : cashFlowPeriod === 'lastyear' ? 'last year'
-    : 'this month';
+  const heroPeriodLabel = getPeriodLabel(cashFlowPeriod);
+  const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod);
+
+  // Same period, one step back — powers the Savings Progress comparison
+  // and the Financial Health Score's "why it changed" explanation.
+  const prevTx = filterByPreviousPeriod(transactions, cashFlowPeriod, latestTxDate);
+  const prevSums = sumByType(prevTx);
+
+  // Budget adherence input for the Health Score — same "only count
+  // categories that actually have a limit" rule as BudgetSummaryCard.
+  const budgetedRows = HEALTH_SCORE_CATS
+    .map(cat => ({
+      cat,
+      spent: monthTx.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + (t.amount || 0), 0),
+      limit: budgets.find(b => b.category === cat && b.month === thisMonth)?.monthly_limit || 0,
+    }))
+    .filter(r => r.limit > 0);
+
+  const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && new Date(b.due_date) < new Date()).length;
+
+  const healthScore = computeHealthScore({
+    heroIncome, heroExpenses, prevIncome: prevSums.income, prevExpenses: prevSums.expenses, budgetedRows, bills,
+  });
+
+  // Cheapest possible "what's driving spend" signal for the What's Next
+  // fallback — the full breakdown lives on the new Save More page.
+  const spendByCat = {};
+  for (const t of heroTx) {
+    if (t.type === 'expense') spendByCat[t.category || 'other'] = (spendByCat[t.category || 'other'] || 0) + (t.amount || 0);
+  }
+  const topSaveMoreCategory = Object.entries(spendByCat)
+    .map(([cat, spent]) => ({ cat, spent }))
+    .sort((a, b) => b.spent - a.spent)[0] || null;
 
   // Net worth as it was actually recorded over time: entries in the order
   // they were added, accumulated. Not a projection — every point is a real
@@ -319,6 +347,25 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Savings Progress — this period vs. last, same period switcher as
+          the hero above it. */}
+      {heroTx.length > 0 && (
+        <SavingsProgressCard netSaved={heroNetSaved} prevNetSaved={prevTx.length > 0 ? prevSums.net : null} periodPhrase={heroPeriodPhrase} />
+      )}
+
+      {/* Financial Health Score — deterministic, no AI call, works from day one. */}
+      {(heroTx.length > 0 || budgetedRows.length > 0) && (
+        <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} />
+      )}
+
+      {/* What should I do next — reads today's already-generated Coach
+          insight; never triggers a new AI call from Home. */}
+      <WhatsNextCard
+        overdueBillCount={overdueBillCount}
+        heroNetSaved={heroNetSaved}
+        fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
+      />
+
       {/* ── Cash flow trend ───────────────────────────────────────────── */}
       {monthTx.length > 0 && (
         <div className="sky-card rounded-2xl px-4 pt-4 pb-2 lg:px-5 lg:pt-5 mb-5">
@@ -432,6 +479,26 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Save More / Recurring — quick links to the two new sections,
+            same tile size/weight so they read as part of the app, not
+            bolted on. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link to="/save-more" className="sky-card rounded-2xl p-4 hover:border-primary/40 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+              <Sparkles className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-sm font-bold text-foreground mb-0.5">Save More</p>
+            <p className="text-xs text-muted-foreground">Where to cut back</p>
+          </Link>
+          <Link to="/recurring" className="sky-card rounded-2xl p-4 hover:border-primary/40 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
+              <Repeat className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-sm font-bold text-foreground mb-0.5">Recurring</p>
+            <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
+          </Link>
+        </div>
 
         {/* Budget Summary */}
         <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
