@@ -347,13 +347,24 @@ export default function Finance() {
   const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
   const isYearPeriod = summaryPeriod.startsWith('year-');
+  // Weekly/Bi-Weekly anchor to the most recent transaction on record, not
+  // the real calendar date — imported/historical data can trail today's
+  // actual date by weeks, and a window counted back from "right now" would
+  // silently show $0 for everyone whose last transaction isn't from today.
+  const latestTxDate = useMemo(() => {
+    let latest = null;
+    for (const t of transactions) {
+      if (t.date && (!latest || t.date > latest)) latest = t.date;
+    }
+    return latest ? parseISO(latest) : new Date();
+  }, [transactions]);
   const summaryTx = useMemo(() => {
     if (summaryPeriod === 'weekly') {
-      const cutoff = startOfDay(subDays(new Date(), 6));
+      const cutoff = startOfDay(subDays(latestTxDate, 6));
       return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
     }
     if (summaryPeriod === 'biweekly') {
-      const cutoff = startOfDay(subDays(new Date(), 13));
+      const cutoff = startOfDay(subDays(latestTxDate, 13));
       return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
     }
     if (summaryPeriod === 'month') return monthTx;
@@ -362,7 +373,7 @@ export default function Finance() {
       return transactions.filter(t => t.date?.startsWith(y));
     }
     return monthTx;
-  }, [summaryPeriod, transactions, monthTx]);
+  }, [summaryPeriod, transactions, monthTx, latestTxDate]);
   const summaryIncome = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryExpenses = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryNetSaved = summaryIncome - summaryExpenses;
