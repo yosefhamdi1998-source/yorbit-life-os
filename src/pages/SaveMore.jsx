@@ -58,23 +58,14 @@ export default function SaveMore() {
   const top = rows[0];
   const estimatedSavings = top ? Math.round(top.spent * 0.15) : 0;
 
-  if (rows.length === 0) {
-    return (
-      <div className="py-4 pb-8">
-        <PageHeader title="Save More" subtitle="Where you could cut back" icon={Sparkles} gradient="gradient-primary" />
-        <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-border">
-          <Sparkles className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">Nothing to analyze yet</p>
-          <p className="text-xs text-muted-foreground">Add a few transactions and this page will show you exactly where to cut back.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="py-4 pb-8">
       <PageHeader title="Save More" subtitle="Where you could cut back" icon={Sparkles} gradient="gradient-primary" />
 
+      {/* Toggle always renders, even with zero rows for the current period —
+          a bare "Month" default with nothing in it used to be a dead end
+          with no way to check Year/Last Year, even when real data existed
+          there (the exact bug fixed elsewhere in the app already). */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto">
         {PERIODS.map(p => (
           <button
@@ -86,6 +77,14 @@ export default function SaveMore() {
           </button>
         ))}
       </div>
+
+      {rows.length === 0 && (
+        <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-border">
+          <Sparkles className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-foreground mb-1">Nothing to analyze for {getPeriodLabel(period)}</p>
+          <p className="text-xs text-muted-foreground">Try a different period above, or add a few transactions.</p>
+        </div>
+      )}
 
       {top && (
         <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)' }}>
