@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SpendingByCategoryChart from '@/components/finance/SpendingByCategoryChart';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
+import PageHeader from '@/components/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate, Link } from 'react-router-dom';
 import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
@@ -335,13 +336,11 @@ export default function Finance() {
   // calendar year (this year and the 2 before it) — the rest of the page
   // (transaction list, spending chart) stays month-scoped, since that's
   // what "Spending" and "Net Worth" tabs are already built around.
-  // Three trailing-period toggles (Monthly first, as the default/most
-  // common view), plus a separate year dropdown — not 4 flat year pills
-  // competing for space with the periods.
+  // Trailing-period toggles, shortest to longest.
   const PERIOD_OPTIONS = [
-    { key: 'month', label: 'Monthly' },
-    { key: 'biweekly', label: 'Bi-Weekly' },
     { key: 'weekly', label: 'Weekly' },
+    { key: 'biweekly', label: 'Bi-Weekly' },
+    { key: 'month', label: 'Monthly' },
   ];
   const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
@@ -397,36 +396,36 @@ export default function Finance() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
       {/* Header */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-            {format(new Date(), 'MMMM yyyy')}
-          </p>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight leading-none">Money</h1>
-        </div>
-        <div className="flex gap-1.5 items-center">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary" aria-label="Spending Summary">
-            <BarChart3 className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate('/bills')} className="h-8 w-8 text-muted-foreground" title="Bills" aria-label="Bills">
-            <Receipt className="w-4 h-4" />
-          </Button>
-          {FEATURES.bankSync && (
-            <Button variant="ghost" size="icon" onClick={() => navigate('/bank-sync')} className="h-8 w-8 text-blue-600" title="Connect Bank" aria-label="Connect Bank">
-              <Link2 className="w-4 h-4" />
+      <PageHeader
+        title="Money"
+        subtitle={format(new Date(), 'MMMM yyyy')}
+        icon={DollarSign}
+        gradient="gradient-primary"
+        action={
+          <>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary" aria-label="Spending Summary">
+              <BarChart3 className="w-4 h-4" />
             </Button>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV" aria-label="Import CSV">
-            <Upload className="w-4 h-4" />
-          </Button>
-          <Button onClick={() => setShowTxForm(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
-            <Plus className="w-3.5 h-3.5" /> Add
-          </Button>
-        </div>
-      </div>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/bills')} className="h-8 w-8 text-muted-foreground" title="Bills" aria-label="Bills">
+              <Receipt className="w-4 h-4" />
+            </Button>
+            {FEATURES.bankSync && (
+              <Button variant="ghost" size="icon" onClick={() => navigate('/bank-sync')} className="h-8 w-8 text-blue-600" title="Connect Bank" aria-label="Connect Bank">
+                <Link2 className="w-4 h-4" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV" aria-label="Import CSV">
+              <Upload className="w-4 h-4" />
+            </Button>
+            <Button onClick={() => setShowTxForm(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
+              <Plus className="w-3.5 h-3.5" /> Add
+            </Button>
+          </>
+        }
+      />
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
-      <div className="flex items-center gap-1.5 mb-3">
+      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
         {PERIOD_OPTIONS.map(p => (
           <button
             key={p.key}
@@ -436,15 +435,23 @@ export default function Finance() {
             {p.label}
           </button>
         ))}
-        <div className={`shrink-0 ml-auto rounded-full ${isYearPeriod ? 'ring-2 ring-primary' : ''}`}>
-          <MobileSelect
-            value={isYearPeriod ? summaryPeriod : `year-${thisYearNum}`}
-            onValueChange={v => setSummaryPeriod(v)}
-            options={YEAR_OPTIONS}
-            className="w-[92px]"
-          />
+        {/* "Yearly" sits inline with the other three, same pill styling —
+            it's a real <select> underneath (opens the native picker on
+            mobile), just skinned to match instead of looking like a
+            separate control shoved off to the side. */}
+        <div className="relative shrink-0">
+          <select
+            value={isYearPeriod ? summaryPeriod : ''}
+            onChange={e => setSummaryPeriod(e.target.value)}
+            className={`appearance-none text-xs font-semibold pl-3 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <option value="" disabled>Yearly</option>
+            {YEAR_OPTIONS.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+          </select>
+          <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
         </div>
-        <Link to="/spending-summary" className="shrink-0 text-xs text-primary font-semibold flex items-center gap-0.5">
+        <Link to="/spending-summary" className="shrink-0 ml-1 text-xs text-primary font-semibold flex items-center gap-0.5">
           Older <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
