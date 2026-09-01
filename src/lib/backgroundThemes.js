@@ -47,6 +47,38 @@ export const BACKGROUND_THEMES = {
     heroFrom: '#334155', heroVia: '#475569', heroTo: '#4f46e5',
     swatch: 'linear-gradient(135deg, #334155, #4f46e5)',
   },
+  gold: {
+    label: 'Black & Gold',
+    background: '42 25% 95%',
+    secondary: '40 20% 91%',
+    border: '38 18% 86%',
+    heroFrom: '#0a0a0a', heroVia: '#3d2f0a', heroTo: '#D4AF37',
+    swatch: 'linear-gradient(135deg, #0a0a0a, #D4AF37)',
+  },
+  rose: {
+    label: 'Rose',
+    background: '340 42% 96%',
+    secondary: '340 32% 93%',
+    border: '340 26% 89%',
+    heroFrom: '#9d174d', heroVia: '#db2777', heroTo: '#f97316',
+    swatch: 'linear-gradient(135deg, #9d174d, #f97316)',
+  },
+  teal: {
+    label: 'Teal',
+    background: '190 40% 95%',
+    secondary: '190 32% 91%',
+    border: '190 26% 86%',
+    heroFrom: '#155e75', heroVia: '#0891b2', heroTo: '#22d3ee',
+    swatch: 'linear-gradient(135deg, #155e75, #22d3ee)',
+  },
+  sand: {
+    label: 'Sand',
+    background: '35 38% 95%',
+    secondary: '35 30% 91%',
+    border: '35 24% 86%',
+    heroFrom: '#78350f', heroVia: '#b45309', heroTo: '#f59e0b',
+    swatch: 'linear-gradient(135deg, #78350f, #f59e0b)',
+  },
 };
 
 const DEFAULT_THEME = 'ocean';

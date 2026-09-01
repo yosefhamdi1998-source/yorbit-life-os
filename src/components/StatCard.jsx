@@ -42,7 +42,7 @@ export default function StatCard({
           <Icon className="w-4 h-4" strokeWidth={2.25} />
         </div>
       )}
-      <p className={`text-2xl lg:text-[28px] font-black tracking-tight leading-none mb-1.5 tabular-nums ${TONES[tone] || TONES.default}`}>
+      <p className={`font-numeric text-2xl lg:text-[28px] font-black tracking-tight leading-none mb-1.5 tabular-nums ${TONES[tone] || TONES.default}`}>
         {numeric ? (
           <>
             {negative && '−'}

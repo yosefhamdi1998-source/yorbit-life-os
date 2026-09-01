@@ -31,10 +31,10 @@ export default function AnimatedNumber({ value, prefix = '', suffix = '', decima
     return () => cancelAnimationFrame(rafRef.current);
   }, [target]);
 
-  if (format) return <span>{format(display)}</span>;
+  if (format) return <span className="font-numeric">{format(display)}</span>;
 
   return (
-    <span>
+    <span className="font-numeric">
       {prefix}
       {display.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
       {suffix}

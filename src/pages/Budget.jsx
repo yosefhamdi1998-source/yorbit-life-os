@@ -270,11 +270,11 @@ export default function Budget() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 mb-2 text-xs">
-                  <div><p className="text-muted-foreground">Spent</p><p className={`font-bold ${over ? 'text-red-500' : ''}`}>${fmt(spent)}</p></div>
+                  <div><p className="text-muted-foreground">Spent</p><p className={`font-numeric font-bold ${over ? 'text-red-500' : ''}`}>${fmt(spent)}</p></div>
                   {limit > 0 && (
                     <>
-                      <div><p className="text-muted-foreground">Limit</p><p className="font-bold">${fmt(limit)}</p></div>
-                      <div><p className="text-muted-foreground">Remaining</p><p className={`font-bold ${remaining < 0 ? 'text-red-500' : 'text-emerald-500'}`}>{remaining < 0 ? '-' : ''}${fmt(Math.abs(remaining))}</p></div>
+                      <div><p className="text-muted-foreground">Limit</p><p className="font-numeric font-bold">${fmt(limit)}</p></div>
+                      <div><p className="text-muted-foreground">Remaining</p><p className={`font-numeric font-bold ${remaining < 0 ? 'text-red-500' : 'text-emerald-500'}`}>{remaining < 0 ? '-' : ''}${fmt(Math.abs(remaining))}</p></div>
                     </>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import { Home, Utensils, Car, Clapperboard, HeartPulse, ShoppingBag, GraduationCap, PiggyBank, Wallet, Laptop, TrendingUp, MoreHorizontal } from 'lucide-react';
+import { Home, Utensils, Car, Clapperboard, HeartPulse, ShoppingBag, GraduationCap, PiggyBank, Wallet, Laptop, TrendingUp, Receipt } from 'lucide-react';
 
 // Single source of truth for category color + icon, used everywhere a
 // spending category shows up (Dashboard, Money, Budget, Spending Summary).
@@ -18,11 +18,11 @@ const ICON_MAP = {
   housing: Home, food: Utensils, transport: Car, entertainment: Clapperboard,
   health: HeartPulse, shopping: ShoppingBag, education: GraduationCap,
   savings: PiggyBank, salary: Wallet, freelance: Laptop, investment: TrendingUp,
-  other: MoreHorizontal,
+  other: Receipt,
 };
 
 export function CategoryIcon({ category, className = 'w-4 h-4', style }) {
-  const Icon = ICON_MAP[category] || MoreHorizontal;
+  const Icon = ICON_MAP[category] || Receipt;
   return <Icon className={className} style={style} />;
 }
 

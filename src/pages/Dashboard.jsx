@@ -154,13 +154,16 @@ export default function Dashboard() {
     });
   })();
 
-  // Same idea, one point per month instead of per day, for the whole
-  // current calendar year so far.
-  const cashFlowSeriesYear = (() => {
-    const thisYear = format(new Date(), 'yyyy');
-    const yearTx = transactions.filter(t => t.date?.startsWith(thisYear));
-    const start = startOfMonth(new Date(new Date().getFullYear(), 0, 1));
-    const months = eachMonthOfInterval({ start, end: new Date() });
+  // Same idea, one point per month instead of per day, for a whole
+  // calendar year. yearOffset 0 = this year (partial, up to today),
+  // -1 = last year (the full 12 months).
+  const buildCashFlowYear = (yearOffset) => {
+    const year = new Date().getFullYear() + yearOffset;
+    const yearStr = String(year);
+    const yearTx = transactions.filter(t => t.date?.startsWith(yearStr));
+    const start = new Date(year, 0, 1);
+    const end = yearOffset === 0 ? new Date() : new Date(year, 11, 31);
+    const months = eachMonthOfInterval({ start, end });
     let running = 0;
     return months.map(m => {
       const key = format(m, 'yyyy-MM');
@@ -169,9 +172,14 @@ export default function Dashboard() {
       }
       return { day: format(m, 'MMM'), net: Math.round(running) };
     });
-  })();
+  };
+  const cashFlowSeriesYear = buildCashFlowYear(0);
+  const cashFlowSeriesLastYear = buildCashFlowYear(-1);
 
-  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear : cashFlowPeriod === 'week' ? cashFlowSeriesWeek : cashFlowSeriesMonth;
+  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear
+    : cashFlowPeriod === 'lastyear' ? cashFlowSeriesLastYear
+    : cashFlowPeriod === 'week' ? cashFlowSeriesWeek
+    : cashFlowSeriesMonth;
   const cashFlowNet = cashFlowSeries.length ? cashFlowSeries[cashFlowSeries.length - 1].net : 0;
 
   // Net worth as it was actually recorded over time: entries in the order
@@ -249,7 +257,7 @@ export default function Dashboard() {
           </div>
 
           <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
-          <p className="text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5 tabular-nums">
+          <p className="font-numeric text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5 tabular-nums">
             {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
           </p>
 
@@ -286,7 +294,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-1.5 mb-3">
-            {[{ key: 'week', label: 'This Week' }, { key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }].map(p => (
+            {[{ key: 'week', label: 'This Week' }, { key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }, { key: 'lastyear', label: 'Last Year' }].map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
@@ -347,7 +355,7 @@ export default function Dashboard() {
               <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
             )}
           </div>
-          <p className={`text-3xl lg:text-4xl font-black tabular-nums leading-none mb-4 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+          <p className={`font-numeric text-3xl lg:text-4xl font-black tabular-nums leading-none mb-4 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
             ${fmt(netWorth)}
           </p>
           <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">

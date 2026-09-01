@@ -12,6 +12,7 @@ import QuickAddFAB from '@/components/QuickAddFAB';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { recordRoute } from '@/hooks/useGoBack';
 import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
+import { getLargeText, applyTextSize } from '@/lib/textSize';
 
 const bottomNavItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -85,6 +86,7 @@ export default function Layout() {
     // Re-applying the chosen background theme here (not just once on mount)
     // is what keeps it correctly scoped to light mode as dark toggles.
     applyBackgroundTheme(getBackgroundTheme(), dark);
+    applyTextSize(getLargeText());
   }, [dark]);
 
   return (
@@ -94,8 +96,8 @@ export default function Layout() {
       <aside className="hidden lg:flex flex-col w-56 border-r border-border/50 fixed inset-y-0 left-0 z-40 bg-card">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border/50 shrink-0">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #7C3AED 100%)' }}>
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ring-1 ring-inset ring-white/10" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)' }}>
+            <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
           </div>
           <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
         </div>
@@ -160,8 +162,8 @@ export default function Layout() {
       >
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #60A5FA 0%, #7C3AED 100%)' }}>
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/10" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)' }}>
+              <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
             </div>
             <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
           </div>
