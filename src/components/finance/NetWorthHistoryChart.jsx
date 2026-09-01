@@ -36,7 +36,7 @@ export default function NetWorthHistoryChart({ entries }) {
           {change >= 0 ? '+' : '−'}${fmt(Math.abs(change))} all time
         </p>
       </div>
-      <div className="h-48 -ml-2">
+      <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>

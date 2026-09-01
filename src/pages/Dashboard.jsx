@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval, eachMonthOfInterval } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
@@ -114,6 +114,32 @@ export default function Dashboard() {
 
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
+  // Anchor "recent" windows to the newest transaction on record, not the
+  // literal calendar date — imported/historical data can trail today's
+  // real date by weeks, and a trailing window counted from "right now"
+  // would show a flat $0 for anyone whose last transaction isn't from
+  // the last few days (same bug fixed on the Money page's Weekly/Bi-Weekly).
+  const latestTxDate = (() => {
+    let latest = null;
+    for (const t of transactions) {
+      if (t.date && (!latest || t.date > latest)) latest = t.date;
+    }
+    return latest ? parseISO(latest) : new Date();
+  })();
+
+  const cashFlowSeriesWeek = (() => {
+    const start = startOfDay(subDays(latestTxDate, 6));
+    const days = eachDayOfInterval({ start, end: latestTxDate });
+    let running = 0;
+    return days.map(d => {
+      const key = format(d, 'yyyy-MM-dd');
+      for (const t of transactions) {
+        if (t.date === key) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
+      }
+      return { day: format(d, 'MMM d'), net: Math.round(running) };
+    });
+  })();
+
   // Running net balance for each day so far this month, for the trend chart.
   const cashFlowSeriesMonth = (() => {
     const start = startOfMonth(new Date());
@@ -145,7 +171,7 @@ export default function Dashboard() {
     });
   })();
 
-  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear : cashFlowSeriesMonth;
+  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear : cashFlowPeriod === 'week' ? cashFlowSeriesWeek : cashFlowSeriesMonth;
   const cashFlowNet = cashFlowSeries.length ? cashFlowSeries[cashFlowSeries.length - 1].net : 0;
 
   // Net worth as it was actually recorded over time: entries in the order
@@ -260,7 +286,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-1.5 mb-3">
-            {[{ key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }].map(p => (
+            {[{ key: 'week', label: 'This Week' }, { key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }].map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
@@ -270,7 +296,7 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
-          <div className="h-40 lg:h-56 -ml-2">
+          <div className="h-40 lg:h-56">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={cashFlowSeries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                 <defs>

@@ -40,7 +40,7 @@ export default function IncomeExpenseTrendChart({ transactions, months = 6 }) {
           Income vs. Spending · Last {months} Months
         </p>
       </div>
-      <div className="h-56 -ml-2">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barGap={4}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
