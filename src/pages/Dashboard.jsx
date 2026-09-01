@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval, eachMonthOfInterval } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
@@ -52,6 +52,7 @@ export default function Dashboard() {
   const [netWorthEntries, setNetWorthEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'month' | 'year'
   const navigate = useNavigate();
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -114,7 +115,7 @@ export default function Dashboard() {
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
   // Running net balance for each day so far this month, for the trend chart.
-  const cashFlowSeries = (() => {
+  const cashFlowSeriesMonth = (() => {
     const start = startOfMonth(new Date());
     const days = eachDayOfInterval({ start, end: new Date() });
     let running = 0;
@@ -126,6 +127,26 @@ export default function Dashboard() {
       return { day: format(d, 'MMM d'), net: Math.round(running) };
     });
   })();
+
+  // Same idea, one point per month instead of per day, for the whole
+  // current calendar year so far.
+  const cashFlowSeriesYear = (() => {
+    const thisYear = format(new Date(), 'yyyy');
+    const yearTx = transactions.filter(t => t.date?.startsWith(thisYear));
+    const start = startOfMonth(new Date(new Date().getFullYear(), 0, 1));
+    const months = eachMonthOfInterval({ start, end: new Date() });
+    let running = 0;
+    return months.map(m => {
+      const key = format(m, 'yyyy-MM');
+      for (const t of yearTx) {
+        if (t.date?.startsWith(key)) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
+      }
+      return { day: format(m, 'MMM'), net: Math.round(running) };
+    });
+  })();
+
+  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear : cashFlowSeriesMonth;
+  const cashFlowNet = cashFlowSeries.length ? cashFlowSeries[cashFlowSeries.length - 1].net : 0;
 
   // Net worth as it was actually recorded over time: entries in the order
   // they were added, accumulated. Not a projection — every point is a real
@@ -230,13 +251,24 @@ export default function Dashboard() {
       {/* ── Cash flow trend ───────────────────────────────────────────── */}
       {monthTx.length > 0 && (
         <div className="sky-card rounded-2xl px-4 pt-4 pb-2 lg:px-5 lg:pt-5 mb-5">
-          <div className="flex items-baseline justify-between mb-3">
+          <div className="flex items-baseline justify-between mb-1">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Cash flow this month
+              Cash flow
             </p>
-            <p className={`text-sm font-bold ${netSaved >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              {netSaved >= 0 ? '+' : '−'}${fmt(Math.abs(netSaved))}
+            <p className={`text-sm font-bold ${cashFlowNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              {cashFlowNet >= 0 ? '+' : '−'}${fmt(Math.abs(cashFlowNet))}
             </p>
+          </div>
+          <div className="flex gap-1.5 mb-3">
+            {[{ key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }].map(p => (
+              <button
+                key={p.key}
+                onClick={() => setCashFlowPeriod(p.key)}
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
           <div className="h-40 lg:h-56 -ml-2">
             <ResponsiveContainer width="100%" height="100%">

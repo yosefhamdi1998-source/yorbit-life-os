@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SpendingByCategoryChart from '@/components/finance/SpendingByCategoryChart';
+import IncomeExpenseTrendChart from '@/components/finance/IncomeExpenseTrendChart';
+import NetWorthHistoryChart from '@/components/finance/NetWorthHistoryChart';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import PageHeader from '@/components/PageHeader';
@@ -483,6 +485,7 @@ export default function Finance() {
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
+          <IncomeExpenseTrendChart transactions={transactions} months={6} />
           {catData.length > 0 ? (
             <>
               <SpendingByCategoryChart catData={catData} totalExpenses={monthExpenses} />
@@ -540,6 +543,8 @@ export default function Finance() {
               ${fmt(totalAssets - totalLiabilities)}
             </p>
           </div>
+
+          <NetWorthHistoryChart entries={netWorth} />
 
           {showNWForm && (
             <div className="sky-card rounded-2xl p-5 mb-4">
