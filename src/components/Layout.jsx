@@ -97,8 +97,8 @@ export default function Layout() {
       <aside className="hidden lg:flex flex-col w-56 border-r border-border/50 fixed inset-y-0 left-0 z-40 bg-card">
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border/50 shrink-0">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ring-1 ring-inset ring-white/10" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)' }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ring-1 ring-inset ring-white/15" style={{ background: 'linear-gradient(135deg, #000000 0%, #5a4210 55%, #D4AF37 100%)' }}>
+            <Sparkles className="w-3.5 h-3.5 text-white" strokeWidth={2.25} />
           </div>
           <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
         </div>
@@ -163,8 +163,8 @@ export default function Layout() {
       >
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/10" style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #000000 100%)' }}>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/15" style={{ background: 'linear-gradient(135deg, #000000 0%, #5a4210 55%, #D4AF37 100%)' }}>
+              <Sparkles className="w-3.5 h-3.5 text-white" strokeWidth={2.25} />
             </div>
             <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
           </div>
