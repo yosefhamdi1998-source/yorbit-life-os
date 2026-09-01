@@ -182,6 +182,28 @@ export default function Dashboard() {
     : cashFlowSeriesMonth;
   const cashFlowNet = cashFlowSeries.length ? cashFlowSeries[cashFlowSeries.length - 1].net : 0;
 
+  // The hero figures (net saved / income / expenses / savings rate) follow
+  // the same period switcher as the chart below it, instead of always
+  // being locked to the literal calendar month — a fresh month with no
+  // transactions yet used to make the whole hero read as "$0, broken."
+  const thisYearNum = new Date().getFullYear();
+  const heroTx = cashFlowPeriod === 'week' ? transactions.filter(t => t.date && parseISO(t.date) >= startOfDay(subDays(latestTxDate, 6)))
+    : cashFlowPeriod === 'year' ? transactions.filter(t => t.date?.startsWith(String(thisYearNum)))
+    : cashFlowPeriod === 'lastyear' ? transactions.filter(t => t.date?.startsWith(String(thisYearNum - 1)))
+    : monthTx;
+  const heroIncome = heroTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  const heroExpenses = heroTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  const heroNetSaved = heroIncome - heroExpenses;
+  const heroSavingsRate = heroIncome > 0 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
+  const heroPeriodLabel = cashFlowPeriod === 'week' ? 'Last 7 Days'
+    : cashFlowPeriod === 'year' ? String(thisYearNum)
+    : cashFlowPeriod === 'lastyear' ? String(thisYearNum - 1)
+    : format(new Date(), 'MMMM yyyy');
+  const heroPeriodPhrase = cashFlowPeriod === 'week' ? 'this week'
+    : cashFlowPeriod === 'year' ? 'this year'
+    : cashFlowPeriod === 'lastyear' ? 'last year'
+    : 'this month';
+
   // Net worth as it was actually recorded over time: entries in the order
   // they were added, accumulated. Not a projection — every point is a real
   // state the account was in. Needs 2+ points to say anything, so it stays
@@ -244,9 +266,9 @@ export default function Dashboard() {
           <div className="aurora-blob aurora-sky2" style={{ opacity: 0.35 }} />
         </div>
         <div className="relative px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">
-              {format(new Date(), 'MMMM yyyy')}
+              {heroPeriodLabel}
             </p>
             <Link to="/upgrade">
               <div className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-full px-3 py-1.5">
@@ -256,27 +278,42 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <p className="text-white/55 text-xs font-medium mb-1">Net saved this month</p>
+          {/* Period switcher lives right in the hero — same idea as the
+              date-range switcher on Money, so the top of Home isn't just
+              a static snapshot with nowhere to go. */}
+          <div className="flex gap-1.5 mb-4 overflow-x-auto">
+            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: 'year', label: 'Year' }, { key: 'lastyear', label: 'Last Year' }].map(p => (
+              <button
+                key={p.key}
+                onClick={() => setCashFlowPeriod(p.key)}
+                className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-white/55 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
           <p className="font-numeric text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5 tabular-nums">
-            {netSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(netSaved)} />
+            {heroNetSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(heroNetSaved)} />
           </p>
 
           <div className="grid grid-cols-3 gap-2.5">
             <div className="bg-white/10 rounded-xl px-3 py-2.5">
               <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Income</p>
               <p className="text-white font-black text-base leading-tight tabular-nums truncate">
-                <AnimatedNumber prefix="$" value={monthIncome} />
+                <AnimatedNumber prefix="$" value={heroIncome} />
               </p>
             </div>
             <div className="bg-white/10 rounded-xl px-3 py-2.5">
               <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Expenses</p>
               <p className="text-white font-black text-base leading-tight tabular-nums truncate">
-                <AnimatedNumber prefix="$" value={monthExpenses} />
+                <AnimatedNumber prefix="$" value={heroExpenses} />
               </p>
             </div>
             <div className="bg-white/10 rounded-xl px-3 py-2.5">
               <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Savings rate</p>
-              <p className="text-white font-black text-base leading-tight tabular-nums truncate">{savingsRate}%</p>
+              <p className="text-white font-black text-base leading-tight tabular-nums truncate">{heroSavingsRate}%</p>
             </div>
           </div>
         </div>
@@ -285,24 +322,13 @@ export default function Dashboard() {
       {/* ── Cash flow trend ───────────────────────────────────────────── */}
       {monthTx.length > 0 && (
         <div className="sky-card rounded-2xl px-4 pt-4 pb-2 lg:px-5 lg:pt-5 mb-5">
-          <div className="flex items-baseline justify-between mb-1">
+          <div className="flex items-baseline justify-between mb-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Cash flow
+              Cash flow · {heroPeriodLabel}
             </p>
             <p className={`text-sm font-bold ${cashFlowNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
               {cashFlowNet >= 0 ? '+' : '−'}${fmt(Math.abs(cashFlowNet))}
             </p>
-          </div>
-          <div className="flex gap-1.5 mb-3">
-            {[{ key: 'week', label: 'This Week' }, { key: 'month', label: 'This Month' }, { key: 'year', label: 'This Year' }, { key: 'lastyear', label: 'Last Year' }].map(p => (
-              <button
-                key={p.key}
-                onClick={() => setCashFlowPeriod(p.key)}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
-              >
-                {p.label}
-              </button>
-            ))}
           </div>
           <div className="h-40 lg:h-56">
             <ResponsiveContainer width="100%" height="100%">
