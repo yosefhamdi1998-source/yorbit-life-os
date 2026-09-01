@@ -219,7 +219,7 @@ export default function Dashboard() {
   const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && new Date(b.due_date) < new Date()).length;
 
   const healthScore = computeHealthScore({
-    heroIncome, heroExpenses, prevIncome: prevSums.income, prevExpenses: prevSums.expenses, budgetedRows, bills,
+    heroIncome, heroExpenses, prevIncome: prevSums.income, prevExpenses: prevSums.expenses, prevTxCount: prevTx.length, budgetedRows, bills,
   });
 
   // Cheapest possible "what's driving spend" signal for the What's Next

@@ -23,7 +23,7 @@ function scoreFor({ income, expenses, prevExpenses, budgetedRows, overdueBillCou
   return Math.max(0, Math.min(100, savingsPts + trendPts + budgetPts + billsPts));
 }
 
-export function computeHealthScore({ heroIncome, heroExpenses, prevIncome, prevExpenses, budgetedRows, bills }) {
+export function computeHealthScore({ heroIncome, heroExpenses, prevIncome, prevExpenses, prevTxCount = null, budgetedRows, bills }) {
   const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && new Date(b.due_date) < new Date()).length;
   const shared = { budgetedRows, overdueBillCount, hasBills: bills.length > 0 };
 
@@ -34,9 +34,17 @@ export function computeHealthScore({ heroIncome, heroExpenses, prevIncome, prevE
 
   const delta = prevScore != null ? score - prevScore : null;
 
+  // A previous period with very little data (e.g. "last year" covering only
+  // a couple of weeks near a data-import boundary) produces a technically-
+  // correct but wildly misleading percentage - dividing by a tiny prior
+  // total inflates any real number into a triple-digit "spike." Cite a
+  // specific % only when the comparison period has enough transactions to
+  // mean something.
+  const prevPeriodReliable = prevTxCount == null || prevTxCount >= 5;
+
   let explanation = "Add a few transactions to start building your score.";
   if (delta != null && Math.abs(delta) >= 1) {
-    const expensePctChange = prevExpenses > 0 ? Math.round(((heroExpenses - prevExpenses) / prevExpenses) * 100) : null;
+    const expensePctChange = (prevExpenses > 0 && prevPeriodReliable) ? Math.round(((heroExpenses - prevExpenses) / prevExpenses) * 100) : null;
     if (delta > 0) {
       explanation = expensePctChange != null && expensePctChange < 0
         ? `Your score rose ${delta} point${delta === 1 ? '' : 's'} because you spent ${Math.abs(expensePctChange)}% less than last period.`
