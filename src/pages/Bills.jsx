@@ -70,22 +70,30 @@ export default function Bills() {
   useEffect(() => {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
-    loadBills(true);
     // Auto-open form if navigated from FAB
     const params = new URLSearchParams(window.location.search);
     if (params.get('add') === 'true') {
       setShowForm(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
-    // Re-attach deletion timers for any persisted deleted bills
+    // Re-attach deletion timers for any persisted deleted bills. Any entry
+    // whose 30-minute window already lapsed (e.g. the tab was closed and
+    // reopened later) needs its real DB delete to finish BEFORE loadBills()
+    // fires below — the two used to run as an unawaited race, and if the
+    // GET beat the DELETE, the still-there-server-side row would load right
+    // back into `bills` and reappear in the UI even though it had already
+    // been "deleted". Awaiting the cleanup first closes that window. The
+    // localStorage write-back was also missing on this path, which left the
+    // same expired entry to repeat the race on every future page load.
     const persisted = JSON.parse(localStorage.getItem('bills_recently_deleted') || '[]');
-    persisted.forEach(entry => {
+    const stillPending = [];
+    const expiredCleanup = [];
+    for (const entry of persisted) {
       const remaining = entry.expiresAt - Date.now();
       if (remaining <= 0) {
-        // Already expired — delete for real now
-        base44.entities.Bill.delete(entry.id).catch(() => {});
-        setDeletedBills(prev => prev.filter(d => d.id !== entry.id));
+        expiredCleanup.push(entry.id);
       } else {
+        stillPending.push(entry);
         timersRef.current[entry.id] = setTimeout(async () => {
           await base44.entities.Bill.delete(entry.id).catch(() => {});
           setDeletedBills(prev => {
@@ -95,7 +103,15 @@ export default function Bills() {
           });
         }, remaining);
       }
-    });
+    }
+    setDeletedBills(stillPending);
+    localStorage.setItem('bills_recently_deleted', JSON.stringify(stillPending));
+    (async () => {
+      if (expiredCleanup.length) {
+        await Promise.all(expiredCleanup.map(id => base44.entities.Bill.delete(id).catch(() => {})));
+      }
+      loadBills(true);
+    })();
   }, []);
 
   const openEdit = (bill) => {
