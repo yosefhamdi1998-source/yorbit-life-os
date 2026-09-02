@@ -276,7 +276,7 @@ export default function CSVImport() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep('map')} className="flex-1">Back</Button>
-            <Button onClick={doImport} disabled={importing} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1">
+            <Button onClick={doImport} disabled={importing} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-1">
               {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> {importProgress}%</> : `Import ${preview.length} Transactions`}
             </Button>
           </div>

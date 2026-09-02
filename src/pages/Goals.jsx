@@ -186,7 +186,7 @@ export default function Goals() {
       {goals.length === 0 && !showForm ? (
         <div
           className="rounded-3xl p-6 relative overflow-hidden text-center"
-          style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)' }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}
         >
           <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
             <Target className="w-8 h-8 text-white" strokeWidth={1.6} />
@@ -257,7 +257,7 @@ export default function Goals() {
                       value={contributionAmt} onChange={e => setContributionAmt(e.target.value)}
                       className="flex-1" min="0.01"
                     />
-                    <Button size="icon" onClick={() => addContribution(goal)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 shrink-0" aria-label="Confirm contribution">
+                    <Button size="icon" onClick={() => addContribution(goal)} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shrink-0" aria-label="Confirm contribution">
                       <Check className="w-4 h-4" />
                     </Button>
                     <Button size="icon" variant="outline" onClick={() => { setContributingId(null); setContributionAmt(''); }} className="shrink-0" aria-label="Cancel">

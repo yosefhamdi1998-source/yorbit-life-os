@@ -49,7 +49,7 @@ export default function Recurring() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)' }}>
+          <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}>
             <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Recurring cost</p>
             <p className="font-numeric text-white text-4xl font-black tracking-tight leading-none mb-1 tabular-nums">
               ${fmt(monthlyTotal)}<span className="text-lg font-bold text-white/70">/mo</span>

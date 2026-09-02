@@ -124,12 +124,12 @@ export default function Budget() {
         title="Budget"
         subtitle="Track spending against your limits"
         icon={PiggyBank}
-        gradient="gradient-finance"
+        gradient="gradient-primary"
         showBack
         action={
           <div className="flex items-center gap-1">
             <BudgetExportMenu rows={rows} totalSpent={totalSpent} totalBudget={totalBudget} month={thisMonth} />
-            <Button size="sm" onClick={() => setShowForm(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1">
+            <Button size="sm" onClick={() => setShowForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-1">
               <Plus className="w-3.5 h-3.5" /> Set Budget
             </Button>
           </div>
@@ -200,7 +200,7 @@ export default function Budget() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</Button>
-            <Button onClick={save} disabled={!form.monthly_limit || parseFloat(form.monthly_limit) <= 0 || saving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+            <Button onClick={save} disabled={!form.monthly_limit || parseFloat(form.monthly_limit) <= 0 || saving} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0">
               {saving ? 'Saving…' : 'Save Budget'}
             </Button>
           </div>
@@ -211,7 +211,7 @@ export default function Budget() {
       {rows.length === 0 ? (
         <div
           className="rounded-3xl p-6 relative overflow-hidden text-center"
-          style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)' }}
+          style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}
         >
           <div className="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center mx-auto mb-4">
             <PiggyBank className="w-8 h-8 text-white" strokeWidth={1.6} />
@@ -236,7 +236,8 @@ export default function Budget() {
           </div>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-white text-emerald-700 font-bold hover:bg-white/90 border-0 gap-1"
+            className="bg-white hover:bg-white/90 border-0 gap-1 font-bold"
+            style={{ color: 'var(--hero-via)', textShadow: 'none' }}
           >
             <Plus className="w-4 h-4" /> Custom Budget
           </Button>

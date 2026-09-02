@@ -231,7 +231,16 @@ export default function Dashboard() {
           calm so the gradient has somewhere to land. */}
       <div
         className="mt-5 mb-5 rounded-3xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)' }}
+        style={{
+          background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)',
+          // Some themes' gradient runs bright at one end (gold, sand) — a
+          // flat white number stays crisp at the dark end but washes out
+          // against those. A soft dark shadow (inherited by every white
+          // text node below) keeps it legible across all 9 themes without
+          // trading away contrast on the dark end, the way switching to a
+          // fixed dark-gray would.
+          textShadow: '0 1px 10px rgba(0,0,0,0.35)',
+        }}
       >
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="aurora-blob aurora-sky1" style={{ opacity: 0.45 }} />

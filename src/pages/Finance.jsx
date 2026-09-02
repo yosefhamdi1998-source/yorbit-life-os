@@ -430,7 +430,7 @@ export default function Finance() {
             <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV" aria-label="Import CSV">
               <Upload className="w-4 h-4" />
             </Button>
-            <Button onClick={() => setShowTxForm(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
+            <Button onClick={() => setShowTxForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
               <Plus className="w-3.5 h-3.5" /> Add
             </Button>
           </>
@@ -581,7 +581,7 @@ export default function Finance() {
               </div>
               <div className="flex gap-2 mt-3">
                 <Button variant="outline" onClick={() => setShowNWForm(false)} className="flex-1">Cancel</Button>
-                <Button onClick={saveNW} disabled={!nwForm.name || !nwForm.value || nwSaving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+                <Button onClick={saveNW} disabled={!nwForm.name || !nwForm.value || nwSaving} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                   {nwSaving ? 'Saving…' : 'Save'}
                 </Button>
               </div>
