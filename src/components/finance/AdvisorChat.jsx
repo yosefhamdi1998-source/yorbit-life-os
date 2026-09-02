@@ -69,7 +69,7 @@ export default function AdvisorChat() {
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {messages.length === 0 && !sending && (
           <div className="py-6 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <p className="font-semibold text-sm mb-1">Ask your Financial Advisor</p>
@@ -93,7 +93,7 @@ export default function AdvisorChat() {
           return (
             <div key={i} className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
               {!isUser && (
-                <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
                   <Bot className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
@@ -117,7 +117,7 @@ export default function AdvisorChat() {
 
         {isTyping && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex gap-2.5 justify-start">
-            <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+            <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--hero-from), var(--hero-to))' }}>
               <Bot className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="sky-card rounded-2xl rounded-bl-sm px-4 py-3">

@@ -198,7 +198,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
             <div className="space-y-4">
               <div
                 className="rounded-3xl p-6 relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
+                style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
               >
                 <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
                   <div className="aurora-blob aurora-sky2" style={{ opacity: 0.4 }} />
@@ -335,7 +335,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
                   )}
 
                   {advice.next_move && (
-                    <div className="rounded-2xl p-4" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
+                    <div className="rounded-2xl p-4" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <Target className="w-4 h-4 text-white/80" />
                         <p className="text-xs font-bold text-white/80 uppercase tracking-wider">Your #1 Next Move 🎯</p>
