@@ -1,18 +1,27 @@
-import { format, parseISO, startOfDay, subDays } from 'date-fns';
+import { format, parseISO, startOfDay, subDays, startOfMonth, subMonths } from 'date-fns';
 
-// Single source of truth for the Week/Month/Year/Last Year period model
-// used across Home, Goals, and Save More. Anchors "recent" windows (week)
-// to the newest transaction on record rather than the literal calendar
-// date — imported/historical data can trail today's real date by weeks,
-// and a window counted from "right now" would silently show $0 for
-// anyone whose last transaction isn't from today (the bug fixed on the
-// Money page's Weekly/Bi-Weekly, generalized here).
+// Single source of truth for the Week/Month/3-Month/6-Month/Year/Last Year/
+// All period model used across Home, Goals, and Save More. Anchors "recent"
+// windows (week, 3-month, 6-month) to the newest transaction on record
+// rather than the literal calendar date — imported/historical data can
+// trail today's real date by weeks, and a window counted from "right now"
+// would silently show $0 for anyone whose last transaction isn't from
+// today (the bug fixed on the Money page's Weekly/Bi-Weekly, generalized
+// here).
 export const PERIODS = [
   { key: 'week', label: 'Week' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
   { key: 'lastyear', label: 'Last Year' },
 ];
+
+// Rolling N-calendar-month windows (3-month/6-month) anchor to the *month*
+// of the latest transaction, not just the last N*30 days — so "3 Months"
+// always reads as 3 whole calendar months of data, matching how a person
+// would describe "the last quarter."
+function monthsBackStart(anchor, months) {
+  return startOfMonth(subMonths(anchor, months - 1));
+}
 
 export function getLatestTransactionDate(transactions) {
   let latest = null;
@@ -32,9 +41,15 @@ export function isSpecificYearPeriod(period) {
 export function filterByPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
   const thisYear = new Date().getFullYear();
+  if (period === 'all') return transactions;
   if (period === 'week') {
     const cutoff = startOfDay(subDays(anchor, 6));
     return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
+  }
+  if (period === '3month' || period === '6month') {
+    const months = period === '3month' ? 3 : 6;
+    const cutoff = format(monthsBackStart(anchor, months), 'yyyy-MM-dd');
+    return transactions.filter(t => t.date && t.date >= cutoff);
   }
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(period.slice(5)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear)));
@@ -49,6 +64,7 @@ export function filterByPeriod(transactions, period, latestTxDate) {
 export function filterByPreviousPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
   const thisYear = new Date().getFullYear();
+  if (period === 'all') return []; // no "previous" window for all-time
   if (period === 'week') {
     const end = startOfDay(subDays(anchor, 7));
     const start = startOfDay(subDays(anchor, 13));
@@ -57,6 +73,12 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
       const d = parseISO(t.date);
       return d >= start && d <= end;
     });
+  }
+  if (period === '3month' || period === '6month') {
+    const months = period === '3month' ? 3 : 6;
+    const end = format(subDays(monthsBackStart(anchor, months), 1), 'yyyy-MM-dd');
+    const start = format(monthsBackStart(anchor, months * 2), 'yyyy-MM-dd');
+    return transactions.filter(t => t.date && t.date >= start && t.date <= end);
   }
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(String(parseInt(period.slice(5), 10) - 1)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear - 1)));
@@ -70,7 +92,10 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
 
 export function getPeriodLabel(period) {
   const thisYear = new Date().getFullYear();
+  if (period === 'all') return 'All Time';
   if (period === 'week') return 'Last 7 Days';
+  if (period === '3month') return 'Last 3 Months';
+  if (period === '6month') return 'Last 6 Months';
   if (isSpecificYearPeriod(period)) return period.slice(5);
   if (period === 'year') return String(thisYear);
   if (period === 'lastyear') return String(thisYear - 1);
@@ -79,7 +104,10 @@ export function getPeriodLabel(period) {
 
 export function getPeriodPhrase(period) {
   const thisYear = new Date().getFullYear();
+  if (period === 'all') return 'all time';
   if (period === 'week') return 'this week';
+  if (period === '3month') return 'in the last 3 months';
+  if (period === '6month') return 'in the last 6 months';
   if (isSpecificYearPeriod(period)) {
     const y = period.slice(5);
     return y === String(thisYear) ? 'this year' : `in ${y}`;

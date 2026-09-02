@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay, subMonths } from 'date-fns';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
+import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
-import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
+import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
+import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat, BarChart3 } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -155,6 +157,22 @@ export default function Dashboard() {
   const prevTx = filterByPreviousPeriod(transactions, cashFlowPeriod, latestTxDate);
   const prevSums = sumByType(prevTx);
 
+  // Fixed 6-calendar-month cash flow trend, independent of the period
+  // switcher above — anchored to the latest transaction's month so
+  // historical/imported data doesn't show 6 empty bars ending "today."
+  const monthlyTrend = (() => {
+    const anchorMonth = startOfDay(latestTxDate);
+    const buckets = [];
+    for (let i = 5; i >= 0; i--) {
+      const m = subMonths(anchorMonth, i);
+      const key = format(m, 'yyyy-MM');
+      const tx = transactions.filter(t => t.date?.startsWith(key));
+      const { income, expenses } = sumByType(tx);
+      buckets.push({ month: format(m, 'MMM'), income, expense: expenses });
+    }
+    return buckets;
+  })();
+
   // Budget adherence input for the Health Score — same "only count
   // categories that actually have a limit" rule as BudgetSummaryCard.
   const budgetedRows = HEALTH_SCORE_CATS
@@ -266,15 +284,19 @@ export default function Dashboard() {
 
           {/* Period switcher lives right in the hero — same idea as the
               date-range switcher on Money, so the top of Home isn't just
-              a static snapshot with nowhere to go. Yearly is a dropdown
-              (not just "Year"/"Last Year" chips) so any past year is one
-              tap away, same as the Yearly picker on Money. */}
-          <div className="flex gap-1.5 mb-4 overflow-x-auto">
-            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }].map(p => (
+              a static snapshot with nowhere to go. Every period sits side
+              by side (space allows it — Week/Month/3M/6M/Year/All all
+              visible at once, no picking through a menu). Yearly stays a
+              dropdown so any past year is one tap away without needing 4
+              more chips. All gets a distinct gold treatment (same accent
+              family as "Go Pro" above) so it visually reads as "a
+              different kind of option," not just one more period. */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: '3month', label: '3M' }, { key: '6month', label: '6M' }].map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
-                className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
+                className={`shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
               >
                 {p.label}
               </button>
@@ -283,69 +305,59 @@ export default function Dashboard() {
               <select
                 value={isYearPeriod ? cashFlowPeriod : ''}
                 onChange={e => setCashFlowPeriod(e.target.value)}
-                className={`appearance-none text-[11px] font-semibold pl-2.5 pr-6 py-1 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70'}`}
+                className={`appearance-none text-[11px] font-semibold pl-2.5 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70'}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <option value="" disabled>Yearly</option>
+                <option value="" disabled>Year</option>
                 {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}
               </select>
               <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary' : 'text-white/70'}`} />
             </div>
+            <button
+              onClick={() => setCashFlowPeriod('all')}
+              className={`shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === 'all' ? 'bg-amber-300 text-amber-950 border-amber-300' : 'bg-amber-400/15 border-amber-300/40 text-amber-200 hover:bg-amber-400/25'}`}
+            >
+              (All)
+            </button>
           </div>
 
-          <p className="text-white/55 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
-          <p className="font-numeric text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-1.5 tabular-nums">
+          <p className="text-white/60 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
+          <p className={`font-numeric text-white ${heroValueSizeClass(fmtFull(Math.abs(heroNetSaved)))} font-black tracking-tight leading-none mb-1.5 tabular-nums`}>
             {heroNetSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(heroNetSaved)} />
           </p>
-          <p className="text-white/70 text-xs font-semibold mb-5 h-4">
+          <p className="text-white/75 text-xs font-semibold mb-5 h-4">
             {prevTx.length > 0 && Math.abs(heroNetSaved - prevSums.net) >= 1 &&
-              `${heroNetSaved - prevSums.net >= 0 ? '+' : '−'}$${fmt(Math.abs(heroNetSaved - prevSums.net))} vs. last period`}
+              `${heroNetSaved - prevSums.net >= 0 ? '+' : '−'}$${fmtFull(Math.abs(heroNetSaved - prevSums.net))} vs. last period`}
           </p>
 
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5">
-              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Income</p>
-              <p className="text-white font-black text-base leading-tight tabular-nums truncate">
-                <AnimatedNumber prefix="$" value={heroIncome} />
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0" title={`$${fmtFull(heroIncome)}`}>
+              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Income</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">
+                <AnimatedNumber format={fmtCompact} value={heroIncome} />
               </p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5">
-              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Expenses</p>
-              <p className="text-white font-black text-base leading-tight tabular-nums truncate">
-                <AnimatedNumber prefix="$" value={heroExpenses} />
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0" title={`$${fmtFull(heroExpenses)}`}>
+              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Expenses</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">
+                <AnimatedNumber format={fmtCompact} value={heroExpenses} />
               </p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5">
-              <p className="text-white/55 text-[10px] font-semibold uppercase tracking-wide mb-0.5">Savings rate</p>
-              <p className="text-white font-black text-base leading-tight tabular-nums truncate">{heroSavingsRate}%</p>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
+              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Savings rate</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">{heroSavingsRate}%</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Health Score + What's Next, one card instead of two — the "vs
-          last period" comparison that used to be its own card now lives
-          as a line under the hero number above instead of a 3rd section. */}
-      <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5 divide-y divide-border/50">
-        {(heroTx.length > 0 || budgetedRows.length > 0) && (
-          <div className="pb-4">
-            <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
-          </div>
-        )}
-        <div className={(heroTx.length > 0 || budgetedRows.length > 0) ? 'pt-4' : ''}>
-          <WhatsNextCard
-            overdueBillCount={overdueBillCount}
-            heroNetSaved={heroNetSaved}
-            fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
-            bare
-          />
-        </div>
-      </div>
-
-      {/* Cash flow chart removed — it was directly redundant with the hero
-          above it (same period, same "how did money move" question, just
-          drawn instead of numbered), and the deeper daily/weekly view now
-          lives on Money > Spending anyway. */}
+      {/* Cash Flow Trend — a real chart takes the first slot below the hero
+          instead of the Health Score card. It's a friendlier, more
+          "professional finance app" first impression than leading with a
+          score that can read as a critique, and it's information the hero
+          numbers above don't show: the shape of the last 6 months, not
+          just one period's total. */}
+      <CashFlowTrendChart data={monthlyTrend} />
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
@@ -410,23 +422,29 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Save More / Recurring — quick links to the two new sections,
-            same tile size/weight so they read as part of the app, not
-            bolted on. */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link to="/save-more" className="sky-card rounded-2xl p-4 hover:border-primary/40 transition-colors">
+        {/* Save More / Recurring / Totals — quick links, same tile size/
+            weight so they read as part of the app, not bolted on. */}
+        <div className="grid grid-cols-3 gap-2.5 lg:gap-3">
+          <Link to="/save-more" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
               <Sparkles className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-sm font-bold text-foreground mb-0.5">Save More</p>
-            <p className="text-xs text-muted-foreground">Where to cut back</p>
+            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Save More</p>
+            <p className="text-[11px] lg:text-xs text-muted-foreground">Where to cut back</p>
           </Link>
-          <Link to="/recurring" className="sky-card rounded-2xl p-4 hover:border-primary/40 transition-colors">
+          <Link to="/recurring" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
               <Repeat className="w-4 h-4 text-amber-500" />
             </div>
-            <p className="text-sm font-bold text-foreground mb-0.5">Recurring</p>
-            <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
+            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Recurring</p>
+            <p className="text-[11px] lg:text-xs text-muted-foreground">Subscriptions & bills</p>
+          </Link>
+          <Link to="/totals" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center mb-3">
+              <BarChart3 className="w-4 h-4 text-sky-500" />
+            </div>
+            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Totals</p>
+            <p className="text-[11px] lg:text-xs text-muted-foreground">By year & month</p>
           </Link>
         </div>
 
@@ -551,6 +569,28 @@ export default function Dashboard() {
               </Link>
             </div>
           )
+        )}
+
+        {/* Health Score + What's Next — moved down here from the top of the
+            page. It's genuinely useful, but leading with a score (which can
+            land as "Room to improve" for a lot of real accounts) made the
+            very first thing a new user saw feel like a critique instead of
+            a welcome. It's still one tap from the top and easy to find,
+            just not the first impression anymore. */}
+        {(heroTx.length > 0 || budgetedRows.length > 0) && (
+          <div className="sky-card rounded-2xl p-4 lg:p-5 divide-y divide-border/50">
+            <div className="pb-4">
+              <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
+            </div>
+            <div className="pt-4">
+              <WhatsNextCard
+                overdueBillCount={overdueBillCount}
+                heroNetSaved={heroNetSaved}
+                fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
+                bare
+              />
+            </div>
+          </div>
         )}
 
       </div>

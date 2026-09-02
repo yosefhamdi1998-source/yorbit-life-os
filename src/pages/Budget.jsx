@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { PiggyBank, Plus, X, CheckCircle, AlertTriangle, Clock, Wallet, CreditCard } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +11,7 @@ import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
+import { fmtFull, fmtCompact } from '@/lib/format';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
@@ -23,6 +25,20 @@ const BUDGET_SUGGESTIONS = [
 ];
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+function BudgetChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const spent = payload.find(p => p.dataKey === 'spent')?.value || 0;
+  const limit = payload.find(p => p.dataKey === 'limit')?.value || 0;
+  const over = spent > limit;
+  return (
+    <div className="sky-card rounded-xl px-3 py-2.5 shadow-lg border border-border">
+      <p className="text-xs font-bold text-foreground capitalize mb-1.5">{label}</p>
+      <p className={`text-xs font-semibold tabular-nums ${over ? 'text-red-500' : 'text-foreground'}`}>Spent · ${fmtFull(spent)}</p>
+      <p className="text-xs font-semibold text-muted-foreground tabular-nums">Limit · ${fmtFull(limit)}</p>
+    </div>
+  );
+}
 
 export default function Budget() {
   const [transactions, setTransactions] = useState([]);
@@ -167,6 +183,33 @@ export default function Budget() {
               ${fmt(totalSpent)} of ${fmt(totalBudget)} this month
             </p>
           </div>
+
+          {/* Spent vs. Limit, side by side per category — the list below
+              already shows this row by row, but a chart makes "which
+              categories are actually blowing the budget" scannable at a
+              glance instead of reading N progress bars one at a time. */}
+          {budgetedRows.length > 1 && (
+            <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
+              <p className="font-bold text-sm mb-3">Spent vs. Budget</p>
+              <ResponsiveContainer width="100%" height={Math.max(160, budgetedRows.length * 46)}>
+                <BarChart data={budgetedRows.map(r => ({ cat: r.cat, spent: r.spent, limit: r.budget.monthly_limit }))} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }} barGap={2}>
+                  <CartesianGrid horizontal={false} stroke="hsl(var(--border))" opacity={0.4} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtCompact(v)} />
+                  <YAxis type="category" dataKey="cat" tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={90} tickFormatter={v => `${CAT_ICONS[v] || ''} ${v}`} />
+                  <Tooltip content={<BudgetChartTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
+                  <Bar dataKey="limit" fill="hsl(var(--secondary))" radius={[4, 4, 4, 4]} maxBarSize={14} />
+                  <Bar dataKey="spent" radius={[4, 4, 4, 4]} maxBarSize={14}>
+                    {budgetedRows.map(r => <Cell key={r.cat} fill={r.spent > r.budget.monthly_limit ? '#EF4444' : '#10B981'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex items-center gap-4 justify-center mt-1">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-secondary border border-border" /> Limit</span>
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> On track</span>
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Over</span>
+              </div>
+            </div>
+          )}
         </>
       )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Receipt, Plus, X, CheckCircle, Clock, AlertTriangle, Pencil, Trash2, Search, ArrowUpDown } from 'lucide-react';
+import { Receipt, Plus, X, CheckCircle, Clock, AlertTriangle, Pencil, Trash2, Search, ArrowUpDown, PieChartIcon } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
@@ -11,8 +12,10 @@ import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
+import { fmtFull } from '@/lib/format';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
+const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#F97316', other: '#94A3B8' };
 
 const BILL_CAT_OPTIONS = Object.entries(CAT_ICONS).map(([key, icon]) => ({
   value: key,
@@ -217,6 +220,18 @@ export default function Bills() {
   }).length;
 
   const usedCategories = [...new Set(bills.map(b => b.category).filter(Boolean))];
+
+  // Where recurring cost actually concentrates — every bill on record
+  // (not just what's currently unpaid), so this reads as "what do my
+  // bills cost, by kind" rather than duplicating the Upcoming list above.
+  const categoryTotals = Object.entries(
+    bills.reduce((acc, b) => {
+      const cat = b.category || 'other';
+      acc[cat] = (acc[cat] || 0) + (b.amount || 0);
+      return acc;
+    }, {})
+  ).map(([cat, total]) => ({ cat, total })).sort((a, b) => b.total - a.total);
+  const categoryTotalSum = categoryTotals.reduce((s, c) => s + c.total, 0);
 
   if (loading) return (
     <div className="py-6 space-y-4">
@@ -465,6 +480,46 @@ export default function Bills() {
           )}
         </div>
       </div>
+
+      {/* Where your bills go — a donut breaks recurring cost down by kind,
+          the one thing the list above (organized by due date) doesn't
+          answer at a glance. */}
+      {categoryTotals.length > 1 && (
+        <div className="sky-card rounded-2xl p-4 lg:p-5 mt-4">
+          <div className="flex items-center gap-2 mb-1">
+            <PieChartIcon className="w-4 h-4 text-muted-foreground" />
+            <p className="font-bold text-sm">Where Your Bills Go</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">${fmtFull(categoryTotalSum)} total across {categoryTotals.length} categories</p>
+          <div className="grid sm:grid-cols-2 gap-4 items-center">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={categoryTotals} dataKey="total" nameKey="cat" cx="50%" cy="50%" innerRadius={52} outerRadius={82} paddingAngle={2} strokeWidth={0}>
+                  {categoryTotals.map(c => <Cell key={c.cat} fill={CAT_COLORS[c.cat] || '#94A3B8'} />)}
+                </Pie>
+                <RTooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12 }}
+                  formatter={(v, n) => [`$${fmtFull(v)}`, n]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2.5">
+              {categoryTotals.map(({ cat, total }) => {
+                const pct = categoryTotalSum > 0 ? Math.round((total / categoryTotalSum) * 100) : 0;
+                return (
+                  <div key={cat} className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CAT_COLORS[cat] || '#94A3B8' }} />
+                    <span className="text-sm shrink-0">{CAT_ICONS[cat] || '💸'}</span>
+                    <span className="text-sm font-semibold capitalize text-foreground flex-1 min-w-0 truncate">{cat.replace(/_/g, ' ')}</span>
+                    <span className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmtFull(total)}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums shrink-0 w-9 text-right">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -60,10 +60,14 @@ export function computeHealthScore({ heroIncome, heroExpenses, prevIncome, prevE
     explanation = "Your first score for this period — check back next period to see it move.";
   }
 
+  // Softer framing at the low end — this sits near the top of Home for a
+  // lot of users, and "Room to improve" / "turn this around" read as a
+  // scolding on first open rather than useful information. Same thresholds,
+  // same score, just less judgmental language.
   const label = score >= 80 ? "You're doing great."
     : score >= 60 ? "You're doing okay."
-    : score >= 40 ? "Room to improve."
-    : "Let's turn this around.";
+    : score >= 40 ? "Building momentum."
+    : "Let's build a plan.";
 
   return { score, delta, explanation, label };
 }

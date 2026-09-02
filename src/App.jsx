@@ -26,6 +26,7 @@ const SpendingSummary = lazy(() => import('@/pages/SpendingSummary'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const SaveMore = lazy(() => import('@/pages/SaveMore'));
 const Recurring = lazy(() => import('@/pages/Recurring'));
+const Totals = lazy(() => import('@/pages/Totals'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const LaunchChecklist = lazy(() => import('@/pages/LaunchChecklist'));
 const BankSync = lazy(() => import('@/pages/BankSync'));
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
             <Route path="/goals" element={<Goals />} />
             <Route path="/save-more" element={<SaveMore />} />
             <Route path="/recurring" element={<Recurring />} />
+            <Route path="/totals" element={<Totals />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notes" element={<Notes />} />
             <Route path="/tasks" element={<Tasks />} />
