@@ -112,7 +112,7 @@ export default function Onboarding() {
           {!isLast ? <ChevronRight className="w-5 h-5" /> : null}
         </button>
         {isLast && (
-          <p className="text-center text-xs text-white/35 mt-3">Free to use · Connect your bank or add transactions yourself</p>
+          <p className="text-center text-xs text-white/35 mt-3">Free to use · Connect your bank via Plaid</p>
         )}
       </div>
     </div>
