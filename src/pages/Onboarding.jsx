@@ -3,27 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Sparkles } from 'lucide-react';
 
+// Black-to-gold throughout, matching the app's own default theme — each step
+// deepens the gold slightly rather than switching to an unrelated hue, so
+// the very first thing a new user sees already looks like the rest of the app.
 const STEPS = [
   {
     emoji: '👋',
-    bg: 'linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-    accentColor: '#a78bfa',
+    bg: 'linear-gradient(160deg, #0a0a0a 0%, #1a1508 55%, #3d2f0a 100%)',
+    accentColor: '#D4AF37',
     title: 'See your money clearly',
     subtitle: 'Know exactly where every dollar goes — in 30 seconds a day.',
     cta: 'Get Started',
   },
   {
     emoji: '💸',
-    bg: 'linear-gradient(160deg, #064e3b 0%, #065f46 60%, #047857 100%)',
-    accentColor: '#34d399',
+    bg: 'linear-gradient(160deg, #0a0a0a 0%, #2a2005 55%, #5c4813 100%)',
+    accentColor: '#D4AF37',
     title: 'Track. Budget. Save.',
     subtitle: 'Log income and expenses, set budgets, and watch your savings grow.',
     cta: 'Next',
   },
   {
     emoji: '🧠',
-    bg: 'linear-gradient(160deg, #3b0764 0%, #581c87 60%, #6b21a8 100%)',
-    accentColor: '#c084fc',
+    bg: 'linear-gradient(160deg, #0a0a0a 0%, #3d2f0a 55%, #D4AF37 100%)',
+    accentColor: '#D4AF37',
     title: 'Your AI money coach',
     subtitle: 'Get a daily briefing and smart tips — personalized to your real finances.',
     cta: 'Start My Money Snapshot',
@@ -101,7 +104,7 @@ export default function Onboarding() {
           className="w-full h-14 rounded-2xl text-base font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97] shadow-lg"
           style={{
             background: isLast ? current.accentColor : 'white',
-            color: '#0f0c29',
+            color: '#0a0a0a',
           }}
         >
           {isLast ? <Sparkles className="w-5 h-5" /> : null}
@@ -109,7 +112,7 @@ export default function Onboarding() {
           {!isLast ? <ChevronRight className="w-5 h-5" /> : null}
         </button>
         {isLast && (
-          <p className="text-center text-xs text-white/35 mt-3">Free to use · No bank login required</p>
+          <p className="text-center text-xs text-white/35 mt-3">Free to use · Connect your bank or add transactions yourself</p>
         )}
       </div>
     </div>

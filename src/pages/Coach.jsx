@@ -255,13 +255,13 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
               </div>
 
               {!advice && !generating && !error && (
-                <div className="bg-gradient-to-br from-purple-50 to-card border border-purple-100 rounded-2xl p-5 text-center">
-                  <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-purple-500" />
+                <div className="bg-gradient-to-br from-primary/10 to-card border border-primary/20 rounded-2xl p-5 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6 text-primary" />
                   </div>
                   <p className="font-bold text-sm mb-1">Get your coaching plan</p>
                   <p className="text-xs text-muted-foreground mb-4">Based on your real spending, budgets, and goals.</p>
-                  <Button onClick={getAdvice} disabled={generating} className="bg-purple-600 hover:bg-purple-700 text-white border-0 gap-2">
+                  <Button onClick={getAdvice} disabled={generating} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-2">
                     <Brain className="w-4 h-4" /> Generate Plan
                   </Button>
                 </div>
@@ -269,7 +269,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
 
               {generating && (
                 <div className="sky-card rounded-2xl p-6 flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 text-purple-500 animate-spin shrink-0" />
+                  <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
                   <p className="text-sm text-muted-foreground">Building your personalized coaching plan…</p>
                 </div>
               )}

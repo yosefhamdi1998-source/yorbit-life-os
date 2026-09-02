@@ -35,9 +35,15 @@ export function MobileSelect({ value, onValueChange, options, placeholder, class
           className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-8 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          {placeholder && <option value="" disabled>{placeholder}</option>}
+          {/* The native dropdown popup is opaque and browser/OS-styled — it
+              ignores the <select>'s own Tailwind text color entirely, so
+              without explicit colors here the options render invisible
+              (light-on-light in light mode, or white-on-white in dark). */}
+          {placeholder && (
+            <option value="" disabled style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>{placeholder}</option>
+          )}
           {options.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value} style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>{opt.label}</option>
           ))}
         </select>
         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

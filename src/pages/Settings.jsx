@@ -243,8 +243,8 @@ export default function Settings() {
         {/* Restore Purchases — Apple requirement */}
         <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-400/10 rounded-xl flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="font-bold text-sm">Restore Purchases</p>
@@ -258,7 +258,7 @@ export default function Settings() {
           <button
             onClick={isNativeIOS() ? handleRestoreIOS : () => window.open('https://apps.apple.com/account/subscriptions', '_blank')}
             disabled={isNativeIOS() && restoring}
-            className="flex items-center gap-1 bg-blue-400/10 hover:bg-blue-400/20 transition-colors text-blue-600 rounded-full px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+            className="flex items-center gap-1 bg-primary/10 hover:bg-primary/20 transition-colors text-primary rounded-full px-3 py-1.5 text-xs font-bold disabled:opacity-50"
           >
             {isNativeIOS() && restoring ? 'Restoring…' : 'Restore'}
           </button>
@@ -305,10 +305,10 @@ export default function Settings() {
             <Shield className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-sm">Trust & Privacy</h3>
           </div>
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-4">
             <div className="flex items-start gap-2">
-              <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-700 leading-relaxed">
+              <Lock className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-xs text-foreground/80 leading-relaxed">
                 Your financial data stays private and is used only to power your MoneyGlow insights. It is never shared or sold.
               </p>
             </div>

@@ -709,8 +709,13 @@ export default function Finance() {
             className={`appearance-none text-xs font-semibold pl-3 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <option value="" disabled>Yearly</option>
-            {YEAR_OPTIONS.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+            {/* Explicit colors on the options themselves — the native dropdown
+                popup is opaque and browser-styled, so it ignores the <select>'s
+                own Tailwind text color and was rendering invisible white-on-white. */}
+            <option value="" disabled style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>Yearly</option>
+            {YEAR_OPTIONS.map(y => (
+              <option key={y.value} value={y.value} style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>{y.label}</option>
+            ))}
           </select>
           <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
         </div>

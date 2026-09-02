@@ -262,7 +262,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="pt-4 space-y-4">
-        <div className="h-40 rounded-2xl bg-gradient-to-br from-blue-200/60 to-purple-200/60 animate-pulse" />
+        <div className="h-40 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/60 animate-pulse" />
         <div className="h-24 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="h-32 rounded-2xl bg-secondary/60 animate-pulse" />
       </div>
@@ -339,8 +339,14 @@ export default function Dashboard() {
                 className={`appearance-none text-[11px] font-semibold pl-2.5 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70'}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <option value="" disabled>Year</option>
-                {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}
+                {/* Native <option> ignores the parent's Tailwind text color once the
+                    browser renders its own dropdown popup — that popup is opaque and
+                    OS-styled, so without an explicit background+color here the white
+                    hero text became invisible white-on-white the moment it opened. */}
+                <option value="" disabled style={{ background: '#1a1a2e', color: '#fff' }}>Year</option>
+                {YEAR_OPTIONS.map(y => (
+                  <option key={y} value={`year-${y}`} style={{ background: '#1a1a2e', color: '#fff' }}>{y}</option>
+                ))}
               </select>
               <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary' : 'text-white/70'}`} />
             </div>
@@ -434,7 +440,7 @@ export default function Dashboard() {
 
         {/* Onboarding CTA */}
         {isNewUser && (
-          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-card p-4">
             <p className="font-bold text-sm text-foreground mb-0.5">Build your money picture</p>
             <p className="text-xs text-muted-foreground mb-3">Add a transaction to unlock insights.</p>
             <div className="flex gap-2 flex-wrap">
