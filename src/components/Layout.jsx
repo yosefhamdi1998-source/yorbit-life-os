@@ -27,6 +27,7 @@ export const sidebarItems = [
   { path: '/finance', icon: DollarSign, label: 'Transactions' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
+  { path: '/save-more', icon: Sparkles, label: 'Save More' },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/recurring', icon: Repeat, label: 'Recurring' },
   { path: '/totals', icon: BarChart3, label: 'Totals' },
