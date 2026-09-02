@@ -168,7 +168,7 @@ export default function Dashboard() {
       const key = format(m, 'yyyy-MM');
       const tx = transactions.filter(t => t.date?.startsWith(key));
       const { income, expenses } = sumByType(tx);
-      buckets.push({ month: format(m, 'MMM'), income, expense: expenses });
+      buckets.push({ month: format(m, 'MMM'), income, expense: expenses, net: income - expenses });
     }
     return buckets;
   })();
@@ -317,7 +317,7 @@ export default function Dashboard() {
               onClick={() => setCashFlowPeriod('all')}
               className={`shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === 'all' ? 'bg-amber-300 text-amber-950 border-amber-300' : 'bg-amber-400/15 border-amber-300/40 text-amber-200 hover:bg-amber-400/25'}`}
             >
-              (All)
+              All
             </button>
           </div>
 
@@ -422,38 +422,55 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Save More / Recurring / Totals — quick links, same tile size/
-            weight so they read as part of the app, not bolted on. */}
-        <div className="grid grid-cols-3 gap-2.5 lg:gap-3">
-          <Link to="/save-more" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-              <Sparkles className="w-4 h-4 text-primary" />
-            </div>
-            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Save More</p>
-            <p className="text-[11px] lg:text-xs text-muted-foreground">Where to cut back</p>
-          </Link>
-          <Link to="/recurring" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
-              <Repeat className="w-4 h-4 text-amber-500" />
-            </div>
-            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Recurring</p>
-            <p className="text-[11px] lg:text-xs text-muted-foreground">Subscriptions & bills</p>
-          </Link>
-          <Link to="/totals" className="sky-card rounded-2xl p-3.5 lg:p-4 hover:border-primary/40 transition-colors">
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center mb-3">
-              <BarChart3 className="w-4 h-4 text-sky-500" />
-            </div>
-            <p className="text-[13px] lg:text-sm font-bold text-foreground mb-0.5">Totals</p>
-            <p className="text-[11px] lg:text-xs text-muted-foreground">By year & month</p>
-          </Link>
-        </div>
-
         {/* Budget Summary */}
         <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
 
         {/* Category Breakdown — where the money actually went this month,
             including categories (investment, savings) budgets don't track */}
         <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
+
+        {/* Save More / Recurring / Totals — three loose bordered tiles read
+            as bolted-on next to the rest of the page's "one card, header,
+            row-per-item" language (Goal Progress, Upcoming Bills, Recent
+            Transactions all share that shape). One card with three rows
+            matches it instead. */}
+        <div className="sky-card rounded-2xl overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Explore</p>
+          </div>
+          <div className="divide-y divide-border/40">
+            <Link to="/save-more" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-[18px] h-[18px] text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Save More</p>
+                <p className="text-xs text-muted-foreground">Where to cut back</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/recurring" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <Repeat className="w-[18px] h-[18px] text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Recurring</p>
+                <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/totals" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-[18px] h-[18px] text-sky-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Totals</p>
+                <p className="text-xs text-muted-foreground">Every dollar, by year & month</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+          </div>
+        </div>
 
         {/* Goal Progress */}
         {savingsGoals.length > 0 && (

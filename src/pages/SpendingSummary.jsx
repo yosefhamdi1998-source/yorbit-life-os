@@ -10,12 +10,11 @@ import {
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid, Sankey } from 'recharts';
 import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import StatCard from '@/components/StatCard';
 import ExportButtons from '@/components/finance/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { CAT_COLORS, CategoryBadge } from '@/lib/categoryVisuals';
-import { fmtAxisCompact } from '@/lib/format';
+import { fmtAxisCompact, fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 
 // Emoji still used for spots where an icon has to embed inline in plain
 // text (chart axis labels, Sankey node names) - real icon components only
@@ -239,11 +238,7 @@ export default function SpendingSummary() {
 
   return (
     <div className="py-4 pb-8">
-      <PageHeader
-        title="Spending Summary"
-        subtitle="Where your money goes"
-        icon={BarChart3}
-        gradient="gradient-primary"
+      <PageHeader title="Spending Summary" showBack
         action={
           <ExportButtons
             allTransactions={transactions}
@@ -255,31 +250,65 @@ export default function SpendingSummary() {
         }
       />
 
-      {/* Period toggle */}
-      <div className="bg-secondary/70 rounded-2xl p-1.5 flex gap-1.5 mb-4">
-        {PERIODS.map(p => (
-          <button
-            key={p.key}
-            onClick={() => switchPeriod(p.key)}
-            className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition-all ${period === p.key ? 'bg-white shadow-md text-primary' : 'text-muted-foreground hover:bg-white/40'}`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Period navigator */}
-      <div className="flex items-center justify-between sky-card rounded-2xl p-3 mb-4">
-        <Button variant="ghost" size="icon" onClick={goPrev} aria-label="Previous period" className="min-h-[44px] min-w-[44px]">
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-        <div className="text-center">
-          <p className="font-bold text-sm">{label}</p>
-          <p className="text-[11px] text-muted-foreground">${fmt(totalSpending)} spent</p>
+      {/* Hero — same gradient-card language as Home/Budget/Totals instead of
+          a plain header + a separate toggle bar + a separate nav bar + a
+          separate stat grid stacked four deep. One card carries the period
+          controls, the headline number, and the supporting figures. */}
+      <div
+        className="rounded-3xl overflow-hidden relative mb-5"
+        style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}
+      >
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="aurora-blob aurora-sky1" style={{ opacity: 0.4 }} />
+          <div className="aurora-blob aurora-sky2" style={{ opacity: 0.3 }} />
         </div>
-        <Button variant="ghost" size="icon" onClick={goNext} disabled={nextDisabled} aria-label="Next period" className="min-h-[44px] min-w-[44px] disabled:opacity-30">
-          <ChevronRight className="w-5 h-5" />
-        </Button>
+        <div className="relative px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
+          <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-3">Where Your Money Goes</p>
+
+          <div className="flex gap-1.5 mb-4">
+            {PERIODS.map(p => (
+              <button
+                key={p.key}
+                onClick={() => switchPeriod(p.key)}
+                className={`flex-1 text-[11px] font-semibold py-1.5 rounded-full border transition-all ${period === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={goPrev} aria-label="Previous period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
+              <ChevronLeft className="w-4 h-4 text-white" />
+            </button>
+            <p className="text-white text-sm font-bold">{label}</p>
+            <button onClick={goNext} disabled={nextDisabled} aria-label="Next period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-30 shrink-0">
+              <ChevronRight className="w-4 h-4 text-white" />
+            </button>
+          </div>
+
+          <p className="text-white/60 text-xs font-medium mb-1">Total spent</p>
+          <p className={`font-numeric text-white ${heroValueSizeClass(fmtFull(totalSpending))} font-black tracking-tight leading-none mb-1.5 tabular-nums`}>
+            ${fmtFull(totalSpending)}
+          </p>
+          <p className="text-white/75 text-xs font-semibold mb-5 h-4">
+            {changePct !== null && `${changePct > 0 ? '+' : ''}${changePct}% vs. previous period`}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
+              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">{avgLabel}</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums truncate">${fmtCompact(avgPerBucket)}</p>
+            </div>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
+              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Top category</p>
+              <p className="text-white font-black text-sm leading-tight capitalize truncate">
+                {topCategory ? `${CAT_ICONS[topCategory.name]} ${topCategory.name}` : '—'}
+              </p>
+              {topCategory && <p className="text-white/70 text-[11px] font-semibold tabular-nums mt-0.5">${fmtCompact(topCategory.spent)}</p>}
+            </div>
+          </div>
+        </div>
       </div>
 
       {periodTx.length === 0 ? (
@@ -293,21 +322,6 @@ export default function SpendingSummary() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-            <StatCard label="Total spent" value={totalSpending} prefix="$" tone="negative" />
-            <StatCard label={avgLabel} value={avgPerBucket} prefix="$" />
-            <StatCard
-              label="Top category"
-              value={topCategory ? `${CAT_ICONS[topCategory.name]} ${topCategory.name}` : '—'}
-              sub={topCategory ? `$${fmt(topCategory.spent)}` : ''}
-            />
-            <StatCard
-              label="vs previous"
-              value={changePct === null ? '—' : `${changePct > 0 ? '+' : ''}${changePct}%`}
-              tone={changePct === null ? 'default' : changePct > 0 ? 'negative' : 'positive'}
-            />
-          </div>
-
           {/* Money flow — where income ends up */}
           {sankeyData && (
             <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
