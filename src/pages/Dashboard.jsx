@@ -8,7 +8,6 @@ import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getP
 import { computeHealthScore } from '@/lib/financialHealth';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
-import SavingsProgressCard from '@/components/dashboard/SavingsProgressCard';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
@@ -322,8 +321,12 @@ export default function Dashboard() {
           </div>
 
           <p className="text-white/55 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
-          <p className="font-numeric text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-5 tabular-nums">
+          <p className="font-numeric text-white text-4xl lg:text-6xl font-black tracking-tight leading-none mb-1.5 tabular-nums">
             {heroNetSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(heroNetSaved)} />
+          </p>
+          <p className="text-white/70 text-xs font-semibold mb-5 h-4">
+            {prevTx.length > 0 && Math.abs(heroNetSaved - prevSums.net) >= 1 &&
+              `${heroNetSaved - prevSums.net >= 0 ? '+' : '−'}$${fmt(Math.abs(heroNetSaved - prevSums.net))} vs. last period`}
           </p>
 
           <div className="grid grid-cols-3 gap-2.5">
@@ -347,24 +350,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Savings Progress — this period vs. last, same period switcher as
-          the hero above it. */}
-      {heroTx.length > 0 && (
-        <SavingsProgressCard netSaved={heroNetSaved} prevNetSaved={prevTx.length > 0 ? prevSums.net : null} periodPhrase={heroPeriodPhrase} />
-      )}
-
-      {/* Financial Health Score — deterministic, no AI call, works from day one. */}
-      {(heroTx.length > 0 || budgetedRows.length > 0) && (
-        <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} />
-      )}
-
-      {/* What should I do next — reads today's already-generated Coach
-          insight; never triggers a new AI call from Home. */}
-      <WhatsNextCard
-        overdueBillCount={overdueBillCount}
-        heroNetSaved={heroNetSaved}
-        fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
-      />
+      {/* Health Score + What's Next, one card instead of two — the "vs
+          last period" comparison that used to be its own card now lives
+          as a line under the hero number above instead of a 3rd section. */}
+      <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5 divide-y divide-border/50">
+        {(heroTx.length > 0 || budgetedRows.length > 0) && (
+          <div className="pb-4">
+            <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
+          </div>
+        )}
+        <div className={(heroTx.length > 0 || budgetedRows.length > 0) ? 'pt-4' : ''}>
+          <WhatsNextCard
+            overdueBillCount={overdueBillCount}
+            heroNetSaved={heroNetSaved}
+            fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
+            bare
+          />
+        </div>
+      </div>
 
       {/* ── Cash flow trend ───────────────────────────────────────────── */}
       {monthTx.length > 0 && (

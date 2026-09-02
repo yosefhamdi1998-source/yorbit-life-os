@@ -11,7 +11,10 @@ const TODAY = format(new Date(), 'yyyy-MM-dd');
 // this is a read of existing data, not a new AI surface. Falls back to a
 // deterministic tip (no AI, no cost) when there's no cache yet, e.g. a
 // brand new user who hasn't opened Coach today.
-export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallbackTip }) {
+// `bare` drops the card wrapper/margin so this can sit inside a shared
+// card underneath FinancialHealthScore instead of stacking as its own
+// full section.
+export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallbackTip, bare = false }) {
   const [nextMove, setNextMove] = useState(null);
   const [checked, setChecked] = useState(false);
 
@@ -36,18 +39,22 @@ export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallback
     || fallbackTip
     || "Add a few transactions and Coach will start giving you personalized moves.";
 
-  return (
-    <Link to="/coach" className="block mb-5">
-      <div className="sky-card rounded-2xl p-4 lg:p-5 flex items-start gap-3 hover:border-primary/40 transition-colors">
-        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">What should I do next?</p>
-          <p className="text-sm font-semibold text-foreground leading-snug">{tip}</p>
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+  const content = (
+    <div className={`flex items-start gap-3 ${bare ? '' : 'sky-card rounded-2xl p-4 lg:p-5 hover:border-primary/40 transition-colors'}`}>
+      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <Sparkles className="w-4 h-4 text-primary" />
       </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">What should I do next?</p>
+        <p className="text-sm font-semibold text-foreground leading-snug">{tip}</p>
+      </div>
+      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+    </div>
+  );
+
+  return (
+    <Link to="/coach" className={bare ? 'block' : 'block mb-5'}>
+      {content}
     </Link>
   );
 }
