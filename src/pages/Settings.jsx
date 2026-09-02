@@ -68,7 +68,7 @@ export default function Settings() {
     setDeleting(true);
     try {
       const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache] = await Promise.all([
-        base44.entities.Transaction.list('-date', 1000),
+        base44.entities.Transaction.list('-date', 5000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Goal.list(),
@@ -111,7 +111,7 @@ export default function Settings() {
     setExporting(true);
     try {
       const [transactions, budgets, savings_goals, goals, bills, net_worth_entries] = await Promise.all([
-        base44.entities.Transaction.list('-date', 1000),
+        base44.entities.Transaction.list('-date', 5000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Goal.list(),

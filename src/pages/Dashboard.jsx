@@ -65,7 +65,7 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     try {
       const [tr, b, sg, bl, nw] = await Promise.all([
-        base44.entities.Transaction.list('-date', 1000),
+        base44.entities.Transaction.list('-date', 5000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Bill.list('due_date', 20),
