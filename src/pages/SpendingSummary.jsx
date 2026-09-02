@@ -298,14 +298,14 @@ export default function SpendingSummary() {
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">{avgLabel}</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums truncate">${fmtCompact(avgPerBucket)}</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums truncate">{fmtCompact(avgPerBucket)}</p>
             </div>
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Top category</p>
               <p className="text-white font-black text-sm leading-tight capitalize truncate">
                 {topCategory ? `${CAT_ICONS[topCategory.name]} ${topCategory.name}` : '—'}
               </p>
-              {topCategory && <p className="text-white/70 text-[11px] font-semibold tabular-nums mt-0.5">${fmtCompact(topCategory.spent)}</p>}
+              {topCategory && <p className="text-white/70 text-[11px] font-semibold tabular-nums mt-0.5">{fmtCompact(topCategory.spent)}</p>}
             </div>
           </div>
         </div>
