@@ -42,28 +42,56 @@ function unwrap({ data, error }) {
   return data;
 }
 
+// Supabase/PostgREST enforces a project-level "Max Rows" cap (this project's
+// is 1,000) that silently truncates ANY single request to that many rows —
+// a plain `.limit(50000)` from the client does nothing to raise it; the
+// server just returns its 1,000-row page and stops, no error, no warning.
+// That meant every `.list()`/`.filter()` call in the app — Home's hero,
+// Budget, Money, Save More, the Totals page — was quietly only ever seeing
+// the newest 1,000 transactions, not the real total, once the account grew
+// past that (which it badly has: 15,000+ rows). Paginating in the client
+// with repeated `.range()` calls up to the server's page size is the fix;
+// it's transparent to every caller, none of which need to change.
+const SERVER_MAX_PAGE = 1000;
+
 class Entity {
   constructor(table) {
     this.table = table;
   }
 
+  async _paginated(buildQuery, limit) {
+    const target = limit ?? Infinity;
+    const rows = [];
+    let from = 0;
+    while (rows.length < target) {
+      const pageSize = Math.min(SERVER_MAX_PAGE, target - rows.length);
+      const page = unwrap(await buildQuery(from, from + pageSize - 1));
+      rows.push(...page);
+      if (page.length < pageSize) break; // fewer than asked for = no more rows
+      from += pageSize;
+    }
+    return rows;
+  }
+
   // base44: entities.X.list(sort?, limit?)
   async list(sort, limit) {
-    let query = supabase.from(this.table).select('*');
-    query = applySort(query, sort || '-created_date');
-    if (limit) query = query.limit(limit);
-    return unwrap(await query);
+    return this._paginated((from, to) => {
+      let query = supabase.from(this.table).select('*');
+      query = applySort(query, sort || '-created_date');
+      return query.range(from, to);
+    }, limit);
   }
 
   // base44: entities.X.filter(queryObj, sort?, limit?)
   async filter(queryObj = {}, sort, limit) {
-    let query = supabase.from(this.table).select('*');
-    for (const [key, value] of Object.entries(queryObj)) {
-      query = query.eq(key, value);
-    }
-    query = applySort(query, sort || '-created_date');
-    if (limit) query = query.limit(limit);
-    return unwrap(await query);
+    return this._paginated((from, to) => {
+      let query = supabase.from(this.table).select('*');
+      for (const [key, value] of Object.entries(queryObj)) {
+        query = query.eq(key, value);
+      }
+      query = applySort(query, sort || '-created_date');
+      return query.range(from, to);
+    }, limit);
   }
 
   // base44: entities.X.create(data)
