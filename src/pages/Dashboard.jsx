@@ -8,7 +8,7 @@ import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getP
 import { computeHealthScore } from '@/lib/financialHealth';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
-import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -57,7 +57,7 @@ export default function Dashboard() {
   const [netWorthEntries, setNetWorthEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'month' | 'year'
+  const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
   const navigate = useNavigate();
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -144,6 +144,11 @@ export default function Dashboard() {
   const heroSavingsRate = heroIncome > 0 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
   const heroPeriodLabel = getPeriodLabel(cashFlowPeriod);
   const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod);
+  const isYearPeriod = cashFlowPeriod.startsWith('year-');
+  // Same trailing-4-years list as the Yearly picker on Money, so the two
+  // don't quietly offer a different range of history.
+  const thisYearNum = new Date().getFullYear();
+  const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3];
 
   // Same period, one step back — powers the Savings Progress comparison
   // and the Financial Health Score's "why it changed" explanation.
@@ -261,9 +266,11 @@ export default function Dashboard() {
 
           {/* Period switcher lives right in the hero — same idea as the
               date-range switcher on Money, so the top of Home isn't just
-              a static snapshot with nowhere to go. */}
+              a static snapshot with nowhere to go. Yearly is a dropdown
+              (not just "Year"/"Last Year" chips) so any past year is one
+              tap away, same as the Yearly picker on Money. */}
           <div className="flex gap-1.5 mb-4 overflow-x-auto">
-            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: 'year', label: 'Year' }, { key: 'lastyear', label: 'Last Year' }].map(p => (
+            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }].map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
@@ -272,6 +279,18 @@ export default function Dashboard() {
                 {p.label}
               </button>
             ))}
+            <div className="relative shrink-0">
+              <select
+                value={isYearPeriod ? cashFlowPeriod : ''}
+                onChange={e => setCashFlowPeriod(e.target.value)}
+                className={`appearance-none text-[11px] font-semibold pl-2.5 pr-6 py-1 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70'}`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <option value="" disabled>Yearly</option>
+                {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}
+              </select>
+              <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary' : 'text-white/70'}`} />
+            </div>
           </div>
 
           <p className="text-white/55 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>

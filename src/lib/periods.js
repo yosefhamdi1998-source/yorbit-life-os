@@ -22,6 +22,13 @@ export function getLatestTransactionDate(transactions) {
   return latest ? parseISO(latest) : new Date();
 }
 
+// A specific calendar year, e.g. "year-2023" — not just "this year"/"last
+// year". Any consumer that wants a year picker (not just the two fixed
+// chips) passes this instead of the 'year'/'lastyear' keys.
+export function isSpecificYearPeriod(period) {
+  return typeof period === 'string' && period.startsWith('year-');
+}
+
 export function filterByPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
   const thisYear = new Date().getFullYear();
@@ -29,6 +36,7 @@ export function filterByPeriod(transactions, period, latestTxDate) {
     const cutoff = startOfDay(subDays(anchor, 6));
     return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
   }
+  if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(period.slice(5)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear)));
   if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(thisYear - 1)));
   // month (default)
@@ -50,6 +58,7 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
       return d >= start && d <= end;
     });
   }
+  if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(String(parseInt(period.slice(5), 10) - 1)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear - 1)));
   if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(thisYear - 2)));
   // month: the calendar month before "this month"
@@ -62,13 +71,19 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
 export function getPeriodLabel(period) {
   const thisYear = new Date().getFullYear();
   if (period === 'week') return 'Last 7 Days';
+  if (isSpecificYearPeriod(period)) return period.slice(5);
   if (period === 'year') return String(thisYear);
   if (period === 'lastyear') return String(thisYear - 1);
   return format(new Date(), 'MMMM yyyy');
 }
 
 export function getPeriodPhrase(period) {
+  const thisYear = new Date().getFullYear();
   if (period === 'week') return 'this week';
+  if (isSpecificYearPeriod(period)) {
+    const y = period.slice(5);
+    return y === String(thisYear) ? 'this year' : `in ${y}`;
+  }
   if (period === 'year') return 'this year';
   if (period === 'lastyear') return 'last year';
   return 'this month';

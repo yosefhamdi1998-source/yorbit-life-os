@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -71,11 +71,22 @@ function dateHeading(dateStr) {
 // Shared between date-grouped rendering (sorted by date, date already reads
 // as the section header) and flat rendering (sorted by amount, so each row
 // carries its own date since there's no header to lean on).
-function TransactionRow({ tx, showDate, confirmId, setConfirmId, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete }) {
+function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, confirmId, setConfirmId, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete }) {
   const isTemp = tx.id?.startsWith('temp-');
   return (
-    <div className={isTemp ? 'opacity-50' : ''}>
-      <div className="flex items-center gap-3 px-4 py-3 group">
+    <div className={`${isTemp ? 'opacity-50' : ''} ${selectMode && selected ? 'bg-primary/5' : ''}`}>
+      <div
+        className={`flex items-center gap-3 px-4 py-3 group ${selectMode ? 'cursor-pointer' : ''}`}
+        onClick={selectMode ? () => onToggleSelect(tx.id) : undefined}
+      >
+        {selectMode && (
+          <div
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'bg-primary border-primary' : 'border-border'}`}
+            aria-hidden="true"
+          >
+            {selected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
+          </div>
+        )}
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
           style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}
@@ -91,7 +102,7 @@ function TransactionRow({ tx, showDate, confirmId, setConfirmId, editingNoteId, 
         <span className={`font-bold text-sm shrink-0 tabular-nums ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
           {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
         </span>
-        {!isTemp && (
+        {!isTemp && !selectMode && (
           <>
             <button
               onClick={() => startEditNote(tx)}
@@ -113,16 +124,23 @@ function TransactionRow({ tx, showDate, confirmId, setConfirmId, editingNoteId, 
         )}
       </div>
 
-      {/* Existing note, shown as a second line — tap to edit. */}
+      {/* Existing note, shown as a second line — tap to edit (disabled while selecting, so a tap there selects the row instead). */}
       {tx.notes && editingNoteId !== tx.id && (
-        <button onClick={() => startEditNote(tx)} className="w-full text-left px-4 pb-2.5 -mt-1 flex items-start gap-1.5 group/note">
-          <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
-          <span className="text-xs text-muted-foreground truncate group-hover/note:text-foreground transition-colors">{tx.notes}</span>
-        </button>
+        selectMode ? (
+          <p className="w-full text-left px-4 pb-2.5 -mt-1 flex items-start gap-1.5">
+            <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
+            <span className="text-xs text-muted-foreground truncate">{tx.notes}</span>
+          </p>
+        ) : (
+          <button onClick={() => startEditNote(tx)} className="w-full text-left px-4 pb-2.5 -mt-1 flex items-start gap-1.5 group/note">
+            <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
+            <span className="text-xs text-muted-foreground truncate group-hover/note:text-foreground transition-colors">{tx.notes}</span>
+          </button>
+        )
       )}
 
       {/* Inline note editor — same expand-below-the-row pattern as the delete confirmation. */}
-      {editingNoteId === tx.id && (
+      {!selectMode && editingNoteId === tx.id && (
         <div className="px-4 pb-3 flex items-center gap-2">
           <Input
             autoFocus
@@ -144,7 +162,7 @@ function TransactionRow({ tx, showDate, confirmId, setConfirmId, editingNoteId, 
         </div>
       )}
 
-      {confirmId === tx.id && (
+      {!selectMode && confirmId === tx.id && (
         <div className="flex items-center justify-between px-4 pb-3 gap-2">
           <p className="text-xs text-muted-foreground">Delete this transaction?</p>
           <div className="flex gap-2">
@@ -177,6 +195,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
   const [noteDraft, setNoteDraft] = useState('');
   const [savingNoteId, setSavingNoteId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(60);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   // Same "anchor to the latest transaction, not literal today" rule as the
   // rest of the app (src/lib/periods.js) — so "Week" here means the same
@@ -252,7 +272,29 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
     }
   };
 
-  const rowProps = { confirmId, setConfirmId: (id) => { setEditingNoteId(null); setConfirmId(id); }, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete };
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectMode = () => {
+    setSelectMode(m => !m);
+    setSelectedIds(new Set());
+  };
+  // Net, signed total — same convention as every amount shown on each row
+  // (income adds, expense subtracts), so a mixed selection reads correctly
+  // and an all-expense selection just reads as "how much these cost."
+  const selectedTotal = useMemo(() => {
+    let sum = 0;
+    for (const tx of transactions) {
+      if (selectedIds.has(tx.id)) sum += tx.type === 'income' ? (tx.amount || 0) : -(tx.amount || 0);
+    }
+    return sum;
+  }, [transactions, selectedIds]);
+
+  const rowProps = { selectMode, onToggleSelect: toggleSelect, confirmId, setConfirmId: (id) => { setEditingNoteId(null); setConfirmId(id); }, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete };
 
   const noFiltersActive = typeFilter === 'all' && categoryFilter === 'all' && dateRange === 'all' && !search.trim();
 
@@ -276,7 +318,29 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
               ? `${transactions.length} transaction${transactions.length === 1 ? '' : 's'} total`
               : `${sorted.length} of ${transactions.length} transactions`}
           </p>
+          <button
+            onClick={toggleSelectMode}
+            className={`shrink-0 text-xs font-semibold px-2.5 py-1 -mr-2.5 rounded-full transition-colors flex items-center gap-1 ${selectMode ? 'text-destructive' : 'text-primary'}`}
+          >
+            {selectMode ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><ListChecks className="w-3.5 h-3.5" /> Select</>}
+          </button>
         </div>
+
+        {/* Sticky while scrolling the list below, so the running total stays
+            visible as you keep tapping rows further down the page. */}
+        {selectMode && (
+          <div className="sticky z-10 top-[calc(env(safe-area-inset-top)+56px)] lg:top-0 sky-card rounded-xl px-4 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-sm font-bold shrink-0">{selectedIds.size} selected</span>
+              {selectedIds.size > 0 && (
+                <button onClick={() => setSelectedIds(new Set())} className="text-xs font-medium text-primary shrink-0">Clear</button>
+              )}
+            </div>
+            <span className={`font-numeric font-black text-base tabular-nums shrink-0 ${selectedIds.size === 0 ? 'text-muted-foreground' : selectedTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+              {selectedIds.size > 0 ? `${selectedTotal >= 0 ? '+' : '−'}$${Math.abs(selectedTotal).toFixed(2)}` : 'Tap rows to add'}
+            </span>
+          </div>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -369,13 +433,13 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
                   </p>
                 </div>
                 <div className="divide-y divide-border/50">
-                  {txs.map(tx => <TransactionRow key={tx.id} tx={tx} showDate={false} {...rowProps} />)}
+                  {txs.map(tx => <TransactionRow key={tx.id} tx={tx} showDate={false} selected={selectedIds.has(tx.id)} {...rowProps} />)}
                 </div>
               </div>
             ))
           ) : (
             <div className="divide-y divide-border/50">
-              {visibleFlat.map(tx => <TransactionRow key={tx.id} tx={tx} showDate {...rowProps} />)}
+              {visibleFlat.map(tx => <TransactionRow key={tx.id} tx={tx} showDate selected={selectedIds.has(tx.id)} {...rowProps} />)}
             </div>
           )}
           {visibleCount < sorted.length && (
