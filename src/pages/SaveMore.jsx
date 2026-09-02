@@ -89,8 +89,8 @@ export default function SaveMore() {
       {top && (
         <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}>
           <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Biggest opportunity</p>
-          <p className="text-white text-lg font-bold leading-snug mb-1 capitalize">
-            You spent ${fmt(top.spent)} on {top.cat} {getPeriodLabel(period) === getPeriodLabel('month') && period === 'month' ? 'this month' : `in ${getPeriodLabel(period)}`}.
+          <p className="text-white text-lg font-bold leading-snug mb-1">
+            You spent ${fmt(top.spent)} on <span className="capitalize">{top.cat}</span> {period === 'month' ? 'this month' : `in ${getPeriodLabel(period)}`}.
           </p>
           <p className="text-white/80 text-sm">
             Cutting it by 15% would save about <span className="font-numeric font-bold text-white">${fmt(estimatedSavings)}</span> {period === 'week' ? 'a week' : period === 'month' ? 'a month' : 'a year'}.
