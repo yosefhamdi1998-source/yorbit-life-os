@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -19,6 +19,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
+import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
@@ -66,41 +67,190 @@ function dateHeading(dateStr) {
   }
 }
 
+// ─── Transaction Row ──────────────────────────────────────────────────────────
+// Shared between date-grouped rendering (sorted by date, date already reads
+// as the section header) and flat rendering (sorted by amount, so each row
+// carries its own date since there's no header to lean on).
+function TransactionRow({ tx, showDate, confirmId, setConfirmId, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete }) {
+  const isTemp = tx.id?.startsWith('temp-');
+  return (
+    <div className={isTemp ? 'opacity-50' : ''}>
+      <div className="flex items-center gap-3 px-4 py-3 group">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
+          style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}
+        >
+          {CAT_ICONS[tx.category] || '💸'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">{tx.title}</p>
+          <p className="text-xs text-muted-foreground capitalize truncate">
+            {tx.category}{showDate ? ` · ${dateHeading(tx.date)}` : ''}
+          </p>
+        </div>
+        <span className={`font-bold text-sm shrink-0 tabular-nums ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+          {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
+        </span>
+        {!isTemp && (
+          <>
+            <button
+              onClick={() => startEditNote(tx)}
+              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0 p-2 rounded-lg"
+              title={tx.notes ? 'Edit note' : 'Add note'}
+              aria-label={tx.notes ? 'Edit note' : 'Add note'}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
+              className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 p-2 -mr-2 rounded-lg"
+              title="Delete transaction"
+              aria-label="Delete transaction"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Existing note, shown as a second line — tap to edit. */}
+      {tx.notes && editingNoteId !== tx.id && (
+        <button onClick={() => startEditNote(tx)} className="w-full text-left px-4 pb-2.5 -mt-1 flex items-start gap-1.5 group/note">
+          <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-primary/60" />
+          <span className="text-xs text-muted-foreground truncate group-hover/note:text-foreground transition-colors">{tx.notes}</span>
+        </button>
+      )}
+
+      {/* Inline note editor — same expand-below-the-row pattern as the delete confirmation. */}
+      {editingNoteId === tx.id && (
+        <div className="px-4 pb-3 flex items-center gap-2">
+          <Input
+            autoFocus
+            placeholder="Add a note…"
+            value={noteDraft}
+            onChange={e => setNoteDraft(e.target.value)}
+            className="h-8 text-xs flex-1"
+            onKeyDown={e => { if (e.key === 'Enter') saveNote(tx); if (e.key === 'Escape') cancelEditNote(); }}
+          />
+          <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={cancelEditNote}>Cancel</Button>
+          <Button
+            size="sm"
+            className="h-8 text-xs shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+            onClick={() => saveNote(tx)}
+            disabled={savingNoteId === tx.id}
+          >
+            {savingNoteId === tx.id ? 'Saving…' : 'Save'}
+          </Button>
+        </div>
+      )}
+
+      {confirmId === tx.id && (
+        <div className="flex items-center justify-between px-4 pb-3 gap-2">
+          <p className="text-xs text-muted-foreground">Delete this transaction?</p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmId(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 text-xs"
+              onClick={() => { onDelete(tx.id); setConfirmId(null); }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Transaction List ─────────────────────────────────────────────────────────
-function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
+function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortDir, setSortDir] = useState('desc');
   const [confirmId, setConfirmId] = useState(null);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNoteId, setSavingNoteId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(60);
 
+  // Same "anchor to the latest transaction, not literal today" rule as the
+  // rest of the app (src/lib/periods.js) — so "Week" here means the same
+  // thing it means on Home and Save More instead of drifting to $0/empty
+  // for anyone whose data trails today's real date.
+  const latestTxDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
+
+  const categoryOptions = useMemo(() => {
+    return [...new Set(transactions.map(t => t.category).filter(Boolean))].sort();
+  }, [transactions]);
+
   const filtered = useMemo(() => {
-    let list = [...transactions];
-    if (filter === 'income') list = list.filter(t => t.type === 'income');
-    else if (filter === 'expense') list = list.filter(t => t.type === 'expense');
-    else if (filter === 'this_month') list = list.filter(t => t.date?.startsWith(thisMonth));
+    let list = transactions;
+    if (typeFilter === 'income') list = list.filter(t => t.type === 'income');
+    else if (typeFilter === 'expense') list = list.filter(t => t.type === 'expense');
+    if (categoryFilter !== 'all') list = list.filter(t => t.category === categoryFilter);
+    if (dateRange !== 'all') list = filterByPeriod(list, dateRange, latestTxDate);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(t => t.title?.toLowerCase().includes(q) || t.category?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q));
+      list = list.filter(t => t.title?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q));
     }
     return list;
-  }, [transactions, filter, search, thisMonth]);
+  }, [transactions, typeFilter, categoryFilter, dateRange, search, latestTxDate]);
 
-  // Changing filters/search should show the newest matches again, not
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    list.sort((a, b) => {
+      const cmp = sortBy === 'amount' ? (a.amount || 0) - (b.amount || 0) : (a.date || '').localeCompare(b.date || '');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [filtered, sortBy, sortDir]);
+
+  // Changing any filter/sort should show the newest matches again, not
   // whatever page you'd scrolled down to under the old list.
-  useEffect(() => { setVisibleCount(60); }, [filter, search]);
+  useEffect(() => { setVisibleCount(60); }, [typeFilter, categoryFilter, dateRange, search, sortBy, sortDir]);
 
-  // Rows arrive newest-first; bucket the currently-revealed slice by day,
-  // preserving that order. "Load more" grows visibleCount instead of a
-  // silent hard cap that hid everything past the newest 60.
+  // Rows are already sorted; bucket the currently-revealed slice by day,
+  // preserving order — but only when sorted by date, since grouping by day
+  // stops meaning anything once rows are ordered by amount instead.
   const grouped = useMemo(() => {
+    if (sortBy !== 'date') return null;
     const buckets = new Map();
-    for (const tx of filtered.slice(0, visibleCount)) {
+    for (const tx of sorted.slice(0, visibleCount)) {
       const key = tx.date || 'unknown';
       if (!buckets.has(key)) buckets.set(key, []);
       buckets.get(key).push(tx);
     }
     return [...buckets.entries()];
-  }, [filtered, visibleCount]);
+  }, [sorted, visibleCount, sortBy]);
+  const visibleFlat = sortBy === 'amount' ? sorted.slice(0, visibleCount) : null;
+
+  const toggleSort = (key) => {
+    if (sortBy === key) setSortDir(d => (d === 'desc' ? 'asc' : 'desc'));
+    else { setSortBy(key); setSortDir('desc'); }
+  };
+
+  const startEditNote = (tx) => { setConfirmId(null); setEditingNoteId(tx.id); setNoteDraft(tx.notes || ''); };
+  const cancelEditNote = () => { setEditingNoteId(null); setNoteDraft(''); };
+  const saveNote = async (tx) => {
+    setSavingNoteId(tx.id);
+    try {
+      await onUpdateNote(tx.id, noteDraft.trim());
+      setEditingNoteId(null);
+    } catch {
+      // parent already toasts the failure
+    } finally {
+      setSavingNoteId(null);
+    }
+  };
+
+  const rowProps = { confirmId, setConfirmId: (id) => { setEditingNoteId(null); setConfirmId(id); }, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete };
+
+  const noFiltersActive = typeFilter === 'all' && categoryFilter === 'all' && dateRange === 'all' && !search.trim();
 
   if (transactions.length === 0) {
     return (
@@ -118,101 +268,117 @@ function TransactionList({ transactions, thisMonth, onDelete, onAdd }) {
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground font-medium">
-            {filter === 'all' && !search.trim()
+            {noFiltersActive
               ? `${transactions.length} transaction${transactions.length === 1 ? '' : 's'} total`
-              : `${filtered.length} of ${transactions.length} transactions`}
+              : `${sorted.length} of ${transactions.length} transactions`}
           </p>
         </div>
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search transactions…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
+
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{ key: 'all', label: 'All' }, { key: 'expense', label: 'Spending' }, { key: 'income', label: 'Income' }, { key: 'this_month', label: 'This Month' }].map(f => (
+          {[{ key: 'all', label: 'All' }, { key: 'expense', label: 'Spending' }, { key: 'income', label: 'Income' }].map(f => (
             <button
               key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${filter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border'}`}
+              onClick={() => setTypeFilter(f.key)}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${typeFilter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               {f.label}
             </button>
           ))}
         </div>
+
+        {categoryOptions.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            >
+              All categories
+            </button>
+            {categoryOptions.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              >
+                <span>{CAT_ICONS[cat] || '💸'}</span>{cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setDateRange('all')}
+            className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+          >
+            All time
+          </button>
+          {PERIODS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => setDateRange(p.key)}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Sort</span>
+          {[{ key: 'date', label: 'Date' }, { key: 'amount', label: 'Amount' }].map(s => (
+            <button
+              key={s.key}
+              onClick={() => toggleSort(s.key)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${sortBy === s.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            >
+              {s.label}
+              {sortBy === s.key && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="bg-card border border-dashed border-border rounded-2xl p-6 text-center">
           <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
         </div>
       ) : (
-        // One card holding date-grouped rows, rather than a stack of floating
-        // cards: the eye follows a single edge down the list instead of
+        // One card holding the rows, rather than a stack of floating cards:
+        // the eye follows a single edge down the list instead of
         // re-finding it on every row.
         <div className="sky-card rounded-2xl overflow-hidden">
-          {grouped.map(([date, txs]) => (
-            <div key={date}>
-              <div className="px-4 py-2 bg-secondary/40 border-y border-border/50 first:border-t-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {dateHeading(date)}
-                </p>
+          {sortBy === 'date' ? (
+            grouped.map(([date, txs]) => (
+              <div key={date}>
+                <div className="px-4 py-2 bg-secondary/40 border-y border-border/50 first:border-t-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {dateHeading(date)}
+                  </p>
+                </div>
+                <div className="divide-y divide-border/50">
+                  {txs.map(tx => <TransactionRow key={tx.id} tx={tx} showDate={false} {...rowProps} />)}
+                </div>
               </div>
-              <div className="divide-y divide-border/50">
-                {txs.map(tx => (
-                  <div key={tx.id} className={tx.id?.startsWith('temp-') ? 'opacity-50' : ''}>
-                    <div className="flex items-center gap-3 px-4 py-3 group">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
-                        style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}
-                      >
-                        {CAT_ICONS[tx.category] || '💸'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{tx.title}</p>
-                        <p className="text-xs text-muted-foreground capitalize truncate">{tx.category}</p>
-                      </div>
-                      <span className={`font-bold text-sm shrink-0 tabular-nums ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
-                        {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
-                      </span>
-                      {!tx.id?.startsWith('temp-') && (
-                        <button
-                          onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
-                          className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 p-2 -mr-2 rounded-lg"
-                          title="Delete transaction"
-                          aria-label="Delete transaction"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    {confirmId === tx.id && (
-                      <div className="flex items-center justify-between px-4 pb-3 gap-2">
-                        <p className="text-xs text-muted-foreground">Delete this transaction?</p>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmId(null)}>Cancel</Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-7 text-xs"
-                            onClick={() => { onDelete(tx.id); setConfirmId(null); }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            ))
+          ) : (
+            <div className="divide-y divide-border/50">
+              {visibleFlat.map(tx => <TransactionRow key={tx.id} tx={tx} showDate {...rowProps} />)}
             </div>
-          ))}
-          {visibleCount < filtered.length && (
+          )}
+          {visibleCount < sorted.length && (
             <div className="p-3 border-t border-border/50">
               <Button
                 variant="outline"
                 className="w-full text-sm"
                 onClick={() => setVisibleCount(c => c + 60)}
               >
-                Load more ({filtered.length - visibleCount} left)
+                Load more ({sorted.length - visibleCount} left)
               </Button>
             </div>
           )}
@@ -273,6 +439,19 @@ export default function Finance() {
       setTransactions(prev => prev.filter(t => t.id !== optimistic.id));
       toast({ title: "Couldn't save transaction", description: "Please try again in a moment.", variant: 'destructive' });
       throw error; // re-throw so the sheet stays open for retry
+    }
+  };
+
+  // ── Optimistic note edit ────────────────────────────────────────────────────
+  const updateTxNotes = async (id, notes) => {
+    const existing = transactions.find(t => t.id === id);
+    setTransactions(prev => prev.map(t => (t.id === id ? { ...t, notes } : t)));
+    try {
+      await base44.entities.Transaction.update(id, { notes });
+    } catch (error) {
+      setTransactions(prev => prev.map(t => (t.id === id ? { ...t, notes: existing?.notes } : t)));
+      toast({ title: "Couldn't save note", description: "Please try again in a moment.", variant: 'destructive' });
+      throw error; // re-throw so the row's editor stays open for retry
     }
   };
 
@@ -491,7 +670,7 @@ export default function Finance() {
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions">
-          <TransactionList transactions={transactions} thisMonth={thisMonth} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} />
+          <TransactionList transactions={transactions} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
         </TabsContent>
 
         {/* OVERVIEW / SPENDING TAB */}
