@@ -125,7 +125,7 @@ export default function CSVImport() {
     setImportProgress(0);
     let imported = 0, skipped = 0, failed = 0;
 
-    const existing = await base44.entities.Transaction.list('-date', 5000);
+    const existing = await base44.entities.Transaction.list('-date', 50000);
     const existingKeys = new Set(existing.map(t => `${t.date}|${t.title}|${t.amount}`));
     const toImport = preview.filter(r => !existingKeys.has(`${r.date}|${r.title}|${r.amount}`));
     skipped = preview.length - toImport.length;

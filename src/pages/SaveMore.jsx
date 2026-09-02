@@ -23,7 +23,7 @@ export default function SaveMore() {
   const [period, setPeriod] = useState('month');
 
   useEffect(() => {
-    base44.entities.Transaction.list('-date', 5000)
+    base44.entities.Transaction.list('-date', 50000)
       .then(setTransactions)
       .catch(() => toast({ title: "Couldn't load your spending", description: 'Please try again in a moment.', variant: 'destructive' }))
       .finally(() => setLoading(false));

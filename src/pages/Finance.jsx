@@ -480,7 +480,7 @@ export default function Finance() {
     const timeout = setTimeout(() => setLoading(false), 5000);
     try {
       const [tx, b, nw] = await Promise.all([
-        base44.entities.Transaction.list('-date', 5000),
+        base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.NetWorthEntry.list(),
       ]);

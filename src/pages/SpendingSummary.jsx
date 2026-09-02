@@ -120,7 +120,7 @@ export default function SpendingSummary() {
   useEffect(() => {
     (async () => {
       try {
-        const tx = await base44.entities.Transaction.list('-date', 5000);
+        const tx = await base44.entities.Transaction.list('-date', 50000);
         setTransactions(tx);
       } catch {
         toast({ title: "Couldn't load your spending", description: "Please try again in a moment.", variant: 'destructive' });

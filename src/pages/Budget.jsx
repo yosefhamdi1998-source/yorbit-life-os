@@ -41,7 +41,7 @@ export default function Budget() {
   const loadData = async () => {
     try {
       const [tx, b] = await Promise.all([
-        base44.entities.Transaction.list('-date', 5000),
+        base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
       ]);
       setTransactions(tx);
