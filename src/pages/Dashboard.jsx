@@ -430,7 +430,7 @@ export default function Dashboard() {
                       <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #2563EB, #7C3AED)' }} />
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--hero-to))' }} />
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className="text-xs text-muted-foreground">${fmt(goal.current_amount || 0)} saved</span>

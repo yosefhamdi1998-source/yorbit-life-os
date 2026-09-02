@@ -353,7 +353,7 @@ export default function SpendingSummary() {
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                   <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
-                  <Bar dataKey="spent" radius={[6, 6, 0, 0]} fill="#2563EB" />
+                  <Bar dataKey="spent" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -361,15 +361,15 @@ export default function SpendingSummary() {
                 <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="dailyGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} interval={period === 'monthly' ? 3 : 1} />
                   <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} labelFormatter={(d) => `${d}`} />
-                  <Area type="monotone" dataKey="spent" stroke="#2563EB" strokeWidth={2} fill="url(#dailyGrad)" />
+                  <Area type="monotone" dataKey="spent" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#dailyGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             )}

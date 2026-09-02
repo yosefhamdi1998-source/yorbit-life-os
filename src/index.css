@@ -139,7 +139,10 @@
     background: linear-gradient(135deg, #EAF6FF 0%, #EEF2FF 100%);
   }
   .gradient-primary {
-    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+    /* Follows the chosen background theme (same vars the hero card uses)
+       instead of a fixed blue, so icon badges using this class actually
+       match a "Black & Gold" (or any other) theme pick. */
+    background: linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
   }
   .gradient-finance {
     background: linear-gradient(135deg, #10B981 0%, #059669 100%);
@@ -151,7 +154,7 @@
     background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(280, 80%, 55%));
   }
   .gradient-goals {
-    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
+    background: linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 100%);
   }
   .gradient-notes {
     background: linear-gradient(135deg, hsl(175, 70%, 41%), hsl(190, 65%, 38%));

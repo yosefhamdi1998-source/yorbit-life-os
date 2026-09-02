@@ -18,7 +18,7 @@ export default function Sparkline({ values = [], width = 88, height = 28, tone =
   const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   const area = `${line} L${width},${height} L0,${height} Z`;
 
-  const stroke = tone === 'negative' ? '#DC2626' : tone === 'primary' ? '#2563EB' : '#059669';
+  const stroke = tone === 'negative' ? '#DC2626' : tone === 'primary' ? 'hsl(var(--primary))' : '#059669';
   const gradId = `spark-${tone}`;
 
   return (
