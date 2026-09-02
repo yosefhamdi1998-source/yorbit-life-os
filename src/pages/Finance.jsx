@@ -746,7 +746,7 @@ export default function Finance() {
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
-          <IncomeExpenseTrendChart transactions={transactions} months={6} />
+          <IncomeExpenseTrendChart transactions={transactions} />
           {catData.length > 0 ? (
             <>
               <SpendingByCategoryChart catData={catData} totalExpenses={monthExpenses} />
