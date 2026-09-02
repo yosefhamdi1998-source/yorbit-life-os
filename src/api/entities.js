@@ -59,24 +59,41 @@ class Entity {
     this.table = table;
   }
 
+  // The first page is fetched with an exact count, so we know up front how
+  // many more pages (if any) exist — every remaining page is then fired in
+  // parallel instead of waiting for each one before starting the next. For
+  // a 15,000-row account on a 1,000-row server page cap, that's the
+  // difference between ~16 sequential round trips (several seconds, on
+  // every single page in the app that lists all transactions) and
+  // effectively 2 round trips' worth of latency total.
   async _paginated(buildQuery, limit) {
     const target = limit ?? Infinity;
-    const rows = [];
-    let from = 0;
-    while (rows.length < target) {
-      const pageSize = Math.min(SERVER_MAX_PAGE, target - rows.length);
-      const page = unwrap(await buildQuery(from, from + pageSize - 1));
-      rows.push(...page);
-      if (page.length < pageSize) break; // fewer than asked for = no more rows
-      from += pageSize;
+    const firstPageSize = Math.min(SERVER_MAX_PAGE, target);
+    const first = await buildQuery(0, firstPageSize - 1, true);
+    if (first.error) throw new Error(first.error.message);
+    const rows = [...first.data];
+    const totalAvailable = first.count ?? rows.length;
+    const totalNeeded = Math.min(totalAvailable, target);
+
+    if (rows.length < totalNeeded && first.data.length === firstPageSize) {
+      const requests = [];
+      for (let from = firstPageSize; from < totalNeeded; from += SERVER_MAX_PAGE) {
+        const to = Math.min(from + SERVER_MAX_PAGE, totalNeeded) - 1;
+        requests.push(buildQuery(from, to, false));
+      }
+      const pages = await Promise.all(requests);
+      for (const page of pages) {
+        if (page.error) throw new Error(page.error.message);
+        rows.push(...page.data);
+      }
     }
     return rows;
   }
 
   // base44: entities.X.list(sort?, limit?)
   async list(sort, limit) {
-    return this._paginated((from, to) => {
-      let query = supabase.from(this.table).select('*');
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
       query = applySort(query, sort || '-created_date');
       return query.range(from, to);
     }, limit);
@@ -84,8 +101,8 @@ class Entity {
 
   // base44: entities.X.filter(queryObj, sort?, limit?)
   async filter(queryObj = {}, sort, limit) {
-    return this._paginated((from, to) => {
-      let query = supabase.from(this.table).select('*');
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
       for (const [key, value] of Object.entries(queryObj)) {
         query = query.eq(key, value);
       }
