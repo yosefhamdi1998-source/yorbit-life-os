@@ -40,10 +40,10 @@ export default function CashFlowTrendChart({ data }) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 4, right: 4, left: -18, bottom: 0 }} barGap={3}>
+          <BarChart data={data} margin={{ top: 4, right: 4, left: -4, bottom: 0 }} barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={46} tickFormatter={v => fmtAxisCompact(v)} />
+            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={60} tickFormatter={v => fmtAxisCompact(v)} />
             <Tooltip content={<CashFlowTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
             <Legend
               iconType="circle"
