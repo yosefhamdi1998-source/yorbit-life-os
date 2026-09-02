@@ -35,7 +35,13 @@ export function fmtAxisCompact(n) {
   const abs = Math.abs(v);
   const sign = v < 0 ? '−' : '';
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1000)}K`;
+  // A whole-K round-off collapses e.g. $1,500 and $2,000 to the same "$2K"
+  // tick on smaller charts (Budget's category limits run in the hundreds/
+  // low thousands, not the 6-figure range this was first built for) — one
+  // decimal below $10K keeps neighboring ticks distinct without getting
+  // any longer than the $1,000+ case already budgeted width for.
+  if (abs >= 10_000) return `${sign}$${Math.round(abs / 1000)}K`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1000).toFixed(1)}K`;
   return `${sign}$${Math.round(abs)}`;
 }
 

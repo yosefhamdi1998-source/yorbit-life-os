@@ -15,6 +15,7 @@ import ExportButtons from '@/components/finance/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { CAT_COLORS, CategoryBadge } from '@/lib/categoryVisuals';
+import { fmtAxisCompact } from '@/lib/format';
 
 // Emoji still used for spots where an icon has to embed inline in plain
 // text (chart axis labels, Sankey node names) - real icon components only
@@ -159,6 +160,17 @@ export default function SpendingSummary() {
 
     const spent = catData.reduce((s, c) => s + c.spent, 0);
     if (spent <= 0) return null;
+    // A Sankey can only show where income *went* — once spending exceeds
+    // income in the window (routine now with crypto trade volume), there's
+    // no real "source" for the excess to flow from. Recharts sizes each
+    // node by its link totals, not the value field on the node data, so
+    // forcing an Income→Spending link larger than Income itself silently
+    // inflated the Income bar to match spending and made the percentages
+    // stop adding up (e.g. "Spending 183%" next to an Income bar mislabeled
+    // with the spending total). Hiding the diagram for this case is more
+    // honest than drawing a flow that doesn't balance; the stat cards and
+    // category breakdown below still show the real numbers either way.
+    if (spent > income) return null;
 
     const leftOver = Math.max(0, income - spent);
     const pct = v => Math.round((v / income) * 100);
@@ -348,17 +360,17 @@ export default function SpendingSummary() {
             <p className="font-bold text-sm mb-3">{period === 'yearly' ? 'Monthly Spending' : 'Daily Spending Trend'}</p>
             {period === 'yearly' ? (
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <BarChart data={trendData} margin={{ top: 5, right: 5, left: -4, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
+                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} width={56} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
                   <Bar dataKey="spent" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
               <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -4, bottom: 0 }}>
                   <defs>
                     <linearGradient id="dailyGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
@@ -367,7 +379,7 @@ export default function SpendingSummary() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} interval={period === 'monthly' ? 3 : 1} />
-                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} width={48} />
+                  <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} width={56} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} labelFormatter={(d) => `${d}`} />
                   <Area type="monotone" dataKey="spent" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#dailyGrad)" />
                 </AreaChart>
@@ -381,7 +393,7 @@ export default function SpendingSummary() {
             <ResponsiveContainer width="100%" height={Math.max(140, catData.length * 36)}>
               <BarChart data={catData} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
                 <CartesianGrid horizontal={false} stroke="hsl(var(--border))" opacity={0.4} />
-                <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${v}`} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} width={90} tickFormatter={(v) => `${CAT_ICONS[v] || ''} ${v}`} />
                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
                 <Bar dataKey="spent" radius={[6, 6, 6, 6]}>
