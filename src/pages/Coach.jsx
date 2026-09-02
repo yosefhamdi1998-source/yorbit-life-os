@@ -147,7 +147,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
           title="AI Coach"
           subtitle="Personalized financial guidance, powered by AI"
           icon={Brain}
-          gradient="gradient-habits"
+          gradient="gradient-primary"
         />
         <div
           className="rounded-3xl p-6 text-center"
@@ -176,7 +176,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
         title="AI Coach"
         subtitle="Personalized financial guidance, powered by AI"
         icon={Brain}
-        gradient="gradient-habits"
+        gradient="gradient-primary"
       />
 
       <Tabs defaultValue="advisor">
