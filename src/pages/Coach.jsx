@@ -53,7 +53,9 @@ export default function Coach() {
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const savingsRate = monthIncome > 0 ? ((1 - monthExpenses / monthIncome) * 100).toFixed(0) : 0;
+  // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
+  // into a five-figure percentage.
+  const savingsRate = monthIncome >= 1 ? ((1 - monthExpenses / monthIncome) * 100).toFixed(0) : 0;
 
   const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
   const catData = EXPENSE_CATS.map(cat => ({

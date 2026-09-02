@@ -3,7 +3,10 @@
 // Weighted: savings rate (40) + spending trend vs. last period (25) +
 // budget adherence (20) + bills paid on time (15).
 function scoreFor({ income, expenses, prevExpenses, budgetedRows, overdueBillCount, hasBills }) {
-  const savingsRate = income > 0 ? (income - expenses) / income : 0;
+  // >= 1 not > 0: a fraction-of-a-cent "income" row (a staking reward of
+  // $0.00007 is real data in this app) would otherwise turn a normal
+  // expense total into a wildly wrong (though clamped) savings-rate score.
+  const savingsRate = income >= 1 ? (income - expenses) / income : 0;
   const savingsPts = Math.max(0, Math.min(40, Math.round((savingsRate / 0.3) * 40)));
 
   let trendPts = 12; // neutral when there's no prior period to compare

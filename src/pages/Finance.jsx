@@ -582,7 +582,9 @@ export default function Finance() {
   const totalAssets = netWorth.filter(n => n.type === 'asset').reduce((s, n) => s + (n.value || 0), 0);
   const totalLiabilities = netWorth.filter(n => n.type === 'liability').reduce((s, n) => s + (n.value || 0), 0);
   const netSaved = monthIncome - monthExpenses;
-  const savingsRate = monthIncome > 0 ? Math.round((netSaved / monthIncome) * 100) : 0;
+  // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
+  // into a five-figure percentage.
+  const savingsRate = monthIncome >= 1 ? Math.round((netSaved / monthIncome) * 100) : 0;
 
   // Summary row can show any of: trailing 2 weeks, this month, or a whole
   // calendar year (this year and the 2 before it) — the rest of the page
@@ -627,7 +629,9 @@ export default function Finance() {
   const summaryIncome = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryExpenses = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryNetSaved = summaryIncome - summaryExpenses;
-  const summarySavingsRate = summaryIncome > 0 ? Math.round((summaryNetSaved / summaryIncome) * 100) : 0;
+  // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
+  // into a five-figure percentage.
+  const summarySavingsRate = summaryIncome >= 1 ? Math.round((summaryNetSaved / summaryIncome) * 100) : 0;
 
   const catData = EXPENSE_CATS.map(cat => ({
     name: cat,

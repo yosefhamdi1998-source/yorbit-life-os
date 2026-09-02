@@ -118,7 +118,11 @@ export default function Dashboard() {
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const netSaved = monthIncome - monthExpenses;
-  const savingsRate = monthIncome > 0 ? Math.round((netSaved / monthIncome) * 100) : 0;
+  // A fraction-of-a-cent "income" row (a staking reward like $0.00007 is a
+  // real example in this data) technically passes `> 0` but turns netSaved
+  // divided by it into a meaningless five-figure percentage. Require at
+  // least $1 of real income before a rate means anything.
+  const savingsRate = monthIncome >= 1 ? Math.round((netSaved / monthIncome) * 100) : 0;
   const totalAssets = netWorthEntries.filter(e => e.type === 'asset').reduce((s, e) => s + (e.value || 0), 0);
   const totalLiabilities = netWorthEntries.filter(e => e.type === 'liability').reduce((s, e) => s + (e.value || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -147,7 +151,8 @@ export default function Dashboard() {
   // Year/Last Year implementation, also used by Goals and Save More.
   const heroTx = filterByPeriod(transactions, cashFlowPeriod, latestTxDate);
   const { income: heroIncome, expenses: heroExpenses, net: heroNetSaved } = sumByType(heroTx);
-  const heroSavingsRate = heroIncome > 0 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
+  // Same fraction-of-a-cent guard as `savingsRate` above.
+  const heroSavingsRate = heroIncome >= 1 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
   const heroPeriodLabel = getPeriodLabel(cashFlowPeriod);
   const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod);
   const isYearPeriod = cashFlowPeriod.startsWith('year-');
