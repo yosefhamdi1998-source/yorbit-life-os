@@ -184,8 +184,12 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
   // for anyone whose data trails today's real date.
   const latestTxDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
 
+  // "other" is dropped from the chip list on request — it's a catch-all
+  // bucket, not a meaningful thing to filter by, and cutting it (plus
+  // switching these rows from horizontal scroll to wrap below) is what
+  // gets the category row to fit without a scroller.
   const categoryOptions = useMemo(() => {
-    return [...new Set(transactions.map(t => t.category).filter(Boolean))].sort();
+    return [...new Set(transactions.map(t => t.category).filter(c => c && c !== 'other'))].sort();
   }, [transactions]);
 
   const filtered = useMemo(() => {
@@ -279,12 +283,15 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
           <Input placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Wrapping instead of horizontal-scrolling: every chip stays
+            visible on screen at once, no swipe/scroller needed to see
+            the rest of the row. */}
+        <div className="flex flex-wrap gap-2">
           {[{ key: 'all', label: 'All' }, { key: 'expense', label: 'Spending' }, { key: 'income', label: 'Income' }].map(f => (
             <button
               key={f.key}
               onClick={() => setTypeFilter(f.key)}
-              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${typeFilter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${typeFilter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               {f.label}
             </button>
@@ -292,10 +299,10 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
         </div>
 
         {categoryOptions.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCategoryFilter('all')}
-              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               All categories
             </button>
@@ -303,7 +310,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+                className={`text-xs px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
               >
                 <span>{CAT_ICONS[cat] || '💸'}</span>{cat}
               </button>
@@ -311,10 +318,10 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
           </div>
         )}
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setDateRange('all')}
-            className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
           >
             All time
           </button>
@@ -322,7 +329,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
             <button
               key={p.key}
               onClick={() => setDateRange(p.key)}
-              className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               {p.label}
             </button>
