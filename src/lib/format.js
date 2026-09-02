@@ -25,6 +25,20 @@ export function fmtCompact(n) {
   return `${sign}$${fmtFull(abs)}`;
 }
 
+// Chart axis ticks get their own, more aggressive compact form — an axis
+// column is only ~46px wide, so even fmtCompact's "$4,500" (fine inside a
+// roomy stat card) overflows it and gets silently clipped down to "500"
+// with no dollar sign or leading digit. Always-K-from-$1,000 keeps every
+// tick short enough to actually fit.
+export function fmtAxisCompact(n) {
+  const v = n || 0;
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '−' : '';
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1000)}K`;
+  return `${sign}$${Math.round(abs)}`;
+}
+
 // Adaptive Tailwind size classes for the one big hero number — a plain
 // fixed text-6xl reads as huge and confident at "$1,240" but overflows or
 // wraps mid-digit once totals cross into 7-8 characters (an "All Time" net

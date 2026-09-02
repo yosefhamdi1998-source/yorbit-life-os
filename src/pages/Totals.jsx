@@ -4,7 +4,7 @@ import { BarChart3, ChevronDown, TrendingUp, TrendingDown, ListChecks } from 'lu
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/ui/use-toast';
-import { fmtFull, fmtCompact } from '@/lib/format';
+import { fmtFull, fmtCompact, fmtAxisCompact } from '@/lib/format';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -134,7 +134,7 @@ export default function Totals() {
             <BarChart data={chartData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={48} tickFormatter={v => fmtCompact(v)} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={48} tickFormatter={v => fmtAxisCompact(v)} />
               <Tooltip content={<TrendTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
               <Bar dataKey="income" fill="#10B981" radius={[5, 5, 0, 0]} maxBarSize={28} />
               <Bar dataKey="expense" fill="#F97316" radius={[5, 5, 0, 0]} maxBarSize={28} />

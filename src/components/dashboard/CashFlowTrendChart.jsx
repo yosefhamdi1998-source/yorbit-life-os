@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { BarChart3 } from 'lucide-react';
-import { fmtCompact, fmtFull } from '@/lib/format';
+import { fmtAxisCompact, fmtFull } from '@/lib/format';
 
 // Fixed 6-calendar-month window (independent of the hero's period switcher
 // above it) — the hero already answers "how am I doing in [this period]",
@@ -43,7 +43,7 @@ export default function CashFlowTrendChart({ data }) {
           <BarChart data={data} margin={{ top: 4, right: 4, left: -18, bottom: 0 }} barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={46} tickFormatter={v => fmtCompact(v)} />
+            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={46} tickFormatter={v => fmtAxisCompact(v)} />
             <Tooltip content={<CashFlowTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
             <Legend
               iconType="circle"

@@ -11,7 +11,7 @@ import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
-import { fmtFull, fmtCompact } from '@/lib/format';
+import { fmtFull, fmtAxisCompact } from '@/lib/format';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
@@ -194,7 +194,7 @@ export default function Budget() {
               <ResponsiveContainer width="100%" height={Math.max(160, budgetedRows.length * 46)}>
                 <BarChart data={budgetedRows.map(r => ({ cat: r.cat, spent: r.spent, limit: r.budget.monthly_limit }))} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }} barGap={2}>
                   <CartesianGrid horizontal={false} stroke="hsl(var(--border))" opacity={0.4} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtCompact(v)} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} />
                   <YAxis type="category" dataKey="cat" tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', fontWeight: 600 }} width={90} tickFormatter={v => `${CAT_ICONS[v] || ''} ${v}`} />
                   <Tooltip content={<BudgetChartTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
                   <Bar dataKey="limit" fill="hsl(var(--secondary))" radius={[4, 4, 4, 4]} maxBarSize={14} />
