@@ -60,6 +60,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
+  // Separate from cashFlowPeriod above (that one drives the hero's own
+  // Week/Month/Year switcher) — this is just the Cash Flow Trend chart's
+  // own window, '1m' | '3m' | '6m' | '1y' | '2y' | 'all'.
+  const [trendPeriod, setTrendPeriod] = useState('6m');
   const navigate = useNavigate();
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -157,18 +161,45 @@ export default function Dashboard() {
   const prevTx = filterByPreviousPeriod(transactions, cashFlowPeriod, latestTxDate);
   const prevSums = sumByType(prevTx);
 
-  // Fixed 6-calendar-month cash flow trend, independent of the period
-  // switcher above — anchored to the latest transaction's month so
-  // historical/imported data doesn't show 6 empty bars ending "today."
-  const monthlyTrend = (() => {
-    const anchorMonth = startOfDay(latestTxDate);
+  // Cash Flow Trend chart's own window — independent of the hero period
+  // switcher above (that answers "how am I doing in [this period]"; this
+  // answers "what's the trend", which needs its own timescale entirely).
+  // Anchored to the latest transaction's date/month, not literal today, so
+  // historical/imported data doesn't show a run of empty buckets at the end.
+  const cashFlowTrend = (() => {
+    const anchor = startOfDay(latestTxDate);
+    if (trendPeriod === '1m') {
+      // Daily bars for the anchor's own calendar month.
+      const year = anchor.getFullYear();
+      const month = anchor.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const buckets = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const tx = transactions.filter(t => t.date === key);
+        const { income, expenses } = sumByType(tx);
+        buckets.push({ month: String(d), income, expense: expenses, net: income - expenses });
+      }
+      return buckets;
+    }
+    if (trendPeriod === 'all') {
+      // One bar per calendar year across the full history on record.
+      const years = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))].sort();
+      return years.map(y => {
+        const tx = transactions.filter(t => t.date?.startsWith(y));
+        const { income, expenses } = sumByType(tx);
+        return { month: y, income, expense: expenses, net: income - expenses };
+      });
+    }
+    const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24 }[trendPeriod] || 6;
     const buckets = [];
-    for (let i = 5; i >= 0; i--) {
-      const m = subMonths(anchorMonth, i);
+    for (let i = monthsBack - 1; i >= 0; i--) {
+      const m = subMonths(anchor, i);
       const key = format(m, 'yyyy-MM');
       const tx = transactions.filter(t => t.date?.startsWith(key));
       const { income, expenses } = sumByType(tx);
-      buckets.push({ month: format(m, 'MMM'), income, expense: expenses, net: income - expenses });
+      const label = monthsBack > 12 ? format(m, 'MMM yy') : format(m, 'MMM');
+      buckets.push({ month: label, income, expense: expenses, net: income - expenses });
     }
     return buckets;
   })();
@@ -357,7 +388,7 @@ export default function Dashboard() {
           score that can read as a critique, and it's information the hero
           numbers above don't show: the shape of the last 6 months, not
           just one period's total. */}
-      <CashFlowTrendChart data={monthlyTrend} />
+      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} />
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
