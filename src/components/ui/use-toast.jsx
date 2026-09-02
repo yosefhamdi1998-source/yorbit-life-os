@@ -2,7 +2,16 @@
 import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 8000;
+// How long a toast stays up on its own before dismissing itself.
+const TOAST_AUTO_DISMISS_DELAY = 5000;
+// Grace period between "dismissed" (open:false) and actually being removed
+// from the list — kept tiny. This used to be 8000ms, which meant tapping
+// the X only marked the toast closed and it stayed fully visible on screen
+// for up to 8 more seconds before it was actually removed (this component
+// doesn't run a real exit animation off that state, so nothing about it
+// even looked different in the meantime — it just sat there, unresponsive
+// to the tap that was supposed to close it).
+const TOAST_REMOVE_DELAY = 150;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -133,6 +142,12 @@ function toast({ ...props }) {
       },
     },
   });
+
+  // Toasts used to only go away when something explicitly dismissed them —
+  // nothing ever did that on a timer, so a toast nobody tapped X on stayed
+  // on screen forever. This is what actually makes it "just go away" on
+  // its own; clicking X (or dismiss()) still works and just does it early.
+  setTimeout(dismiss, TOAST_AUTO_DISMISS_DELAY);
 
   return {
     id,
