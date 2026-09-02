@@ -29,16 +29,16 @@ export const sidebarItems = [
   { path: '/bills', icon: Receipt, label: 'Bills' },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/recurring', icon: Repeat, label: 'Recurring' },
-  { path: '/notes', icon: StickyNote, label: 'Notes' },
-  { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { path: '/habits', icon: Flame, label: 'Habits' },
-  { path: '/journal', icon: BookOpen, label: 'Journal' },
-  { path: '/health-log', icon: HeartPulse, label: 'Health Log' },
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/coach', icon: Brain, label: 'AI Coach' },
   ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync' }] : []),
   { path: '/csv-import', icon: Upload, label: 'Import CSV' },
   { path: '/forms', icon: FileText, label: 'Forms' },
+  // Notes/Tasks/Habits/Journal/Health Log are left over from this app's
+  // origin as a general life-organizer, before it became a focused money
+  // app. Routes/data/code untouched (nothing lost, easy to bring back) -
+  // just pulled from navigation so they stop competing for space in a
+  // money app's menu.
 ];
 
 const pageVariants = {

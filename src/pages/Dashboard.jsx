@@ -3,12 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay, startOfMonth, eachDayOfInterval, eachMonthOfInterval, subDays } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay } from 'date-fns';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
@@ -133,60 +132,6 @@ export default function Dashboard() {
     return latest ? parseISO(latest) : new Date();
   })();
 
-  const cashFlowSeriesWeek = (() => {
-    const start = startOfDay(subDays(latestTxDate, 6));
-    const days = eachDayOfInterval({ start, end: latestTxDate });
-    let running = 0;
-    return days.map(d => {
-      const key = format(d, 'yyyy-MM-dd');
-      for (const t of transactions) {
-        if (t.date === key) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
-      }
-      return { day: format(d, 'MMM d'), net: Math.round(running) };
-    });
-  })();
-
-  // Running net balance for each day so far this month, for the trend chart.
-  const cashFlowSeriesMonth = (() => {
-    const start = startOfMonth(new Date());
-    const days = eachDayOfInterval({ start, end: new Date() });
-    let running = 0;
-    return days.map(d => {
-      const key = format(d, 'yyyy-MM-dd');
-      for (const t of monthTx) {
-        if (t.date === key) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
-      }
-      return { day: format(d, 'MMM d'), net: Math.round(running) };
-    });
-  })();
-
-  // Same idea, one point per month instead of per day, for a whole
-  // calendar year. yearOffset 0 = this year (partial, up to today),
-  // -1 = last year (the full 12 months).
-  const buildCashFlowYear = (yearOffset) => {
-    const year = new Date().getFullYear() + yearOffset;
-    const yearStr = String(year);
-    const yearTx = transactions.filter(t => t.date?.startsWith(yearStr));
-    const start = new Date(year, 0, 1);
-    const end = yearOffset === 0 ? new Date() : new Date(year, 11, 31);
-    const months = eachMonthOfInterval({ start, end });
-    let running = 0;
-    return months.map(m => {
-      const key = format(m, 'yyyy-MM');
-      for (const t of yearTx) {
-        if (t.date?.startsWith(key)) running += t.type === 'income' ? (t.amount || 0) : -(t.amount || 0);
-      }
-      return { day: format(m, 'MMM'), net: Math.round(running) };
-    });
-  };
-  const cashFlowSeriesYear = buildCashFlowYear(0);
-  const cashFlowSeriesLastYear = buildCashFlowYear(-1);
-
-  const cashFlowSeries = cashFlowPeriod === 'year' ? cashFlowSeriesYear
-    : cashFlowPeriod === 'lastyear' ? cashFlowSeriesLastYear
-    : cashFlowPeriod === 'week' ? cashFlowSeriesWeek
-    : cashFlowSeriesMonth;
-  const cashFlowNet = cashFlowSeries.length ? cashFlowSeries[cashFlowSeries.length - 1].net : 0;
 
   // The hero figures (net saved / income / expenses / savings rate) follow
   // the same period switcher as the chart below it, instead of always
@@ -369,56 +314,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Cash flow trend ───────────────────────────────────────────── */}
-      {monthTx.length > 0 && (
-        <div className="sky-card rounded-2xl px-4 pt-4 pb-2 lg:px-5 lg:pt-5 mb-5">
-          <div className="flex items-baseline justify-between mb-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Cash flow · {heroPeriodLabel}
-            </p>
-            <p className={`text-sm font-bold ${cashFlowNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-              {cashFlowNet >= 0 ? '+' : '−'}${fmt(Math.abs(cashFlowNet))}
-            </p>
-          </div>
-          <div className="h-40 lg:h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cashFlowSeries} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <defs>
-                  <linearGradient id="cashFlowFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={false} axisLine={false} minTickGap={28} />
-                <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  tickLine={false} axisLine={false} width={52}
-                  tickFormatter={v => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`} />
-                <Tooltip
-                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-                    borderRadius: 12, fontSize: 12 }}
-                  labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                  formatter={v => [`$${fmt(v)}`, 'Net']}
-                />
-                <Area type="monotone" dataKey="net" stroke="#2563EB" strokeWidth={2.5}
-                  fill="url(#cashFlowFill)"
-                  dot={(props) => {
-                    const isLast = props.index === cashFlowSeries.length - 1;
-                    if (!isLast) return <g key={props.index} />;
-                    return (
-                      <g key={props.index}>
-                        <circle cx={props.cx} cy={props.cy} r={7} fill="#2563EB" fillOpacity={0.18} />
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill="#2563EB" stroke="white" strokeWidth={1.5} />
-                      </g>
-                    );
-                  }}
-                  activeDot={{ r: 4.5, fill: '#2563EB', stroke: 'white', strokeWidth: 1.5 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+      {/* Cash flow chart removed — it was directly redundant with the hero
+          above it (same period, same "how did money move" question, just
+          drawn instead of numbered), and the deeper daily/weekly view now
+          lives on Money > Spending anyway. */}
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
