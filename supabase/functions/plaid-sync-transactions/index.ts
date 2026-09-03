@@ -118,7 +118,15 @@ Deno.serve(async (req) => {
     let offset = 0;
     while (true) {
       const txRes = await plaidClient.transactionsGet({
-        access_token, start_date: startDate, end_date: endDate, options: { count: 500, offset },
+        access_token,
+        start_date: startDate,
+        end_date: endDate,
+        // Scope to THIS account. One access token covers every account at
+        // the institution, so without this each of the 4 connected accounts
+        // pulled all 430 transactions from all of them — 4x the API work,
+        // and each transaction got labelled with whichever account happened
+        // to import it first. Dedup hid the damage but not the waste.
+        options: { count: 500, offset, account_ids: [account.provider_account_id] },
       });
       plaidTxs.push(...txRes.data.transactions);
       offset += txRes.data.transactions.length;

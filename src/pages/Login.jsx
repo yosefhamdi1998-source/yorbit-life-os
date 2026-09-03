@@ -28,6 +28,13 @@ export default function Login() {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     if (hash.get("error_description")) {
       setLinkError(hash.get("error_description").replace(/\+/g, " "));
+      // Clear it from the URL once it's been read. Without this the hash
+      // sticks around for the life of the tab (and through any bookmark or
+      // reload of that URL), so a single expired email link made the error
+      // banner reappear on EVERY subsequent visit to the login page — it
+      // looked like logging in was permanently broken when nothing was
+      // actually wrong.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
     const home = import.meta.env.BASE_URL;
     base44.auth.getSession().then((session) => { if (session) window.location.replace(home); });

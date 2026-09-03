@@ -217,9 +217,11 @@ export default function Investments() {
                     <p className="text-sm font-semibold text-foreground">{a.asset}</p>
                     <p className="text-xs text-muted-foreground">{a.count.toLocaleString()} transactions</p>
                   </div>
+                  {/* fmtCompact already emits the currency symbol — don't
+                      prefix another one. */}
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-orange-500 font-semibold tabular-nums">−${fmtCompact(a.bought)}</p>
-                    <p className="text-xs text-emerald-500 font-semibold tabular-nums">+${fmtCompact(a.sold)}</p>
+                    <p className="text-xs text-orange-500 font-semibold tabular-nums">−{fmtCompact(a.bought)}</p>
+                    <p className="text-xs text-emerald-500 font-semibold tabular-nums">+{fmtCompact(a.sold)}</p>
                   </div>
                 </button>
               ))}
