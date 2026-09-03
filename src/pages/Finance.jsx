@@ -659,31 +659,38 @@ export default function Finance() {
   // into a five-figure percentage.
   const savingsRate = monthIncome >= 1 ? Math.round((netSaved / monthIncome) * 100) : 0;
 
-  // Summary row can show any of: trailing 2 weeks, this month, or a whole
+  // Summary row: trailing windows from shortest to longest, plus a whole
   // calendar year (this year and the 2 before it) — the rest of the page
   // (transaction list, spending chart) stays month-scoped, since that's
   // what "Spending" and "Net Worth" tabs are already built around.
-  // Trailing-period toggles, shortest to longest.
+  //
+  // "Monthly" here means trailing 30 days, NOT the calendar month — every
+  // chip in this row anchors to the same latestTxDate and covers strictly
+  // more days than the one before it (7 / 14 / 30 / 90 / 180). Calendar
+  // "this month" was used here originally, which made Monthly show LESS
+  // than Bi-Weekly for the first few days of any new month (a real
+  // reported bug: Bi-Weekly $1,067 spent, Monthly only $115 — technically
+  // correct math, but a longer-labeled window showing less data than a
+  // shorter one reads as broken). Home's hero keeps the calendar-month
+  // definition on purpose (that's the one place "this month" should mean
+  // the actual month); this row is a pure trailing-window comparison tool,
+  // so every step should nest inside the next.
   const PERIOD_OPTIONS = [
     { key: 'weekly', label: 'Weekly' },
     { key: 'biweekly', label: 'Bi-Weekly' },
     { key: 'month', label: 'Monthly' },
+    { key: '3month', label: '3M' },
+    { key: '6month', label: '6M' },
   ];
   const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
   const isYearPeriod = summaryPeriod.startsWith('year-');
-  // Weekly/Bi-Weekly anchor to latestTxDate (computed above, alongside
-  // thisMonth/thisYearNum) for the same reason.
+  const TRAILING_DAYS = { weekly: 6, biweekly: 13, month: 29, '3month': 89, '6month': 179 };
   const summaryTx = useMemo(() => {
-    if (summaryPeriod === 'weekly') {
-      const cutoff = startOfDay(subDays(latestTxDate, 6));
+    if (TRAILING_DAYS[summaryPeriod] != null) {
+      const cutoff = startOfDay(subDays(latestTxDate, TRAILING_DAYS[summaryPeriod]));
       return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
     }
-    if (summaryPeriod === 'biweekly') {
-      const cutoff = startOfDay(subDays(latestTxDate, 13));
-      return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
-    }
-    if (summaryPeriod === 'month') return monthTx;
     if (summaryPeriod.startsWith('year-')) {
       const y = summaryPeriod.slice(5);
       return transactions.filter(t => t.date?.startsWith(y));
