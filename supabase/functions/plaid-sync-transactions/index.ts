@@ -101,7 +101,16 @@ Deno.serve(async (req) => {
       const amount = Math.abs(tx.amount);
       const date = tx.date;
       const key = `${title}-${date}-${amount}`;
+      // Checked (and immediately recorded) against the SAME running set for
+      // every row in this batch, not just what was already in the database
+      // before this sync started. A large first-time historical pull from
+      // Plaid's transactionsGet can itself return the same transaction more
+      // than once across pages on a freshly-connected item — this is what
+      // actually produced 8 identical "Zelle payment to YOSEFH" rows on the
+      // 5-year backfill. Without updating the set as we go, nothing catches
+      // a duplicate that only exists within this one batch.
       if (existingKeys.has(key)) { skipped++; continue; }
+      existingKeys.add(key);
 
       const type = tx.amount > 0 ? 'expense' : 'income';
       const category = mapCategory(tx.category);
