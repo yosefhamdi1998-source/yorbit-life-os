@@ -57,6 +57,28 @@ function parseCSV(text) {
   return { headers: rawHeaders.filter(Boolean), rows };
 }
 
+// Second-pass fallback for when a column's own name doesn't say what it is
+// (a bank's own jargon, an unlabeled export, a language mismatch). Instead
+// of giving up and asking the user to pick manually, look at what's
+// actually IN each column across a sample of rows — a column that's
+// consistently date-shaped or dollar-shaped gives itself away regardless
+// of what it's called.
+const DATE_VALUE_RE = /^\s*(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})/;
+const AMOUNT_VALUE_RE = /^\s*[-(]?\$?\s*-?\d[\d,]*\.\d{1,2}\)?\s*$/;
+
+function sniffColumn(rows, headers, predicate, exclude = []) {
+  const sample = rows.slice(0, Math.min(rows.length, 25)).filter(r => headers.some(h => (r[h] || '').trim()));
+  if (sample.length === 0) return '';
+  let best = '', bestScore = 0;
+  for (const h of headers) {
+    if (exclude.includes(h)) continue;
+    const hit = sample.filter(r => predicate((r[h] || '').trim())).length;
+    const score = hit / sample.length;
+    if (score > bestScore) { bestScore = score; best = h; }
+  }
+  return bestScore >= 0.6 ? best : '';
+}
+
 function guessType(amount) {
   const n = parseFloat(String(amount).replace(/[^0-9.-]/g, ''));
   if (isNaN(n)) return 'expense';
@@ -204,6 +226,12 @@ export default function CSVImport() {
             description: guess(['desc', 'merchant', 'name', 'memo', 'payee', 'narration', 'note']),
             amount: guess(['amount', 'debit', 'credit', 'value']),
           };
+          // Name-based guessing failed — before ever asking a person to
+          // pick columns by hand, try reading the column by what's actually
+          // in it. This is what makes an odd or unlabeled export still
+          // "just work" instead of stopping to ask.
+          if (!mapping.date) mapping.date = sniffColumn(rows, headers, v => DATE_VALUE_RE.test(v));
+          if (!mapping.amount) mapping.amount = sniffColumn(rows, headers, v => AMOUNT_VALUE_RE.test(v), [mapping.date].filter(Boolean));
           if (mapping.date && mapping.amount) {
             const norm = rows.map(row => normalizeRow({
               date: row[mapping.date], description: row[mapping.description], amount: row[mapping.amount],
