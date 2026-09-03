@@ -198,7 +198,7 @@ export default function Dashboard() {
         return { month: y, income, expense: expenses, net: income - expenses };
       });
     }
-    const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '5y': 60 }[trendPeriod] || 6;
+    const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36 }[trendPeriod] || 6;
     const buckets = [];
     for (let i = monthsBack - 1; i >= 0; i--) {
       const m = subMonths(anchor, i);
@@ -380,18 +380,29 @@ export default function Dashboard() {
           </p>
 
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0" title={`$${fmtFull(heroIncome)}`}>
+            <Link
+              to={isYearPeriod ? `/spending-summary?period=yearly&year=${cashFlowPeriod.replace('year-', '')}` : '/spending-summary'}
+              className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
+              title={`$${fmtFull(heroIncome)}`}
+            >
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Income</p>
               <p className="text-white font-black text-lg leading-tight tabular-nums">
                 <AnimatedNumber format={fmtCompact} value={heroIncome} />
               </p>
-            </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0" title={`$${fmtFull(heroExpenses)}`}>
+            </Link>
+            {/* Tapping this used to just sit there — now it opens the real,
+                category-by-category breakdown (Spending Summary) for the
+                same window instead of leaving "where did it go" unanswered. */}
+            <Link
+              to={isYearPeriod ? `/spending-summary?period=yearly&year=${cashFlowPeriod.replace('year-', '')}` : '/spending-summary'}
+              className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
+              title={`$${fmtFull(heroExpenses)}`}
+            >
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Expenses</p>
               <p className="text-white font-black text-lg leading-tight tabular-nums">
                 <AnimatedNumber format={fmtCompact} value={heroExpenses} />
               </p>
-            </div>
+            </Link>
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Savings rate</p>
               <p className="text-white font-black text-lg leading-tight tabular-nums">{heroSavingsRate}%</p>

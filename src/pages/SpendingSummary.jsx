@@ -110,12 +110,27 @@ const inRange = (dateStr, start, end) => {
   return (isAfter(d, start) || isSameDay(d, start)) && (isBefore(d, end) || isSameDay(d, end));
 };
 
+// Reached from Home's Expenses/Income tiles with ?period=yearly&year=2026 so
+// the breakdown opens already scoped to whatever window the hero was
+// showing, instead of always resetting to "this month" regardless of what
+// was tapped.
+function initialStateFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const qPeriod = params.get('period');
+  if (qPeriod === 'yearly') {
+    const year = parseInt(params.get('year'), 10);
+    if (year) return { period: 'yearly', cursor: new Date(year, 0, 1) };
+  }
+  return { period: 'monthly', cursor: defaultCursor('monthly') };
+}
+
 export default function SpendingSummary() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('monthly');
-  const [cursor, setCursor] = useState(() => defaultCursor('monthly'));
+  const [{ period: initialPeriod, cursor: initialCursor }] = useState(initialStateFromQuery);
+  const [period, setPeriod] = useState(initialPeriod);
+  const [cursor, setCursor] = useState(initialCursor);
 
   useEffect(() => {
     (async () => {

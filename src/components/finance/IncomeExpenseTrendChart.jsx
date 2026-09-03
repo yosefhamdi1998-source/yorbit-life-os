@@ -11,7 +11,7 @@ const PERIODS = [
   { key: '6m', label: '6M' },
   { key: '1y', label: '1Y' },
   { key: '2y', label: '2Y' },
-  { key: '5y', label: '5Y' },
+  { key: '3y', label: '3Y' },
   { key: 'all', label: 'All' },
 ];
 
@@ -65,7 +65,7 @@ function buildSeries(transactions, period, anchor) {
       return { month: y, income: Math.round(income), expense: Math.round(expense) };
     });
   }
-  const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '5y': 60 }[period] || 6;
+  const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36 }[period] || 6;
   const series = [];
   for (let i = monthsBack - 1; i >= 0; i--) {
     const monthDate = startOfMonth(subMonths(anchor, i));
