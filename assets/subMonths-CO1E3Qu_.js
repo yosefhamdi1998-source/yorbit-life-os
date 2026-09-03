@@ -1,0 +1,1 @@
+import{t as s}from"./differenceInCalendarDays-DlCIvLRE.js";import{a}from"./addMonths-ClHsHD95.js";function e(o){const t=s(o);return t.setDate(1),t.setHours(0,0,0,0),t}function u(o,t){return a(o,-t)}export{e as a,u as s};
