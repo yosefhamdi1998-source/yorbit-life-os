@@ -29,12 +29,20 @@ Deno.serve(async (req) => {
 
     console.log(`Starting sync for ${accounts.length} connected account(s)...`);
     const results = [];
-    const functionsUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/plaid-sync-transactions`;
+    const baseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     for (const account of accounts) {
       try {
         await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', account.id);
+
+        // Investment accounts (Coinbase and similar) report holdings, not a
+        // dated transaction log — Plaid's transactionsGet doesn't apply to
+        // them (the item was never authorized for that product), so they
+        // route to the holdings sync instead.
+        const functionsUrl = account.account_type === 'investment'
+          ? `${baseUrl}/functions/v1/plaid-sync-holdings`
+          : `${baseUrl}/functions/v1/plaid-sync-transactions`;
 
         const res = await fetch(functionsUrl, {
           method: 'POST',

@@ -13,6 +13,7 @@ const FUNCTION_MAP = {
   plaidCreateLinkToken: 'plaid-create-link-token',
   plaidExchangeToken: 'plaid-exchange-token',
   plaidSyncTransactions: 'plaid-sync-transactions',
+  plaidSyncHoldings: 'plaid-sync-holdings',
   createCheckout: 'create-checkout',
   customForms: 'custom-forms',
   deleteAccount: 'delete-account',

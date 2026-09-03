@@ -23,7 +23,12 @@ Deno.serve(async (req) => {
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: user.id },
       client_name: 'MoneyGlow',
+      // Transactions covers every bank/Venmo-style institution already
+      // working; Investments is what makes Coinbase (and any brokerage)
+      // show up as a selectable institution at all — without it Plaid
+      // Link silently excludes anything that only reports holdings.
       products: [Products.Transactions],
+      optional_products: [Products.Investments],
       country_codes: [CountryCode.Us],
       language: 'en',
     });

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Landmark, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, Upload, X } from 'lucide-react';
+import { Landmark, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, Upload, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/PageHeader';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+
+function fmt(n) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const STATUS_CONFIG = {
   connected:     { icon: CheckCircle, color: 'text-emerald-500', label: 'Connected' },
@@ -16,6 +18,7 @@ const STATUS_CONFIG = {
 
 export default function BankSync() {
   const [accounts, setAccounts] = useState([]);
+  const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [syncingId, setSyncingId] = useState(null);
@@ -24,8 +27,12 @@ export default function BankSync() {
 
   const loadAccounts = useCallback(async () => {
     try {
-      const data = await base44.entities.ConnectedAccount.list('-created_date', 20);
-      setAccounts(data.filter(a => a.sync_status !== 'disconnected'));
+      const [accountData, holdingData] = await Promise.all([
+        base44.entities.ConnectedAccount.list('-created_date', 20),
+        base44.entities.InvestmentHolding.list('-institution_value', 100),
+      ]);
+      setAccounts(accountData.filter(a => a.sync_status !== 'disconnected'));
+      setHoldings(holdingData);
     } catch {
       setError("We couldn't load your connected accounts. Please try again.");
     } finally {
@@ -68,9 +75,12 @@ export default function BankSync() {
               accounts: metadata.accounts,
             });
             await loadAccounts();
-            // Auto-sync the newly added accounts ({ accounts } comes back flat)
+            // Auto-sync the newly added accounts ({ accounts } comes back flat).
+            // account_type comes straight from the just-created row — 'investment'
+            // (Coinbase and similar) routes to the holdings sync instead of the
+            // transaction sync, which doesn't apply to it.
             for (const acct of exchangeRes.accounts || []) {
-              await syncAccount(acct.id);
+              await syncAccount(acct.id, acct.account_type);
             }
           } catch (e) {
             setError("We couldn't connect your bank. Please try again.");
@@ -89,17 +99,22 @@ export default function BankSync() {
     }
   };
 
-  const syncAccount = async (id) => {
+  const syncAccount = async (id, accountType) => {
     setSyncingId(id);
     setSyncResult(null);
     setError(null);
+    const isInvestment = accountType === 'investment';
     try {
-      const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id });
-      const { imported, skipped } = res;
-      setSyncResult({ imported, skipped });
+      if (isInvestment) {
+        const res = await base44.functions.invoke('plaidSyncHoldings', { connected_account_id: id });
+        setSyncResult({ holdingsSynced: res.synced });
+      } else {
+        const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id });
+        setSyncResult({ imported: res.imported, skipped: res.skipped });
+      }
       await loadAccounts();
     } catch (e) {
-      setError("We couldn't sync your transactions. Please try again.");
+      setError(isInvestment ? "We couldn't sync your holdings. Please try again." : "We couldn't sync your transactions. Please try again.");
     }
     setSyncingId(null);
   };
@@ -147,7 +162,11 @@ export default function BankSync() {
       {syncResult && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-4 text-sm text-emerald-700">
           <CheckCircle className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Synced! {syncResult.imported} new transaction{syncResult.imported !== 1 ? 's' : ''} imported{syncResult.skipped > 0 ? `, ${syncResult.skipped} duplicates skipped` : ''}.</span>
+          <span className="flex-1">
+            {syncResult.holdingsSynced != null
+              ? `Synced! ${syncResult.holdingsSynced} holding${syncResult.holdingsSynced !== 1 ? 's' : ''} updated.`
+              : `Synced! ${syncResult.imported} new transaction${syncResult.imported !== 1 ? 's' : ''} imported${syncResult.skipped > 0 ? `, ${syncResult.skipped} duplicates skipped` : ''}.`}
+          </span>
           <button onClick={() => setSyncResult(null)}><X className="w-4 h-4" /></button>
         </div>
       )}
@@ -159,7 +178,7 @@ export default function BankSync() {
           </div>
           <p className="text-base font-black text-foreground mb-1">Connect your bank</p>
           <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-            Automatically import transactions and keep MoneyGlow up to date. Your credentials are never stored.
+            Automatically import transactions and keep MoneyGlow up to date. Works with banks, Venmo, and Coinbase — search for it by name below. Your credentials are never stored.
           </p>
           <Button
             onClick={connectBank}
@@ -180,12 +199,13 @@ export default function BankSync() {
           {accounts.map(acct => {
             const cfg = STATUS_CONFIG[acct.sync_status] || STATUS_CONFIG.not_connected;
             const Icon = cfg.icon;
+            const isInvestment = acct.account_type === 'investment';
             const isSyncing = syncingId === acct.id || acct.sync_status === 'syncing';
             return (
               <div key={acct.id} className="sky-card rounded-2xl p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Landmark className="w-5 h-5 text-primary" />
+                    {isInvestment ? <TrendingUp className="w-5 h-5 text-primary" /> : <Landmark className="w-5 h-5 text-primary" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground truncate">{acct.institution_name}</p>
@@ -207,7 +227,7 @@ export default function BankSync() {
                     <Button
                       variant="outline" size="sm"
                       className="h-8 text-xs gap-1"
-                      onClick={() => syncAccount(acct.id)}
+                      onClick={() => syncAccount(acct.id, acct.account_type)}
                       disabled={!!syncingId}
                     >
                       <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -231,6 +251,36 @@ export default function BankSync() {
             {connecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             {connecting ? 'Connecting…' : 'Connect Another Bank'}
           </Button>
+        </div>
+      )}
+
+      {/* Holdings — a Coinbase/brokerage connection reports positions, not a
+          transaction feed, so it gets its own breakdown instead of trying to
+          force crypto balances into the transaction list above. */}
+      {holdings.length > 0 && (
+        <div className="mt-6 sky-card rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <p className="text-sm font-bold text-foreground">Holdings</p>
+            </div>
+            <p className="text-sm font-black text-foreground tabular-nums">
+              ${fmt(holdings.reduce((s, h) => s + (h.institution_value || 0), 0))}
+            </p>
+          </div>
+          <div className="divide-y divide-border/50">
+            {holdings.map(h => (
+              <div key={h.id} className="flex items-center justify-between py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground truncate">{h.security_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {h.ticker_symbol ? `${h.ticker_symbol} · ` : ''}{h.quantity != null ? `${Number(h.quantity).toLocaleString('en-US', { maximumFractionDigits: 8 })} units` : ''}
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmt(h.institution_value)}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

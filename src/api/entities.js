@@ -19,6 +19,7 @@ const TABLE_MAP = {
   AIInsightCache: 'ai_insight_caches',
   Notification: 'notifications',
   ConnectedAccount: 'connected_accounts',
+  InvestmentHolding: 'investment_holdings',
   BankSyncLog: 'bank_sync_logs',
   Subscription: 'subscriptions',
 };
