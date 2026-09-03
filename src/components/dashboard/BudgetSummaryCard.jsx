@@ -61,7 +61,20 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
     <div className="sky-card rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <p className="font-bold text-base">Monthly Budget</p>
+        {/* Name the actual month. Budgets are set per calendar month, but
+            the hero above this card reports a trailing 30 days — without
+            saying which month this is, the two sit side by side
+            contradicting each other ("$4,158 spent" above "$0 used"). */}
+        <p className="font-bold text-base">
+          {(() => {
+            try {
+              const [y, m] = (thisMonth || '').split('-').map(Number);
+              return y && m
+                ? `${new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long' })} Budget`
+                : 'Monthly Budget';
+            } catch { return 'Monthly Budget'; }
+          })()}
+        </p>
         <Link to="/budget" className="text-xs text-primary font-semibold flex items-center gap-0.5">
           Manage <ChevronRight className="w-3 h-3" />
         </Link>
