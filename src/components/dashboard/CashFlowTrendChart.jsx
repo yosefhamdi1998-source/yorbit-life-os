@@ -52,7 +52,11 @@ function NetDot(props) {
   );
 }
 
-export default function CashFlowTrendChart({ data, period, onPeriodChange }) {
+export default function CashFlowTrendChart({ data, period, onPeriodChange, simple }) {
+  // Simple Mode: just "this month" and "this year" — the full 6-option
+  // spread is exactly the kind of choice-overload a first-time/younger
+  // user doesn't need.
+  const periodOptions = simple ? CASH_FLOW_PERIODS.filter(p => p.key === '1m' || p.key === '1y') : CASH_FLOW_PERIODS;
   const activePeriod = CASH_FLOW_PERIODS.find(p => p.key === period) || CASH_FLOW_PERIODS[2];
   const hasAnyData = data.some(d => d.income > 0 || d.expense > 0);
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
@@ -95,7 +99,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange }) {
       </div>
 
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
-        {CASH_FLOW_PERIODS.map(p => (
+        {periodOptions.map(p => (
           <button
             key={p.key}
             onClick={() => onPeriodChange(p.key)}

@@ -78,10 +78,11 @@ function buildSeries(transactions, period, anchor) {
   return series;
 }
 
-export default function IncomeExpenseTrendChart({ transactions }) {
-  const [period, setPeriod] = useState('6m');
+export default function IncomeExpenseTrendChart({ transactions, simple }) {
+  const [period, setPeriod] = useState(simple ? '1m' : '6m');
   const anchor = startOfDay(getLatestDate(transactions));
   const series = buildSeries(transactions, period, anchor);
+  const periodOptions = simple ? PERIODS.filter(p => p.key === '1m' || p.key === '1y') : PERIODS;
 
   const hasData = series.some(s => s.income > 0 || s.expense > 0);
 
@@ -100,7 +101,7 @@ export default function IncomeExpenseTrendChart({ transactions }) {
         </p>
       </div>
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
-        {PERIODS.map(p => (
+        {periodOptions.map(p => (
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}

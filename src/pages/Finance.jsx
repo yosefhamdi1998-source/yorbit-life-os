@@ -18,6 +18,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate, Link } from 'react-router-dom';
 import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
+import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
 
@@ -755,7 +756,7 @@ export default function Finance() {
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
-          <IncomeExpenseTrendChart transactions={transactions} />
+          <IncomeExpenseTrendChart transactions={transactions} simple={getSimpleMode()} />
           {catData.length > 0 ? (
             <>
               <SpendingByCategoryChart catData={catData} totalExpenses={monthExpenses} />

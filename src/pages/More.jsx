@@ -1,14 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { Grid2x2, Settings } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { sidebarItems } from '@/components/Layout';
+import { getVisibleSidebarItems } from '@/components/Layout';
 
 // Everything already reachable from the bottom tab bar on mobile — no need to
 // duplicate it here.
 const BOTTOM_TAB_PATHS = new Set(['/', '/finance', '/budget', '/bills', '/coach']);
 
 export default function More() {
-  const items = sidebarItems.filter(i => !BOTTOM_TAB_PATHS.has(i.path));
+  const items = getVisibleSidebarItems().filter(i => !BOTTOM_TAB_PATHS.has(i.path));
 
   return (
     <div className="py-4">

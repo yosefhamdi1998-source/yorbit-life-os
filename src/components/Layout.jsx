@@ -13,6 +13,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { recordRoute } from '@/hooks/useGoBack';
 import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
 import { getLargeText, applyTextSize } from '@/lib/textSize';
+import { getSimpleMode } from '@/lib/simpleMode';
 
 const bottomNavItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -27,21 +28,29 @@ export const sidebarItems = [
   { path: '/finance', icon: DollarSign, label: 'Transactions' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
-  { path: '/save-more', icon: Sparkles, label: 'Save More' },
+  { path: '/save-more', icon: Sparkles, label: 'Save More', advanced: true },
   { path: '/goals', icon: Target, label: 'Goals' },
-  { path: '/recurring', icon: Repeat, label: 'Recurring' },
-  { path: '/totals', icon: BarChart3, label: 'Totals' },
+  { path: '/recurring', icon: Repeat, label: 'Recurring', advanced: true },
+  { path: '/totals', icon: BarChart3, label: 'Totals', advanced: true },
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/coach', icon: Brain, label: 'AI Coach' },
-  ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync' }] : []),
-  { path: '/csv-import', icon: Upload, label: 'Import CSV' },
-  { path: '/forms', icon: FileText, label: 'Forms' },
+  ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync', advanced: true }] : []),
+  { path: '/csv-import', icon: Upload, label: 'Import CSV', advanced: true },
+  { path: '/forms', icon: FileText, label: 'Forms', advanced: true },
   // Notes/Tasks/Habits/Journal/Health Log are left over from this app's
   // origin as a general life-organizer, before it became a focused money
   // app. Routes/data/code untouched (nothing lost, easy to bring back) -
   // just pulled from navigation so they stop competing for space in a
   // money app's menu.
 ];
+
+// Simple Mode hides the more niche/power-user pages (marked `advanced`
+// above) from both the desktop sidebar and the mobile "More" grid — a
+// first-time or younger user sees Home/Money/Budget/Bills/Goals/
+// Notifications/Coach and nothing else competing for their attention.
+export function getVisibleSidebarItems() {
+  return getSimpleMode() ? sidebarItems.filter(i => !i.advanced) : sidebarItems;
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 6 },
@@ -111,7 +120,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          {sidebarItems.map(({ path, icon: Icon, label }) => (
+          {getVisibleSidebarItems().map(({ path, icon: Icon, label }) => (
             <NavLink
               key={label}
               to={path}

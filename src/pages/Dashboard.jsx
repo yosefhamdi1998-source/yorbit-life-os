@@ -7,6 +7,7 @@ import { format, differenceInDays, parseISO, startOfDay, subMonths } from 'date-
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
+import { getSimpleMode } from '@/lib/simpleMode';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
 import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
@@ -60,10 +61,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
+  const simpleMode = getSimpleMode();
   // Separate from cashFlowPeriod above (that one drives the hero's own
   // Week/Month/Year switcher) — this is just the Cash Flow Trend chart's
   // own window, '1m' | '3m' | '6m' | '1y' | '2y' | 'all'.
-  const [trendPeriod, setTrendPeriod] = useState('6m');
+  const [trendPeriod, setTrendPeriod] = useState(() => (getSimpleMode() ? '1m' : '6m'));
   const navigate = useNavigate();
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -328,7 +330,10 @@ export default function Dashboard() {
               family as "Go Pro" above) so it visually reads as "a
               different kind of option," not just one more period. */}
           <div className="flex flex-wrap gap-1.5 mb-4">
-            {[{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: '3month', label: '3M' }, { key: '6month', label: '6M' }].map(p => (
+            {(simpleMode
+              ? [{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }]
+              : [{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: '3month', label: '3M' }, { key: '6month', label: '6M' }]
+            ).map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
@@ -355,12 +360,14 @@ export default function Dashboard() {
               </select>
               <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary' : 'text-white/70'}`} />
             </div>
-            <button
-              onClick={() => setCashFlowPeriod('all')}
-              className={`shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === 'all' ? 'bg-amber-300 text-amber-950 border-amber-300' : 'bg-amber-400/15 border-amber-300/40 text-amber-200 hover:bg-amber-400/25'}`}
-            >
-              All
-            </button>
+            {!simpleMode && (
+              <button
+                onClick={() => setCashFlowPeriod('all')}
+                className={`shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === 'all' ? 'bg-amber-300 text-amber-950 border-amber-300' : 'bg-amber-400/15 border-amber-300/40 text-amber-200 hover:bg-amber-400/25'}`}
+              >
+                All
+              </button>
+            )}
           </div>
 
           <p className="text-white/60 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
@@ -399,7 +406,7 @@ export default function Dashboard() {
           score that can read as a critique, and it's information the hero
           numbers above don't show: the shape of the last 6 months, not
           just one period's total. */}
-      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} />
+      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} />
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead

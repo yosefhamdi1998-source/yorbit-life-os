@@ -21,9 +21,10 @@ import { FEATURES } from '@/lib/features';
 import { APP_STORE_URL } from '@/lib/appStoreConfig';
 import { toast } from '@/components/ui/use-toast';
 import { BACKGROUND_THEMES, getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
-import { Palette, ALargeSmall } from 'lucide-react';
+import { Palette, ALargeSmall, Gauge } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { getLargeText, applyTextSize } from '@/lib/textSize';
+import { getSimpleMode, setSimpleMode } from '@/lib/simpleMode';
 
 export default function Settings() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,6 +39,16 @@ export default function Settings() {
   const [bgTheme, setBgTheme] = useState(getBackgroundTheme);
   const [largeText, setLargeText] = useState(getLargeText);
   const chooseTextSize = (checked) => { applyTextSize(checked); setLargeText(checked); };
+  const [simpleMode, setSimpleModeState] = useState(getSimpleMode);
+  const chooseSimpleMode = (checked) => {
+    setSimpleMode(checked);
+    setSimpleModeState(checked);
+    // Several pages read this on mount (period-selector options, sidebar
+    // items) rather than subscribing to it live — a reload is the honest,
+    // simple way to make sure the whole app actually reflects the choice
+    // immediately instead of only the next time each page happens to load.
+    window.location.reload();
+  };
 
   const chooseBackground = (key) => {
     // Dark mode's own class rule still wins — applyBackgroundTheme only
@@ -215,6 +226,20 @@ export default function Settings() {
             </div>
           </div>
           <Switch checked={largeText} onCheckedChange={chooseTextSize} />
+        </div>
+
+        {/* Simple mode */}
+        <div className="sky-card rounded-2xl p-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+              <Gauge className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-sm">Simple Mode</p>
+              <p className="text-xs text-muted-foreground">Just the basics — fewer options, easier for a first-time user (like a teenager). Turn off for the full Advanced experience.</p>
+            </div>
+          </div>
+          <Switch checked={simpleMode} onCheckedChange={chooseSimpleMode} />
         </div>
 
         {/* Rate the app */}
