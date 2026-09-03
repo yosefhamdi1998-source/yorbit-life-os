@@ -12,7 +12,13 @@ const BANK_STEP = {
   bg: 'linear-gradient(160deg, #0a0a0a 0%, #3d2f0a 55%, #D4AF37 100%)',
   accentColor: '#D4AF37',
   title: 'Connect your bank',
-  subtitle: 'Link your bank account and your transactions import automatically — no CSV files, no manual entry.',
+  // Says a real number rather than a vague "your transactions import
+  // automatically" — but "up to" and "if it has it" keep this honest
+  // rather than promising a fixed amount every bank will actually give
+  // (real ones vary widely; one tested gave 90 days, not years). Kept to
+  // one line's worth of information, same density as the other three
+  // steps, so this step doesn't suddenly read as denser than the rest.
+  subtitle: 'Link your bank securely — up to 5 years of history imports automatically, when available.',
   cta: 'Connect Bank',
   isBankStep: true,
 };
@@ -142,7 +148,7 @@ export default function Onboarding() {
               onClick={() => { localStorage.setItem('onboarding_done', '1'); navigate('/csv-import'); }}
               className="w-full h-11 mt-2.5 rounded-2xl text-sm font-semibold text-white/70 hover:text-white transition-colors"
             >
-              Upload a file instead
+              Upload a statement instead
             </button>
             <p className="text-center text-xs text-white/35 mt-1">Read-only access, powered by Plaid · Your login is never stored</p>
           </>

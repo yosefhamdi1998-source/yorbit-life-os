@@ -141,7 +141,7 @@ export default function BankSync() {
     <div className="py-4 pb-8">
       <PageHeader
         title="Connected Accounts"
-        subtitle="Auto-import transactions from your bank"
+        subtitle="Banks, Venmo & Coinbase — kept up to date automatically"
         icon={Landmark}
         gradient="gradient-primary"
         action={
@@ -188,8 +188,11 @@ export default function BankSync() {
             <Landmark className="w-7 h-7 text-white" />
           </div>
           <p className="text-base font-black text-foreground mb-1">Connect your bank</p>
+          {/* Same "up to 5 years, when your bank has it" promise as
+              onboarding — a returning user landing here directly should
+              get the identical pitch, not a shorter/vaguer version. */}
           <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-            Automatically import transactions and keep MoneyGlow up to date. Works with banks, Venmo, and Coinbase — search for it by name below. Your credentials are never stored.
+            Securely link your bank, Venmo, or Coinbase — up to 5 years of history imports automatically, when available. Your credentials are never stored.
           </p>
           <Button
             onClick={connectBank}
@@ -201,7 +204,7 @@ export default function BankSync() {
           </Button>
           <Link to="/csv-import">
             <Button variant="outline" className="w-full min-h-[44px] gap-2">
-              <Upload className="w-4 h-4" /> Import CSV instead
+              <Upload className="w-4 h-4" /> Upload a Statement Instead
             </Button>
           </Link>
         </div>
