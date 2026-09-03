@@ -62,16 +62,15 @@ Deno.serve(async (req) => {
     const plaidClient = new PlaidApi(config);
 
     // First-ever sync for this account pulls a real backfill — 5 years back.
-    // Plaid only ever returns what the bank itself actually still has on
-    // file (most institutions cap out well under that regardless of what we
-    // ask for), so asking for 5 years costs nothing and just means "give me
-    // everything you've got." Every sync after that first one only needs
-    // the last 30 days — the backfill already covers everything older, so
-    // re-requesting years of data on every 30-minute cron tick would be
-    // slow and pointless.
+    // 3 years is the realistic ceiling for a personal-finance backfill —
+    // most institutions don't even retain 5, and asking for more than
+    // people actually want reviewed just pads the trend charts with noise.
+    // Every sync after that first one only needs the last 30 days — the
+    // backfill already covers everything older, so re-requesting years of
+    // data on every 30-minute cron tick would be slow and pointless.
     const isFirstSync = !account.last_synced_at;
     const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - (isFirstSync ? 5 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - (isFirstSync ? 3 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     // transactionsGet caps each response at 500 rows and reports the true
     // matching total in total_transactions — a single call silently missed
