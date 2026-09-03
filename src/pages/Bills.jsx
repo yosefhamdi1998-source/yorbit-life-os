@@ -379,7 +379,7 @@ export default function Bills() {
               <div className="space-y-2">
                 {deletedBills.map(entry => (
                   <div key={entry.id} className="bg-card border border-dashed border-red-200 rounded-2xl p-3 flex items-center gap-3 opacity-70">
-                    <span className="text-xl shrink-0">{CAT_ICONS[entry.bill.category] || '💸'}</span>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[entry.bill.category] || '#94A3B8') + '22' }}>{CAT_ICONS[entry.bill.category] || '💸'}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold line-through truncate text-muted-foreground">{entry.bill.name}</p>
                       <p className="text-xs text-muted-foreground">${fmt(entry.bill.amount)} · {entry.bill.due_date ? format(parseISO(entry.bill.due_date), 'MMM d') : '—'}</p>
@@ -425,7 +425,7 @@ export default function Bills() {
                       return (
                         <div key={bill.id} className={`bg-card border rounded-2xl p-4 ${isOverdue ? 'border-red-200' : isDueSoon ? 'border-amber-200' : 'border-border'}`}>
                           <div className="flex items-center gap-3">
-                            <span className="text-xl shrink-0">{CAT_ICONS[bill.category] || '💸'}</span>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[bill.category] || '#94A3B8') + '22' }}>{CAT_ICONS[bill.category] || '💸'}</div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold truncate">{bill.name}</p>
                               <div className="flex items-center gap-1.5 mt-0.5">
@@ -465,7 +465,7 @@ export default function Bills() {
                     {paid.map(bill => (
                       <div key={bill.id} className="sky-card rounded-2xl p-4 opacity-60">
                         <div className="flex items-center gap-3">
-                          <span className="text-xl shrink-0">{CAT_ICONS[bill.category] || '💸'}</span>
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[bill.category] || '#94A3B8') + '22' }}>{CAT_ICONS[bill.category] || '💸'}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold line-through truncate">{bill.name}</p>
                             <p className="text-xs text-muted-foreground">{bill.due_date ? format(parseISO(bill.due_date), 'MMM d') : '—'}</p>

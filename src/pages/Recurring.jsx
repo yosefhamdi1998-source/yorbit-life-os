@@ -7,6 +7,9 @@ import { toast } from '@/components/ui/use-toast';
 import { detectRecurring } from '@/lib/detectRecurring';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
+// Same palette as Bills, so a category reads as the same color everywhere
+// it appears rather than switching depending on which page you're on.
+const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#F97316', other: '#94A3B8' };
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
 
@@ -97,7 +100,7 @@ export default function Recurring() {
             <div className="divide-y divide-border/50">
               {detected.map(d => (
                 <div key={d.key} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xl shrink-0">{CAT_ICONS[d.category] || '💸'}</span>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[d.category] || '#94A3B8') + '22' }}>{CAT_ICONS[d.category] || '💸'}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
                     <p className="text-xs text-muted-foreground">${fmt(d.amount)} · {d.intervalLabel} · seen {d.occurrences}×</p>
@@ -133,7 +136,7 @@ export default function Recurring() {
             <div className="divide-y divide-border/50">
               {recurring.map(b => (
                 <div key={b.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="text-xl shrink-0">{CAT_ICONS[b.category] || '💸'}</span>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[b.category] || '#94A3B8') + '22' }}>{CAT_ICONS[b.category] || '💸'}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{b.name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{(b.category || 'other').replace(/_/g, ' ')}</p>

@@ -683,7 +683,12 @@ export default function Finance() {
     { key: '3month', label: '3M' },
     { key: '6month', label: '6M' },
   ];
-  const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
+  // Only years that actually contain transactions — the trailing-4-years
+  // list always offered 2023/2024 even for an account whose real data only
+  // spans 2025-2026, and picking one of those showed a flat empty summary
+  // that read as broken rather than as "you have nothing from then."
+  const YEAR_OPTIONS = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))]
+    .map(Number).sort((a, b) => b - a)
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
   const isYearPeriod = summaryPeriod.startsWith('year-');
   const TRAILING_DAYS = { weekly: 6, biweekly: 13, month: 29, '3month': 89, '6month': 179 };
