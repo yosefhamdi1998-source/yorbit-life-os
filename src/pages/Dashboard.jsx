@@ -507,97 +507,17 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Budget Summary */}
-        <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
-
-        {/* Category Breakdown — where the money actually went this month,
-            including categories (investment, savings) budgets don't track */}
-        <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
-
-        {/* Save More / Recurring / Totals — three loose bordered tiles read
-            as bolted-on next to the rest of the page's "one card, header,
-            row-per-item" language (Goal Progress, Upcoming Bills, Recent
-            Transactions all share that shape). One card with three rows
-            matches it instead. */}
-        <div className="sky-card rounded-2xl overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Explore</p>
-          </div>
-          <div className="divide-y divide-border/40">
-            <Link to="/save-more" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-[18px] h-[18px] text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Save More</p>
-                <p className="text-xs text-muted-foreground">Where to cut back</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/recurring" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <Repeat className="w-[18px] h-[18px] text-amber-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Recurring</p>
-                <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/totals" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-[18px] h-[18px] text-sky-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Totals</p>
-                <p className="text-xs text-muted-foreground">Every dollar, by year & month</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/payments-sent" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Send className="w-[18px] h-[18px] text-emerald-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Payments Sent</p>
-                <p className="text-xs text-muted-foreground">Zelle, Venmo, Cash App & transfers</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Goal Progress */}
-        {savingsGoals.length > 0 && (
-          <div className="sky-card rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 pt-4 pb-3">
-              <p className="font-bold text-sm">Goal Progress</p>
-              <Link to="/goals" className="text-xs text-primary font-semibold flex items-center gap-0.5">
-                See All <ChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <div className="px-4 pb-4 space-y-4">
-              {savingsGoals.slice(0, 2).map(goal => {
-                const pct = goal.target_amount > 0
-                  ? Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
-                  : 0;
-                return (
-                  <div key={goal.id}>
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-sm font-semibold text-foreground">{goal.icon || '🎯'} {goal.name}</span>
-                      <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--hero-to))' }} />
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">${fmt(goal.current_amount || 0)} saved</span>
-                      <span className="text-xs text-muted-foreground">of ${fmt(goal.target_amount)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* What should I do next — the single most actionable thing on the
+            page, so it opens the column instead of sitting at the bottom
+            under everything else. */}
+        {(heroTx.length > 0 || budgetedRows.length > 0) && (
+          <div className="sky-card rounded-2xl p-4 lg:p-5">
+            <WhatsNextCard
+              overdueBillCount={overdueBillCount}
+              heroNetSaved={heroNetSaved}
+              fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
+              bare
+            />
           </div>
         )}
 
@@ -630,6 +550,47 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span className="text-sm font-bold shrink-0 text-foreground">${bill.amount?.toFixed(0)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Budget Summary */}
+        <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
+
+        {/* Category Breakdown — where the money actually went this month,
+            including categories (investment, savings) budgets don't track */}
+        <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
+
+        {/* Goal Progress */}
+        {savingsGoals.length > 0 && (
+          <div className="sky-card rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3">
+              <p className="font-bold text-sm">Goal Progress</p>
+              <Link to="/goals" className="text-xs text-primary font-semibold flex items-center gap-0.5">
+                See All <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="px-4 pb-4 space-y-4">
+              {savingsGoals.slice(0, 2).map(goal => {
+                const pct = goal.target_amount > 0
+                  ? Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
+                  : 0;
+                return (
+                  <div key={goal.id}>
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-foreground">{goal.icon || '🎯'} {goal.name}</span>
+                      <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--hero-to))' }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-muted-foreground">${fmt(goal.current_amount || 0)} saved</span>
+                      <span className="text-xs text-muted-foreground">of ${fmt(goal.target_amount)}</span>
+                    </div>
                   </div>
                 );
               })}
@@ -683,27 +644,70 @@ export default function Dashboard() {
           )
         )}
 
-        {/* Health Score + What's Next — moved down here from the top of the
-            page. It's genuinely useful, but leading with a score (which can
-            land as "Room to improve" for a lot of real accounts) made the
-            very first thing a new user saw feel like a critique instead of
-            a welcome. It's still one tap from the top and easy to find,
-            just not the first impression anymore. */}
+        {/* Health Score on its own now. It stays low on the page for the
+            same reason as before — leading with a score that can read
+            "Room to improve" feels like a critique rather than a welcome —
+            but the ACTION that used to be buried down here with it has
+            moved to the top, where something you're supposed to do
+            actually belongs. */}
         {(heroTx.length > 0 || budgetedRows.length > 0) && (
-          <div className="sky-card rounded-2xl p-4 lg:p-5 divide-y divide-border/50">
-            <div className="pb-4">
-              <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
-            </div>
-            <div className="pt-4">
-              <WhatsNextCard
-                overdueBillCount={overdueBillCount}
-                heroNetSaved={heroNetSaved}
-                fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
-                bare
-              />
-            </div>
+          <div className="sky-card rounded-2xl p-4 lg:p-5">
+            <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
           </div>
         )}
+
+        {/* Save More / Recurring / Totals — three loose bordered tiles read
+            as bolted-on next to the rest of the page's "one card, header,
+            row-per-item" language (Goal Progress, Upcoming Bills, Recent
+            Transactions all share that shape). One card with three rows
+            matches it instead. */}
+        <div className="sky-card rounded-2xl overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Explore</p>
+          </div>
+          <div className="divide-y divide-border/40">
+            <Link to="/save-more" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-[18px] h-[18px] text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Save More</p>
+                <p className="text-xs text-muted-foreground">Where to cut back</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/recurring" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <Repeat className="w-[18px] h-[18px] text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Recurring</p>
+                <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/totals" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-[18px] h-[18px] text-sky-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Totals</p>
+                <p className="text-xs text-muted-foreground">Every dollar, by year & month</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/payments-sent" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Send className="w-[18px] h-[18px] text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Payments Sent</p>
+                <p className="text-xs text-muted-foreground">Zelle, Venmo, Cash App & transfers</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+          </div>
+        </div>
 
       </div>
     </div>

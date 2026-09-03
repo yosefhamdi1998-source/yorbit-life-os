@@ -6,12 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 // `?add=1` is read by useAutoOpenForm on the destination page, so these land
 // with the create form already open instead of dropping the user on a list
 // and making them find the Add button.
+// Ordered by how often someone actually reaches for them, and each says
+// what it's for — "New Goal" alone doesn't tell a first-time user whether
+// that means a savings target or a to-do.
 const ACTIONS = [
-  { icon: DollarSign, label: 'Add Transaction', path: '/finance?add=1', color: '#10b981' },
-  { icon: Upload, label: 'Upload Statement', path: '/csv-import', color: '#0ea5e9' },
-  { icon: PiggyBank, label: 'Set Budget', path: '/budget?add=1', color: '#3b82f6' },
-  { icon: Target, label: 'New Goal', path: '/goals?add=1', color: '#7c3aed' },
-  { icon: Receipt, label: 'Add Bill', path: '/bills?add=1', color: '#f59e0b' },
+  { icon: DollarSign, label: 'Add Transaction', hint: 'Log money in or out', path: '/finance?add=1', color: '#10b981' },
+  { icon: Upload, label: 'Upload Statement', hint: 'Import a CSV or PDF', path: '/csv-import', color: '#0ea5e9' },
+  { icon: Receipt, label: 'Add Bill', hint: 'Track something due', path: '/bills?add=1', color: '#f59e0b' },
+  { icon: PiggyBank, label: 'Set Budget', hint: 'Cap a category', path: '/budget?add=1', color: '#3b82f6' },
+  { icon: Target, label: 'New Goal', hint: 'Save toward something', path: '/goals?add=1', color: '#a855f7' },
 ];
 
 // Pages where FAB should NOT appear
@@ -47,20 +50,25 @@ export default function QuickAddFAB() {
       {/* Action items */}
       <div className="fixed bottom-[84px] right-4 z-50 flex flex-col items-end gap-2.5 lg:hidden" style={{ pointerEvents: open ? 'auto' : 'none' }}>
         <AnimatePresence>
-          {open && ACTIONS.map(({ icon: Icon, label, path, color }, i) => (
+          {/* Themed surfaces, not hardcoded white — these were bright white
+              pills floating over a near-black app. Reversed stagger so the
+              row nearest your thumb appears first. */}
+          {open && ACTIONS.map(({ icon: Icon, label, hint, path, color }, i) => (
             <motion.button
               key={label}
-              initial={{ opacity: 0, scale: 0.6, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.6, y: 10 }}
-              transition={{ delay: i * 0.04, duration: 0.15 }}
+              initial={{ opacity: 0, scale: 0.85, x: 12 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.85, x: 12 }}
+              transition={{ delay: (ACTIONS.length - 1 - i) * 0.035, duration: 0.16, ease: [0.25, 0.46, 0.45, 0.94] }}
               onClick={() => handleAction(path)}
-              className="flex items-center gap-2.5 rounded-full shadow-md active:scale-95 transition-transform"
-              style={{ paddingLeft: 14, paddingRight: 10, paddingTop: 8, paddingBottom: 8, background: 'white', border: '1px solid rgba(0,0,0,0.10)' }}
+              className="flex items-center gap-3 rounded-2xl pl-4 pr-2.5 py-2.5 shadow-xl active:scale-[0.97] transition-transform border border-border bg-card"
             >
-              <span className="text-sm font-semibold whitespace-nowrap" style={{ color: '#1e293b' }}>{label}</span>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: color }}>
-                <Icon className="w-3.5 h-3.5 text-white" />
+              <div className="text-right">
+                <p className="text-sm font-bold text-foreground whitespace-nowrap leading-tight">{label}</p>
+                <p className="text-[11px] text-muted-foreground whitespace-nowrap leading-tight mt-0.5">{hint}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: color }}>
+                <Icon className="w-4 h-4 text-white" strokeWidth={2.4} />
               </div>
             </motion.button>
           ))}
@@ -72,8 +80,11 @@ export default function QuickAddFAB() {
           onClick={() => setOpen(o => !o)}
           aria-label={open ? 'Close quick actions' : 'Open quick actions'}
           aria-expanded={open}
-          className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
-          style={{ pointerEvents: 'auto', background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)', boxShadow: '0 4px 16px rgba(37,99,235,0.35)' }}
+          className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
+          // Neutral shadow — the old one was a hardcoded blue glow from
+          // before the theme changed, which read as a stray blue halo
+          // under the gold button.
+          style={{ pointerEvents: 'auto', background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}
         >
           <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ duration: 0.2 }}>
             <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
