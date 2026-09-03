@@ -133,8 +133,32 @@ Deno.serve(async (req) => {
       if (offset >= txRes.data.total_transactions || txRes.data.transactions.length === 0) break;
     }
 
-    const { data: existing } = await admin.from('transactions').select('title, date, amount').eq('user_id', account.user_id);
-    const existingKeys = new Set((existing || []).map((t) => `${t.title}-${t.date}-${t.amount}`));
+    // Build the duplicate-check set from what's ALREADY stored for this
+    // window.
+    //
+    // This previously fetched with a bare select() and no range — but
+    // PostgREST caps a response at 1,000 rows. On an account with 15,000+
+    // transactions the set therefore held ~7% of the data, so almost
+    // everything looked new and every full sync re-imported it. Four
+    // full-history syncs in a row produced five copies of the same rows.
+    //
+    // Two fixes: only look at the date window actually being synced (far
+    // fewer rows), and page through it properly instead of trusting one
+    // request to return everything.
+    const existingKeys = new Set<string>();
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await admin
+        .from('transactions')
+        .select('title, date, amount')
+        .eq('user_id', account.user_id)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      for (const t of data ?? []) existingKeys.add(`${t.title}-${t.date}-${t.amount}`);
+      if (!data || data.length < PAGE) break;
+    }
 
     let imported = 0;
     let skipped = 0;

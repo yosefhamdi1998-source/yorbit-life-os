@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
-import { format, differenceInDays, parseISO, startOfDay, subMonths } from 'date-fns';
+import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
@@ -219,16 +219,18 @@ export default function Dashboard() {
   const cashFlowTrend = (() => {
     const anchor = startOfDay(latestTxDate);
     if (trendPeriod === '1m') {
-      // Daily bars for the anchor's own calendar month.
-      const year = anchor.getFullYear();
-      const month = anchor.getMonth();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      // Trailing 30 days ending at the anchor — the same "Month" definition
+      // used everywhere else in the app (periods.js). This used to draw
+      // every day of the anchor's calendar month, so 3 days into a new
+      // month it plotted real data for a couple of bars and then ~27 empty,
+      // flat, future-dated bars trailing off to nothing.
       const buckets = [];
-      for (let d = 1; d <= daysInMonth; d++) {
-        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      for (let i = 29; i >= 0; i--) {
+        const d = subDays(anchor, i);
+        const key = format(d, 'yyyy-MM-dd');
         const tx = transactions.filter(t => t.date === key);
         const { income, expenses } = sumByType(tx);
-        buckets.push({ month: String(d), income, expense: expenses, net: income - expenses });
+        buckets.push({ month: format(d, 'd'), income, expense: expenses, net: income - expenses });
       }
       return buckets;
     }

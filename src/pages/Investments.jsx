@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, ArrowDownLeft, ArrowUpRight, Coins, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -29,6 +29,15 @@ export default function Investments() {
   const [holdings, setHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assetFilter, setAssetFilter] = useState('all');
+  // Tapping an asset below filters the Activity feed further down the
+  // page — with a thin phone screen and thousands of rows, that feed sits
+  // well off-screen, so the tap looked like it did nothing at all. Scroll
+  // it into view on selection so the filter is actually visible.
+  const activityRef = useRef(null);
+  const selectAsset = (asset) => {
+    setAssetFilter(prev => (prev === asset ? 'all' : asset));
+    requestAnimationFrame(() => activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -207,8 +216,8 @@ export default function Investments() {
               {assets.slice(0, 12).map(a => (
                 <button
                   key={a.asset}
-                  onClick={() => setAssetFilter(assetFilter === a.asset ? 'all' : a.asset)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${assetFilter === a.asset ? 'bg-primary/10' : ''}`}
+                  onClick={() => selectAsset(a.asset)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:scale-[0.99] ${assetFilter === a.asset ? 'bg-primary/10' : ''}`}
                 >
                   <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <span className="text-[11px] font-black text-primary">{a.asset}</span>
@@ -231,9 +240,9 @@ export default function Investments() {
       )}
 
       {/* Activity list */}
-      <div className="flex items-center justify-between mb-2 px-1">
+      <div ref={activityRef} className="flex items-center justify-between mb-2 px-1 scroll-mt-20">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Activity {assetFilter !== 'all' && `· ${assetFilter}`}
+          Activity {assetFilter !== 'all' && `· ${assetFilter} (${(byAsset[assetFilter]?.count || 0).toLocaleString()})`}
         </p>
         {assetFilter !== 'all' && (
           <button onClick={() => setAssetFilter('all')} className="text-xs font-semibold text-primary">Show all</button>

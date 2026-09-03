@@ -18,6 +18,9 @@ import { getSimpleMode } from '@/lib/simpleMode';
 const bottomNavItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
   { path: '/finance', icon: DollarSign, label: 'Money' },
+  // Right next to Money, per explicit request — this is the tab bar he's
+  // actually looking at on his phone, so this is what "next to Money" means.
+  { path: '/investments', icon: TrendingUp, label: 'Invest' },
   { path: '/budget', icon: BarChart2, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
   { path: '/coach', icon: Brain, label: 'Coach' },
@@ -31,9 +34,11 @@ export const sidebarItems = [
   // Upload Statement just below it.
   ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync' }] : []),
   { path: '/finance', icon: DollarSign, label: 'Transactions' },
+  // Right next to Money/Transactions, matching the bottom tab bar — "next
+  // to money, just investments" was explicit.
+  { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
-  { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/save-more', icon: Sparkles, label: 'Save More', advanced: true },
   { path: '/payments-sent', icon: Send, label: 'Payments Sent', advanced: true },
   { path: '/goals', icon: Target, label: 'Goals' },
@@ -69,7 +74,7 @@ const pageVariants = {
 };
 
 // Track the last visited path per tab so tapping a tab re-navigates to where you left off
-const TAB_PATHS = ['/', '/finance', '/budget', '/bills', '/coach'];
+const TAB_PATHS = ['/', '/finance', '/investments', '/budget', '/bills', '/coach'];
 
 export default function Layout() {
   // Dark is the product's default look; light is opt-in via the toggle.

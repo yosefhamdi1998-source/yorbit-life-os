@@ -742,7 +742,11 @@ export default function Finance() {
       {/* Header */}
       <PageHeader
         title="Money"
-        subtitle={format(new Date(), 'MMMM yyyy')}
+        // Was a hardcoded "September 2026" no matter which period pill below
+        // was selected — Monthly here is a rolling 30 days, not the
+        // calendar month, so that label actively claimed the wrong window.
+        // A neutral subtitle can't go stale or contradict the pills.
+        subtitle="Every transaction, all in one place"
         icon={DollarSign}
         gradient="gradient-primary"
         action={

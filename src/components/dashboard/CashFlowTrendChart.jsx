@@ -16,13 +16,16 @@ const CHART_TYPES = [
 ];
 
 export const CASH_FLOW_PERIODS = [
-  { key: '1m', label: '1M', subtitle: 'Income vs. expenses, this month' },
-  { key: '3m', label: '3M', subtitle: 'Income vs. expenses, last 3 months' },
-  { key: '6m', label: '6M', subtitle: 'Income vs. expenses, last 6 months' },
-  { key: '1y', label: '1Y', subtitle: 'Income vs. expenses, last year' },
-  { key: '2y', label: '2Y', subtitle: 'Income vs. expenses, last 2 years' },
-  { key: '3y', label: '3Y', subtitle: 'Income vs. expenses, last 3 years' },
-  { key: 'all', label: 'All', subtitle: 'Income vs. expenses, every year' },
+  // `window` is the time phrase alone, reused by the pie caption below so
+  // it isn't parsed back out of `subtitle` (that produced "...income vs.
+  // expenses, last 6 months, income vs. expenses" — the phrase duplicated).
+  { key: '1m', label: '1M', subtitle: 'Income vs. expenses, this month', window: 'this month' },
+  { key: '3m', label: '3M', subtitle: 'Income vs. expenses, last 3 months', window: 'the last 3 months' },
+  { key: '6m', label: '6M', subtitle: 'Income vs. expenses, last 6 months', window: 'the last 6 months' },
+  { key: '1y', label: '1Y', subtitle: 'Income vs. expenses, last year', window: 'the last year' },
+  { key: '2y', label: '2Y', subtitle: 'Income vs. expenses, last 2 years', window: 'the last 2 years' },
+  { key: '3y', label: '3Y', subtitle: 'Income vs. expenses, last 3 years', window: 'the last 3 years' },
+  { key: 'all', label: 'All', subtitle: 'Income vs. expenses, every year', window: 'the full history' },
 ];
 
 function CashFlowTooltip({ active, payload, label }) {
@@ -181,7 +184,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income · ${fmtFull(totalIncome)}</span>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Expenses · ${fmtFull(totalExpense)}</span>
           </div>
-          <p className="text-[11px] text-muted-foreground text-center mt-1.5">Everything in {activePeriod.label.toLowerCase() === 'all' ? 'the full history' : activePeriod.subtitle.toLowerCase()}, income vs. expenses.</p>
+          <p className="text-[11px] text-muted-foreground text-center mt-1.5">Income vs. expenses, {activePeriod.window}.</p>
         </>
       ) : (
         <>
