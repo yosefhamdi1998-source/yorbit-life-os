@@ -22,6 +22,26 @@ function mapCategory(plaidCategories?: string[]) {
   return CATEGORY_MAP[plaidCategories[0]] || 'other';
 }
 
+// Money moving between someone's own accounts — a Venmo balance sent to
+// their own linked bank, cash moved into their own savings — isn't income
+// or spending, it's the same dollar staying theirs. Counting it as an
+// expense (money "sent" out of Venmo) makes real spending look inflated by
+// however much they happen to shuffle between their own accounts, which
+// has nothing to do with what they actually bought. Plaid's own
+// personal_finance_category.detailed calls this out specifically — these
+// are the values that mean "self transfer," not a payment to someone
+// else, so they're excluded from import entirely rather than counted
+// either way.
+const SELF_TRANSFER_DETAILED = new Set([
+  'TRANSFER_OUT_ACCOUNT_TRANSFER', 'TRANSFER_IN_ACCOUNT_TRANSFER',
+  'TRANSFER_OUT_SAVINGS', 'TRANSFER_IN_SAVINGS',
+  'TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS', 'TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS',
+]);
+
+function isSelfTransfer(tx: any) {
+  return SELF_TRANSFER_DETAILED.has(tx.personal_finance_category?.detailed);
+}
+
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
@@ -95,6 +115,7 @@ Deno.serve(async (req) => {
 
     for (const tx of plaidTxs) {
       if (tx.pending) { skipped++; continue; }
+      if (isSelfTransfer(tx)) { skipped++; continue; }
 
       const title = tx.merchant_name || tx.name || 'Transaction';
       const amount = Math.abs(tx.amount);
