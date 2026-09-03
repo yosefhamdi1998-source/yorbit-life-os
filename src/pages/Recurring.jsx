@@ -70,9 +70,23 @@ export default function Recurring() {
     <div className="py-4 pb-8">
       <PageHeader title="Recurring" subtitle="Subscriptions & bills that repeat" icon={Repeat} gradient="gradient-finance" showBack />
 
-      {/* Detected For You — surfaces real repeat charges from transaction
-          history automatically, so nothing has to be typed in by hand
-          before it shows up here. */}
+      {/* Summary first — what you're already tracking. */}
+      {recurring.length > 0 && (
+        <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}>
+          <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Recurring cost</p>
+          <p className="font-numeric text-white text-4xl font-black tracking-tight leading-none mb-1 tabular-nums">
+            ${fmt(monthlyTotal)}<span className="text-lg font-bold text-white/70">/mo</span>
+          </p>
+          <p className="text-white/70 text-sm">
+            That's <span className="font-numeric font-bold text-white">${fmt(annualTotal)}</span> a year across {recurring.length} recurring bill{recurring.length === 1 ? '' : 's'}.
+          </p>
+        </div>
+      )}
+
+      {/* Detected For You — real repeat charges found in transaction
+          history, so nothing has to be typed in by hand before it shows
+          up here. Sits outside the "has bills yet" branch on purpose:
+          someone with nothing tracked yet is exactly who needs it most. */}
       {detected.length > 0 && (
         <div className="mb-5">
           <div className="flex items-center gap-1.5 mb-2 px-1">
@@ -105,26 +119,16 @@ export default function Recurring() {
       {recurring.length === 0 ? (
         <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-border">
           <Repeat className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">No recurring bills yet</p>
+          <p className="text-sm font-semibold text-foreground mb-1">No recurring bills tracked yet</p>
           <p className="text-xs text-muted-foreground mb-4">
             {detected.length > 0
-              ? 'Add one of the subscriptions detected above, or mark a bill as recurring yourself.'
+              ? 'Tap Add on any subscription found above to start tracking it.'
               : "Mark a bill as recurring and it'll show up here, with your real monthly and yearly cost."}
           </p>
           <Link to="/bills" className="text-xs font-bold text-primary underline underline-offset-2">Go to Bills →</Link>
         </div>
       ) : (
         <>
-          <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}>
-            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Recurring cost</p>
-            <p className="font-numeric text-white text-4xl font-black tracking-tight leading-none mb-1 tabular-nums">
-              ${fmt(monthlyTotal)}<span className="text-lg font-bold text-white/70">/mo</span>
-            </p>
-            <p className="text-white/70 text-sm">
-              That's <span className="font-numeric font-bold text-white">${fmt(annualTotal)}</span> a year across {recurring.length} recurring bill{recurring.length === 1 ? '' : 's'}.
-            </p>
-          </div>
-
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="divide-y divide-border/50">
               {recurring.map(b => (

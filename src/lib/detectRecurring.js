@@ -10,6 +10,7 @@ const NOISE_WORDS = new Set([
   'checkcard', 'pos', 'ach', 'des', 'indn', 'ref', 'conf', 'confirmation', 'id',
   'transaction', 'online', 'banking', 'com', 'inc', 'llc', 'ltd', 'co', 'the',
   'of', 'and', 'to', 'from', 'on', 'at', 'for', 'www', 'http', 'https',
+  'bill', 'billing', 'store', 'shop', 'usa', 'us',
 ]);
 const US_STATES = new Set([
   'al','ak','az','ar','ca','co','ct','de','fl','ga','hi','id','il','in','ia','ks',
@@ -133,5 +134,29 @@ export function detectRecurring(transactions, existingBillNames = []) {
     }
   }
 
-  return results.sort((a, b) => b.monthlyEquivalent - a.monthlyEquivalent);
+  // Final merge pass. Cleaning the title gets most variants to the same
+  // key, but bank wording is endlessly inventive and no word list catches
+  // all of it. Two findings that share a distinctive word AND charge
+  // essentially the same amount are the same subscription seen under two
+  // names — collapse them so nobody sees "Apple" and
+  // "PURCHASE APPLE.COM/BILL" listed as two separate $10.29 subscriptions.
+  const merged = [];
+  for (const r of results.sort((a, b) => b.occurrences - a.occurrences)) {
+    const tokens = new Set(normalizeTitle(r.name).split(' ').filter(w => w.length >= 4));
+    const dupe = merged.find(m => {
+      const sameAmount = Math.abs(m.amount - r.amount) / Math.max(m.amount, r.amount) <= 0.05;
+      if (!sameAmount) return false;
+      const mTokens = normalizeTitle(m.name).split(' ').filter(w => w.length >= 4);
+      return mTokens.some(w => tokens.has(w));
+    });
+    if (dupe) {
+      dupe.occurrences = Math.max(dupe.occurrences, r.occurrences);
+      // Keep whichever name reads better for a person.
+      if (r.name.length < dupe.name.length) dupe.name = r.name;
+      continue;
+    }
+    merged.push(r);
+  }
+
+  return merged.sort((a, b) => b.monthlyEquivalent - a.monthlyEquivalent);
 }
