@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -189,6 +189,11 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dateRange, setDateRange] = useState('all');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('desc');
   const [confirmId, setConfirmId] = useState(null);
@@ -223,8 +228,17 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
       const q = search.toLowerCase();
       list = list.filter(t => t.title?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q));
     }
+    // Advanced Search: amount range and an exact date range, both additive
+    // on top of whatever's already narrowed above — e.g. "Spending" +
+    // "$50–$200" + "Jan 1–Jan 31" all apply together.
+    const min = parseFloat(amountMin);
+    const max = parseFloat(amountMax);
+    if (!isNaN(min)) list = list.filter(t => (t.amount || 0) >= min);
+    if (!isNaN(max)) list = list.filter(t => (t.amount || 0) <= max);
+    if (customFrom) list = list.filter(t => t.date && t.date >= customFrom);
+    if (customTo) list = list.filter(t => t.date && t.date <= customTo);
     return list;
-  }, [transactions, typeFilter, categoryFilter, dateRange, search, latestTxDate]);
+  }, [transactions, typeFilter, categoryFilter, dateRange, search, latestTxDate, amountMin, amountMax, customFrom, customTo]);
 
   const sorted = useMemo(() => {
     const list = [...filtered];
@@ -237,7 +251,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
 
   // Changing any filter/sort should show the newest matches again, not
   // whatever page you'd scrolled down to under the old list.
-  useEffect(() => { setVisibleCount(60); }, [typeFilter, categoryFilter, dateRange, search, sortBy, sortDir]);
+  useEffect(() => { setVisibleCount(60); }, [typeFilter, categoryFilter, dateRange, search, sortBy, sortDir, amountMin, amountMax, customFrom, customTo]);
 
   // Rows are already sorted; bucket the currently-revealed slice by day,
   // preserving order — but only when sorted by date, since grouping by day
@@ -297,7 +311,10 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
 
   const rowProps = { selectMode, onToggleSelect: toggleSelect, confirmId, setConfirmId: (id) => { setEditingNoteId(null); setConfirmId(id); }, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete };
 
-  const noFiltersActive = typeFilter === 'all' && categoryFilter === 'all' && dateRange === 'all' && !search.trim();
+  const noFiltersActive = typeFilter === 'all' && categoryFilter === 'all' && dateRange === 'all' && !search.trim()
+    && !amountMin && !amountMax && !customFrom && !customTo;
+  const advancedFilterCount = [amountMin, amountMax, customFrom, customTo].filter(Boolean).length;
+  const clearAdvanced = () => { setAmountMin(''); setAmountMax(''); setCustomFrom(''); setCustomTo(''); };
 
   if (transactions.length === 0) {
     return (
@@ -343,10 +360,47 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
           </div>
         )}
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <button
+            onClick={() => setShowAdvanced(v => !v)}
+            className={`relative shrink-0 flex items-center gap-1.5 px-3 rounded-md border text-xs font-semibold transition-all ${showAdvanced || advancedFilterCount > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Advanced
+            {advancedFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-white text-[9px] font-bold flex items-center justify-center">{advancedFilterCount}</span>
+            )}
+          </button>
         </div>
+
+        {showAdvanced && (
+          <div className="sky-card rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Advanced Search</p>
+              {advancedFilterCount > 0 && (
+                <button onClick={clearAdvanced} className="text-xs font-semibold text-primary hover:underline">Clear</button>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Amount range ($)</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="number" placeholder="Min" value={amountMin} onChange={e => setAmountMin(e.target.value)} min="0" />
+                <Input type="number" placeholder="Max" value={amountMax} onChange={e => setAmountMax(e.target.value)} min="0" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Exact date range</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Wrapping instead of horizontal-scrolling: every chip stays
             visible on screen at once, no swipe/scroller needed to see
