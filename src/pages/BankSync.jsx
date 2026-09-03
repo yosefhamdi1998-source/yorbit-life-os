@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Landmark, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, Upload, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/PageHeader';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -80,7 +80,7 @@ export default function BankSync() {
             // (Coinbase and similar) routes to the holdings sync instead of the
             // transaction sync, which doesn't apply to it.
             for (const acct of exchangeRes.accounts || []) {
-              await syncAccount(acct.id, acct.account_type);
+              await syncAccount(acct.id, acct.account_type, true);
             }
           } catch (e) {
             setError("We couldn't connect your bank. Please try again.");
@@ -99,7 +99,7 @@ export default function BankSync() {
     }
   };
 
-  const syncAccount = async (id, accountType) => {
+  const syncAccount = async (id, accountType, full = false) => {
     setSyncingId(id);
     setSyncResult(null);
     setError(null);
@@ -109,8 +109,13 @@ export default function BankSync() {
         const res = await base44.functions.invoke('plaidSyncHoldings', { connected_account_id: id });
         setSyncResult({ holdingsSynced: res.synced });
       } else {
-        const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id });
-        setSyncResult({ imported: res.imported, skipped: res.skipped });
+        const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id, full });
+        setSyncResult({
+          imported: res.imported,
+          skipped: res.skipped,
+          actualHistoryStart: res.actualHistoryStart,
+          fullHistoryPass: res.fullHistoryPass,
+        });
       }
       await loadAccounts();
     } catch (e) {
@@ -165,7 +170,13 @@ export default function BankSync() {
           <span className="flex-1">
             {syncResult.holdingsSynced != null
               ? `Synced! ${syncResult.holdingsSynced} holding${syncResult.holdingsSynced !== 1 ? 's' : ''} updated.`
-              : `Synced! ${syncResult.imported} new transaction${syncResult.imported !== 1 ? 's' : ''} imported${syncResult.skipped > 0 ? `, ${syncResult.skipped} duplicates skipped` : ''}.`}
+              : <>
+                  Synced! {syncResult.imported} new transaction{syncResult.imported !== 1 ? 's' : ''} imported
+                  {syncResult.skipped > 0 ? `, ${syncResult.skipped} duplicates skipped` : ''}.
+                  {syncResult.fullHistoryPass && syncResult.actualHistoryStart && (
+                    <> Your bank provided history back to <strong>{format(parseISO(syncResult.actualHistoryStart), 'MMMM d, yyyy')}</strong> — that's everything it has.</>
+                  )}
+                </>}
           </span>
           <button onClick={() => setSyncResult(null)}><X className="w-4 h-4" /></button>
         </div>
@@ -219,6 +230,15 @@ export default function BankSync() {
                         </span>
                       )}
                     </div>
+                    {/* The real history on record — what the bank actually
+                        handed over, not the window we asked for. */}
+                    {!isInvestment && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {acct.history_start_date
+                          ? <>History: <span className="text-foreground font-semibold">{format(parseISO(acct.history_start_date), 'MMM d, yyyy')}</span> → today</>
+                          : <span className="text-amber-500">History depth not measured yet — run Full pull</span>}
+                      </p>
+                    )}
                     {acct.error_message && (
                       <p className="text-xs text-red-500 mt-1">{acct.error_message}</p>
                     )}
@@ -246,6 +266,24 @@ export default function BankSync() {
               </div>
             );
           })}
+
+          {/* Forces a maximum-window fetch. Plaid backfills an institution's
+              history asynchronously after connecting, so the data available
+              an hour later is often far deeper than what existed at connect
+              time — this re-asks for everything. */}
+          <Button
+            onClick={async () => {
+              for (const a of accounts.filter(x => x.account_type !== 'investment')) {
+                await syncAccount(a.id, a.account_type, true);
+              }
+            }}
+            disabled={!!syncingId || connecting}
+            variant="outline"
+            className="w-full min-h-[44px] gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncingId ? 'animate-spin' : ''}`} />
+            {syncingId ? 'Pulling full history…' : 'Pull full history'}
+          </Button>
 
           <Button onClick={connectBank} disabled={connecting} variant="outline" className="w-full min-h-[44px] gap-2">
             {connecting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}

@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const plaidSecret = Deno.env.get('PLAID_SECRET');
     if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501);
 
-    const { connected_account_id } = await req.json();
+    const { connected_account_id, full } = await req.json();
     const admin = serviceClient();
 
     // This function is called two ways: directly by the signed-in owner of the
@@ -82,15 +82,33 @@ Deno.serve(async (req) => {
     const plaidClient = new PlaidApi(config);
 
     // First-ever sync for this account pulls a real backfill — 5 years back.
-    // 3 years is the realistic ceiling for a personal-finance backfill —
-    // most institutions don't even retain 5, and asking for more than
-    // people actually want reviewed just pads the trend charts with noise.
-    // Every sync after that first one only needs the last 30 days — the
-    // backfill already covers everything older, so re-requesting years of
-    // data on every 30-minute cron tick would be slow and pointless.
-    const isFirstSync = !account.last_synced_at;
+    // When Plaid first connects an item it only has a small initial window
+    // of transactions ready, then backfills the institution's full history
+    // asynchronously (minutes to hours) and announces it with a
+    // HISTORICAL_UPDATE webhook. Syncing once at connect time and then only
+    // ever asking for 30 days afterwards meant that backfill — the actual
+    // years of history — was never collected. That's why an account could
+    // sit at 90 days of history forever despite a 5-year request.
+    //
+    // So: keep asking for the FULL window until a full pass has actually
+    // completed, and keep re-checking for the first week after connecting,
+    // which is well past when Plaid's historical update lands. Only after
+    // that does it drop to the cheap 30-day incremental. The dedup below
+    // makes re-fetching the same window harmless.
+    const connectedAt = account.created_date ? new Date(account.created_date).getTime() : 0;
+    const daysSinceConnect = (Date.now() - connectedAt) / (24 * 60 * 60 * 1000);
+    const wantsFullHistory =
+      full === true ||
+      !account.last_synced_at ||
+      !account.history_backfilled_at ||
+      daysSinceConnect < 7;
+
+    // Ask for 5 years and let the institution return whatever it actually
+    // has — we record the real earliest date below rather than pretending
+    // the requested window is the delivered one.
     const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - (isFirstSync ? 3 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - (wantsFullHistory ? 5 * 365 : 30) * 24 * 60 * 60 * 1000)
+      .toISOString().split('T')[0];
 
     // transactionsGet caps each response at 500 rows and reports the true
     // matching total in total_transactions — a single call silently missed
@@ -143,9 +161,23 @@ Deno.serve(async (req) => {
       if (!error) imported++;
     }
 
+    // What history did we ACTUALLY get? The earliest date Plaid returned is
+    // the honest answer — never the window we asked for. Keep the oldest
+    // date ever seen, since a later incremental sync legitimately returns
+    // only recent transactions and shouldn't shrink the recorded coverage.
+    const returnedDates = plaidTxs.map((t: any) => t.date).filter(Boolean).sort();
+    const earliestReturned = returnedDates[0] || null;
+    const priorStart = account.history_start_date || null;
+    const historyStart = earliestReturned && (!priorStart || earliestReturned < priorStart)
+      ? earliestReturned
+      : priorStart;
+
     await admin.from('connected_accounts').update({
       sync_status: 'connected',
       last_synced_at: new Date().toISOString(),
+      history_start_date: historyStart,
+      // Only a full-window pass counts as a completed backfill.
+      ...(wantsFullHistory ? { history_backfilled_at: new Date().toISOString() } : {}),
     }).eq('id', connected_account_id);
 
     await admin.from('bank_sync_logs').insert({
@@ -161,7 +193,15 @@ Deno.serve(async (req) => {
       message: `Imported ${imported} transactions, skipped ${skipped} duplicates`,
     });
 
-    return jsonResponse({ success: true, imported, skipped });
+    return jsonResponse({
+      success: true,
+      imported,
+      skipped,
+      fullHistoryPass: wantsFullHistory,
+      requestedFrom: startDate,
+      actualHistoryStart: historyStart,
+      transactionsAvailableFromPlaid: plaidTxs.length,
+    });
   } catch (error) {
     console.error('plaid-sync-transactions error:', error.response?.data || error.message);
     return jsonResponse({ error: "We couldn't sync your transactions. Please try again." }, 500);

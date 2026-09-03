@@ -156,6 +156,58 @@ class Entity {
   }
 }
 
+// Transactions come in two flavours and mixing them is what made every
+// number in the app wrong: money you actually earned and spent, and
+// investing activity (crypto trades especially, where buying and selling
+// the same money repeatedly inflates both income and expenses without any
+// of it being real income or real spending).
+//
+// So the default `list`/`filter` — what every budgeting screen in the app
+// already calls — returns ONLY budget-relevant money. Investing activity is
+// still there, still owned by the user, nothing deleted; it's reached
+// explicitly through `listInvestments()`. Filtering here rather than in
+// each page means no screen can accidentally forget to do it.
+class TransactionEntity extends Entity {
+  async list(sort, limit) {
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      query = query.eq('exclude_from_budget', false);
+      query = applySort(query, sort || '-created_date');
+      return query.range(from, to);
+    }, limit);
+  }
+
+  async filter(queryObj = {}, sort, limit) {
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      query = query.eq('exclude_from_budget', false);
+      for (const [key, value] of Object.entries(queryObj)) {
+        query = query.eq(key, value);
+      }
+      query = applySort(query, sort || '-created_date');
+      return query.range(from, to);
+    }, limit);
+  }
+
+  // Investing activity only — powers the Investments section.
+  async listInvestments(sort, limit) {
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      query = query.eq('exclude_from_budget', true);
+      query = applySort(query, sort || '-date');
+      return query.range(from, to);
+    }, limit);
+  }
+
+  // Everything, unfiltered — for tools that genuinely need the full ledger.
+  async listAll(sort, limit) {
+    return super.list(sort, limit);
+  }
+}
+
 export const entities = Object.fromEntries(
-  Object.entries(TABLE_MAP).map(([name, table]) => [name, new Entity(table)])
+  Object.entries(TABLE_MAP).map(([name, table]) => [
+    name,
+    name === 'Transaction' ? new TransactionEntity(table) : new Entity(table),
+  ])
 );
