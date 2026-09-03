@@ -69,6 +69,17 @@ export default function Totals() {
 
   const chartData = years.slice().reverse().map(y => ({ year: y, income: byYear[y].income, expense: byYear[y].expense }));
 
+  // The yearly chart above needs 2+ years to mean anything — a single bar
+  // isn't a "trend." For that common case (most accounts, especially a
+  // freshly-connected one, only have one year of history so far), fall
+  // back to a monthly breakdown of the most recent year instead of
+  // rendering no chart at all, which is what "Totals" was doing before —
+  // just a headline number and a text list, nothing visual.
+  const latestYear = years[0];
+  const monthChartData = latestYear
+    ? byYear[latestYear].months.filter(m => m.count > 0).map(m => ({ year: m.name, income: m.income, expense: m.expense }))
+    : [];
+
   if (loading) {
     return (
       <div className="py-4 space-y-4">
@@ -126,7 +137,7 @@ export default function Totals() {
         </div>
       </div>
 
-      {/* Yearly trend chart */}
+      {/* Yearly trend chart — needs 2+ years to read as a trend at all */}
       {years.length > 1 && (
         <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5">
           <p className="font-bold text-sm mb-3">Income vs. Expenses by Year</p>
@@ -138,6 +149,30 @@ export default function Totals() {
               <Tooltip content={<TrendTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
               <Bar dataKey="income" fill="#10B981" radius={[5, 5, 0, 0]} maxBarSize={28} />
               <Bar dataKey="expense" fill="#F97316" radius={[5, 5, 0, 0]} maxBarSize={28} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="flex items-center gap-4 justify-center mt-1">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Expenses</span>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly breakdown of the most recent year — the real chart for
+          anyone whose history doesn't span multiple years yet (a fresh
+          account, or one just connected via bank sync/statement import),
+          who previously saw no chart on this page at all. */}
+      {years.length <= 1 && monthChartData.length > 1 && (
+        <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5">
+          <p className="font-bold text-sm mb-3">Income vs. Expenses by Month · {latestYear}</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={monthChartData} margin={{ top: 4, right: 4, left: -4, bottom: 0 }} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+              <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={62} tickFormatter={v => fmtAxisCompact(v)} />
+              <Tooltip content={<TrendTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
+              <Bar dataKey="income" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              <Bar dataKey="expense" fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={22} />
             </BarChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1">
@@ -175,7 +210,10 @@ export default function Totals() {
                     <p className={`text-sm font-bold tabular-nums ${net >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                       {net >= 0 ? '+' : '−'}${fmtFull(Math.abs(net))}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">net</p>
+                    {/* "net" alone, with no other figure nearby on this
+                        collapsed row, read as an unexplained label — spell
+                        out what it's net OF. */}
+                    <p className="text-[10px] text-muted-foreground">income − spending</p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </div>

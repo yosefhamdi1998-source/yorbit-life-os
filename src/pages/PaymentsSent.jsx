@@ -16,9 +16,19 @@ function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigit
 // (savings, other, shopping), so category alone can't find them.
 const SENT_PATTERNS = [/zelle/i, /venmo/i, /pmnt sent/i, /cash app/i, /cashapp/i, /paypal/i];
 
+// PayPal specifically processes ordinary merchant checkouts too, not just
+// person-to-person sends — banks show those as "PAYPAL *NETFLIX",
+// "PAYPAL *AMAZON.COM", etc. (the asterisk is PayPal's own merchant-charge
+// format). Without this, every subscription or purchase someone happened
+// to pay for through PayPal got counted here as a payment "sent to
+// someone," inflating the total with things that were really just normal
+// shopping — a real accuracy complaint, not a hypothetical one.
+const PAYPAL_MERCHANT_RE = /paypal\s*\*/i;
+
 function isPaymentSent(tx) {
   if (tx.type !== 'expense') return false;
   const title = tx.title || '';
+  if (PAYPAL_MERCHANT_RE.test(title)) return false;
   return SENT_PATTERNS.some(p => p.test(title));
 }
 
