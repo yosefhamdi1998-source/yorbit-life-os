@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, DollarSign, Target, Receipt, PiggyBank } from 'lucide-react';
+import { Plus, DollarSign, Target, Receipt, PiggyBank, Upload } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // and making them find the Add button.
 const ACTIONS = [
   { icon: DollarSign, label: 'Add Transaction', path: '/finance?add=1', color: '#10b981' },
+  { icon: Upload, label: 'Upload Statement', path: '/csv-import', color: '#0ea5e9' },
   { icon: PiggyBank, label: 'Set Budget', path: '/budget?add=1', color: '#3b82f6' },
   { icon: Target, label: 'New Goal', path: '/goals?add=1', color: '#7c3aed' },
   { icon: Receipt, label: 'Add Bill', path: '/bills?add=1', color: '#f59e0b' },

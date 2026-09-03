@@ -36,7 +36,11 @@ export const sidebarItems = [
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/coach', icon: Brain, label: 'AI Coach' },
   ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync', advanced: true }] : []),
-  { path: '/csv-import', icon: Upload, label: 'Import CSV', advanced: true },
+  // Not gated `advanced` — someone in Simple Mode is exactly who most needs
+  // an obvious way to get their transactions in without touching Supabase
+  // or GitHub, so hiding this behind the power-user filter defeated its
+  // own purpose. Also reachable straight from the gold "+" FAB now.
+  { path: '/csv-import', icon: Upload, label: 'Upload Statement' },
   { path: '/forms', icon: FileText, label: 'Forms', advanced: true },
   // Notes/Tasks/Habits/Journal/Health Log are left over from this app's
   // origin as a general life-organizer, before it became a focused money
