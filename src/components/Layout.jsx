@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, DollarSign, Target, Brain, PiggyBank,
   Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell,
-  StickyNote, CheckSquare, Flame, BookOpen, HeartPulse, Grid2x2, Repeat, BarChart3
+  StickyNote, CheckSquare, Flame, BookOpen, HeartPulse, Grid2x2, Repeat, BarChart3, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
@@ -29,6 +29,7 @@ export const sidebarItems = [
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
   { path: '/save-more', icon: Sparkles, label: 'Save More', advanced: true },
+  { path: '/payments-sent', icon: Send, label: 'Payments Sent', advanced: true },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/recurring', icon: Repeat, label: 'Recurring', advanced: true },
   { path: '/totals', icon: BarChart3, label: 'Totals', advanced: true },

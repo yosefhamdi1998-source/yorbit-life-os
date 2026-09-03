@@ -8,6 +8,7 @@ export const CASH_FLOW_PERIODS = [
   { key: '6m', label: '6M', subtitle: 'Income vs. expenses, last 6 months' },
   { key: '1y', label: '1Y', subtitle: 'Income vs. expenses, last year' },
   { key: '2y', label: '2Y', subtitle: 'Income vs. expenses, last 2 years' },
+  { key: '5y', label: '5Y', subtitle: 'Income vs. expenses, last 5 years' },
   { key: 'all', label: 'All', subtitle: 'Income vs. expenses, every year' },
 ];
 

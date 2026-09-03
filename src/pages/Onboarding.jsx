@@ -1,12 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles, Landmark } from 'lucide-react';
+import { FEATURES } from '@/lib/features';
 
 // Black-to-gold throughout, matching the app's own default theme — each step
 // deepens the gold slightly rather than switching to an unrelated hue, so
 // the very first thing a new user sees already looks like the rest of the app.
-const STEPS = [
+const BANK_STEP = {
+  emoji: '🏦',
+  bg: 'linear-gradient(160deg, #0a0a0a 0%, #3d2f0a 55%, #D4AF37 100%)',
+  accentColor: '#D4AF37',
+  title: 'Connect your bank',
+  subtitle: 'Link your bank account and your transactions import automatically — no CSV files, no manual entry.',
+  cta: 'Connect Bank',
+  isBankStep: true,
+};
+
+const INFO_STEPS = [
   {
     emoji: '👋',
     bg: 'linear-gradient(160deg, #0a0a0a 0%, #1a1508 55%, #3d2f0a 100%)',
@@ -29,9 +40,17 @@ const STEPS = [
     accentColor: '#D4AF37',
     title: 'Your AI money coach',
     subtitle: 'Get a daily briefing and smart tips — personalized to your real finances.',
-    cta: 'Start My Money Snapshot',
+    cta: FEATURES.bankSync ? 'Next' : 'Start My Money Snapshot',
   },
 ];
+
+// Last step is the bank-connect ask, not just another info screen — its CTA
+// goes straight to Bank Sync instead of finishing onboarding, since
+// "connect your bank" is the single highest-value thing a new user can do
+// (everything else on Home stays empty until they add data one way or
+// another). Only shown when bank sync is actually enabled — same feature
+// flag every other bank-sync entry point in the app already checks.
+const STEPS = FEATURES.bankSync ? [...INFO_STEPS, BANK_STEP] : INFO_STEPS;
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
@@ -44,7 +63,13 @@ export default function Onboarding() {
     navigate('/');
   };
 
+  const goToBankSync = () => {
+    localStorage.setItem('onboarding_done', '1');
+    navigate('/bank-sync');
+  };
+
   const goNext = () => {
+    if (current.isBankStep) { goToBankSync(); return; }
     if (isLast) { finish(); return; }
     setStep(s => s + 1);
   };
@@ -107,12 +132,20 @@ export default function Onboarding() {
             color: '#0a0a0a',
           }}
         >
-          {isLast ? <Sparkles className="w-5 h-5" /> : null}
+          {isLast ? (current.isBankStep ? <Landmark className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />) : null}
           {current.cta}
           {!isLast ? <ChevronRight className="w-5 h-5" /> : null}
         </button>
-        {isLast && (
-          <p className="text-center text-xs text-white/35 mt-3">Free to use · Connect your bank via Plaid</p>
+        {current.isBankStep && (
+          <>
+            <button
+              onClick={() => { localStorage.setItem('onboarding_done', '1'); navigate('/csv-import'); }}
+              className="w-full h-11 mt-2.5 rounded-2xl text-sm font-semibold text-white/70 hover:text-white transition-colors"
+            >
+              Upload a file instead
+            </button>
+            <p className="text-center text-xs text-white/35 mt-1">Read-only access, powered by Plaid · Your login is never stored</p>
+          </>
         )}
       </div>
     </div>

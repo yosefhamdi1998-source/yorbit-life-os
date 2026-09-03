@@ -11,7 +11,7 @@ import { getSimpleMode } from '@/lib/simpleMode';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
 import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
-import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat, BarChart3 } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat, BarChart3, Send } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
@@ -198,7 +198,7 @@ export default function Dashboard() {
         return { month: y, income, expense: expenses, net: income - expenses };
       });
     }
-    const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24 }[trendPeriod] || 6;
+    const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '5y': 60 }[trendPeriod] || 6;
     const buckets = [];
     for (let i = monthsBack - 1; i >= 0; i--) {
       const m = subMonths(anchor, i);
@@ -515,6 +515,16 @@ export default function Dashboard() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground">Totals</p>
                 <p className="text-xs text-muted-foreground">Every dollar, by year & month</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
+            <Link to="/payments-sent" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Send className="w-[18px] h-[18px] text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Payments Sent</p>
+                <p className="text-xs text-muted-foreground">Zelle, Venmo, Cash App & transfers</p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
             </Link>
