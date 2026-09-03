@@ -210,61 +210,83 @@ export default function BankSync() {
         </div>
       ) : (
         <div className="space-y-3">
-          {accounts.map(acct => {
-            const cfg = STATUS_CONFIG[acct.sync_status] || STATUS_CONFIG.not_connected;
-            const Icon = cfg.icon;
-            const isInvestment = acct.account_type === 'investment';
-            const isSyncing = syncingId === acct.id || acct.sync_status === 'syncing';
+          {/* Grouped by institution instead of one flat card per account.
+              Four Bank of America sub-accounts used to render as four
+              near-identical cards all saying "Bank of America" — genuinely
+              hard to scan, and it only gets worse as more accounts get
+              connected. One card per institution, one row per account
+              inside it — same "card with rows" language the rest of the
+              app already uses (Investments' by-asset list, Recurring). */}
+          {Object.entries(
+            accounts.reduce((groups, a) => {
+              (groups[a.institution_name] ||= []).push(a);
+              return groups;
+            }, {})
+          ).map(([institution, group]) => {
+            const anyInvestment = group.some(a => a.account_type === 'investment');
             return (
-              <div key={acct.id} className="sky-card rounded-2xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    {isInvestment ? <TrendingUp className="w-5 h-5 text-primary" /> : <Landmark className="w-5 h-5 text-primary" />}
+              <div key={institution} className="sky-card rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5 border-b border-border/40">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    {anyInvestment ? <TrendingUp className="w-4 h-4 text-primary" /> : <Landmark className="w-4 h-4 text-primary" />}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{acct.institution_name}</p>
-                    <p className="text-xs text-muted-foreground">{acct.account_name}{acct.account_mask ? ` ···${acct.account_mask}` : ''}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Icon className={`w-3 h-3 ${cfg.color} ${isSyncing ? 'animate-spin' : ''}`} />
-                      <span className={`text-xs font-medium ${cfg.color}`}>{isSyncing ? 'Syncing…' : cfg.label}</span>
-                      {acct.last_synced_at && !isSyncing && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          · {format(new Date(acct.last_synced_at), 'MMM d, h:mm a')}
-                        </span>
-                      )}
-                    </div>
-                    {/* The real history on record — what the bank actually
-                        handed over, not the window we asked for. */}
-                    {!isInvestment && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {acct.history_start_date
-                          ? <>History: <span className="text-foreground font-semibold">{format(parseISO(acct.history_start_date), 'MMM d, yyyy')}</span> → today</>
-                          : <span className="text-amber-500">History depth not measured yet — run Full pull</span>}
-                      </p>
-                    )}
-                    {acct.error_message && (
-                      <p className="text-xs text-red-500 mt-1">{acct.error_message}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="outline" size="sm"
-                      className="h-8 text-xs gap-1"
-                      onClick={() => syncAccount(acct.id, acct.account_type)}
-                      disabled={!!syncingId}
-                    >
-                      <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                      {isSyncing ? 'Syncing' : 'Sync'}
-                    </Button>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => disconnect(acct.id)}
-                      aria-label="Disconnect account"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                  <p className="text-sm font-bold text-foreground truncate">{institution}</p>
+                  <span className="text-xs text-muted-foreground ml-auto shrink-0">{group.length} account{group.length === 1 ? '' : 's'}</span>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {group.map(acct => {
+                    const cfg = STATUS_CONFIG[acct.sync_status] || STATUS_CONFIG.not_connected;
+                    const Icon = cfg.icon;
+                    const isInvestment = acct.account_type === 'investment';
+                    const isSyncing = syncingId === acct.id || acct.sync_status === 'syncing';
+                    return (
+                      <div key={acct.id} className="flex items-start gap-3 px-4 py-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{acct.account_name}{acct.account_mask ? ` ···${acct.account_mask}` : ''}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Icon className={`w-3 h-3 ${cfg.color} ${isSyncing ? 'animate-spin' : ''}`} />
+                            <span className={`text-xs font-medium ${cfg.color}`}>{isSyncing ? 'Syncing…' : cfg.label}</span>
+                            {acct.last_synced_at && !isSyncing && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                · {format(new Date(acct.last_synced_at), 'MMM d, h:mm a')}
+                              </span>
+                            )}
+                          </div>
+                          {/* The real history on record — what the bank
+                              actually handed over, not the window asked for. */}
+                          {!isInvestment && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {acct.history_start_date
+                                ? <>History: <span className="text-foreground font-semibold">{format(parseISO(acct.history_start_date), 'MMM d, yyyy')}</span> → today</>
+                                : <span className="text-amber-500">History depth not measured yet — run Full pull</span>}
+                            </p>
+                          )}
+                          {acct.error_message && (
+                            <p className="text-xs text-red-500 mt-0.5">{acct.error_message}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="outline" size="sm"
+                            className="h-8 text-xs gap-1"
+                            onClick={() => syncAccount(acct.id, acct.account_type)}
+                            disabled={!!syncingId}
+                          >
+                            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                            {isSyncing ? 'Syncing' : 'Sync'}
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => disconnect(acct.id)}
+                            aria-label="Disconnect account"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
