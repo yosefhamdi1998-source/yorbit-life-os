@@ -52,8 +52,13 @@ function getCatOptions(type) {
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
-// "Today" / "Yesterday" / "Tue, Aug 25" — parseISO so a yyyy-MM-dd string
-// isn't read as UTC midnight and shown as the previous day.
+// "Today" / "Yesterday" / "Tue, Aug 25" / "Tue, Aug 25, 2024" — parseISO so
+// a yyyy-MM-dd string isn't read as UTC midnight and shown as the previous
+// day. The year only shows up for a date outside the current calendar
+// year — with 3 years of bank-sync/statement-import history now routine,
+// "Nov 2" alone is genuinely ambiguous once a list holds more than one
+// November, so a same-year date stays short while anything older gets
+// disambiguated instead of silently guessed at.
 function dateHeading(dateStr) {
   if (!dateStr || dateStr === 'unknown') return 'No date';
   try {
@@ -62,7 +67,7 @@ function dateHeading(dateStr) {
     const diff = differenceInCalendarDays(today, startOfDay(d));
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Yesterday';
-    return format(d, 'EEE, MMM d');
+    return format(d, d.getFullYear() === today.getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
   } catch {
     return dateStr;
   }
