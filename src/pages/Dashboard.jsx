@@ -68,7 +68,23 @@ export default function Dashboard() {
   const [trendPeriod, setTrendPeriod] = useState(() => (getSimpleMode() ? '1m' : '6m'));
   const navigate = useNavigate();
 
-  const thisMonth = format(new Date(), 'yyyy-MM');
+  // Anchored to the newest transaction on record, not the literal calendar
+  // date — imported/historical data (a fresh CSV/PDF import especially)
+  // can trail today's real date, and "this month" counted from literal
+  // today would show Budget Summary/Category Breakdown/Health Score as
+  // empty for anyone whose data doesn't reach into the current real month
+  // yet — while Week (already anchored) correctly showed real data. Same
+  // "week looks right, month looks wrong" bug already fixed in periods.js,
+  // fixed here too since this file computes its own `thisMonth` for the
+  // Budget Summary and Category Breakdown cards below.
+  const latestTxDate = (() => {
+    let latest = null;
+    for (const t of transactions) {
+      if (t.date && (!latest || t.date > latest)) latest = t.date;
+    }
+    return latest ? parseISO(latest) : new Date();
+  })();
+  const thisMonth = format(latestTxDate, 'yyyy-MM');
 
   const loadData = useCallback(async () => {
     try {
@@ -131,19 +147,7 @@ export default function Dashboard() {
 
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
-  // Anchor "recent" windows to the newest transaction on record, not the
-  // literal calendar date — imported/historical data can trail today's
-  // real date by weeks, and a trailing window counted from "right now"
-  // would show a flat $0 for anyone whose last transaction isn't from
-  // the last few days (same bug fixed on the Money page's Weekly/Bi-Weekly).
-  const latestTxDate = (() => {
-    let latest = null;
-    for (const t of transactions) {
-      if (t.date && (!latest || t.date > latest)) latest = t.date;
-    }
-    return latest ? parseISO(latest) : new Date();
-  })();
-
+  // latestTxDate is computed above, alongside thisMonth.
 
   // The hero figures (net saved / income / expenses / savings rate) follow
   // the same period switcher as the chart below it, instead of always
@@ -155,8 +159,8 @@ export default function Dashboard() {
   const { income: heroIncome, expenses: heroExpenses, net: heroNetSaved } = sumByType(heroTx);
   // Same fraction-of-a-cent guard as `savingsRate` above.
   const heroSavingsRate = heroIncome >= 1 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
-  const heroPeriodLabel = getPeriodLabel(cashFlowPeriod);
-  const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod);
+  const heroPeriodLabel = getPeriodLabel(cashFlowPeriod, latestTxDate);
+  const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod, latestTxDate);
   const isYearPeriod = cashFlowPeriod.startsWith('year-');
   // Same trailing-4-years list as the Yearly picker on Money, so the two
   // don't quietly offer a different range of history.

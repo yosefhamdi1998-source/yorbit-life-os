@@ -624,8 +624,21 @@ export default function Finance() {
     }
   };
 
-  const thisMonth = format(new Date(), 'yyyy-MM');
-  const thisYearNum = new Date().getFullYear();
+  // Anchored to the latest transaction on record, not the literal calendar
+  // date — someone who just bulk-imported statements that stop in a past
+  // month/year (a new user, or a fresh CSV/PDF import) would otherwise see
+  // "This Month"/"This Year" come back empty against literal today, while
+  // Weekly (already anchored below) correctly showed real data — exactly
+  // the "week looks right, month looks wrong" bug.
+  const latestTxDate = useMemo(() => {
+    let latest = null;
+    for (const t of transactions) {
+      if (t.date && (!latest || t.date > latest)) latest = t.date;
+    }
+    return latest ? parseISO(latest) : new Date();
+  }, [transactions]);
+  const thisMonth = format(latestTxDate, 'yyyy-MM');
+  const thisYearNum = latestTxDate.getFullYear();
   const thisYear = String(thisYearNum);
   const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM');
 
@@ -654,17 +667,8 @@ export default function Finance() {
   const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3]
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
   const isYearPeriod = summaryPeriod.startsWith('year-');
-  // Weekly/Bi-Weekly anchor to the most recent transaction on record, not
-  // the real calendar date — imported/historical data can trail today's
-  // actual date by weeks, and a window counted back from "right now" would
-  // silently show $0 for everyone whose last transaction isn't from today.
-  const latestTxDate = useMemo(() => {
-    let latest = null;
-    for (const t of transactions) {
-      if (t.date && (!latest || t.date > latest)) latest = t.date;
-    }
-    return latest ? parseISO(latest) : new Date();
-  }, [transactions]);
+  // Weekly/Bi-Weekly anchor to latestTxDate (computed above, alongside
+  // thisMonth/thisYearNum) for the same reason.
   const summaryTx = useMemo(() => {
     if (summaryPeriod === 'weekly') {
       const cutoff = startOfDay(subDays(latestTxDate, 6));

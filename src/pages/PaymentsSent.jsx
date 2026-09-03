@@ -85,7 +85,7 @@ export default function PaymentsSent() {
       </div>
 
       <div className="rounded-2xl p-5 mb-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)', textShadow: '0 1px 10px rgba(0,0,0,0.35)' }}>
-        <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Sent {getPeriodLabel(period) === getPeriodLabel('month') && period === 'month' ? 'this month' : `in ${getPeriodLabel(period)}`}</p>
+        <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Sent {period === 'month' ? 'this month' : `in ${getPeriodLabel(period, latestTxDate)}`}</p>
         <p className="font-numeric text-white text-4xl font-black tracking-tight leading-none mb-1 tabular-nums">
           ${fmt(total)}
         </p>
@@ -106,7 +106,7 @@ export default function PaymentsSent() {
       {sent.length === 0 ? (
         <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-border">
           <Send className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">No payments sent {getPeriodLabel(period) === getPeriodLabel('month') && period === 'month' ? 'this month' : `in ${getPeriodLabel(period)}`}</p>
+          <p className="text-sm font-semibold text-foreground mb-1">No payments sent {period === 'month' ? 'this month' : `in ${getPeriodLabel(period, latestTxDate)}`}</p>
           <p className="text-xs text-muted-foreground">Zelle, Venmo, Cash App, PayPal, and bank transfers out will show up here automatically.</p>
         </div>
       ) : (

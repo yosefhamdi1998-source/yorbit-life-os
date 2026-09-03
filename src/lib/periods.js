@@ -40,7 +40,14 @@ export function isSpecificYearPeriod(period) {
 
 export function filterByPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
-  const thisYear = new Date().getFullYear();
+  // Anchored to the latest transaction's own year, not the literal
+  // calendar year — same reasoning as week/3-month/6-month above. Someone
+  // who just bulk-imported statements that stop in a past month/year (a
+  // new user, or a fresh CSV/PDF import) would otherwise see "This Month"
+  // and "This Year" come back empty, since literal today has nothing in
+  // it yet, while Week (already anchored) correctly showed real data —
+  // exactly the "week looks right, month looks wrong" bug.
+  const anchorYear = anchor.getFullYear();
   if (period === 'all') return transactions;
   if (period === 'week') {
     const cutoff = startOfDay(subDays(anchor, 6));
@@ -52,18 +59,18 @@ export function filterByPeriod(transactions, period, latestTxDate) {
     return transactions.filter(t => t.date && t.date >= cutoff);
   }
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(period.slice(5)));
-  if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear)));
-  if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(thisYear - 1)));
+  if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(anchorYear)));
+  if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 1)));
   // month (default)
-  const thisMonth = format(new Date(), 'yyyy-MM');
-  return transactions.filter(t => t.date?.startsWith(thisMonth));
+  const anchorMonth = format(anchor, 'yyyy-MM');
+  return transactions.filter(t => t.date?.startsWith(anchorMonth));
 }
 
 // The immediately-preceding window of the same length, for "vs last
 // period" comparisons (Savings Progress, Save More).
 export function filterByPreviousPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
-  const thisYear = new Date().getFullYear();
+  const anchorYear = anchor.getFullYear();
   if (period === 'all') return []; // no "previous" window for all-time
   if (period === 'week') {
     const end = startOfDay(subDays(anchor, 7));
@@ -81,36 +88,40 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
     return transactions.filter(t => t.date && t.date >= start && t.date <= end);
   }
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(String(parseInt(period.slice(5), 10) - 1)));
-  if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(thisYear - 1)));
-  if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(thisYear - 2)));
-  // month: the calendar month before "this month"
-  const d = new Date();
-  d.setMonth(d.getMonth() - 1);
+  if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 1)));
+  if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 2)));
+  // month: the calendar month before the anchor's month, not before literal today
+  const d = subMonths(anchor, 1);
   const lastMonth = format(d, 'yyyy-MM');
   return transactions.filter(t => t.date?.startsWith(lastMonth));
 }
 
-export function getPeriodLabel(period) {
-  const thisYear = new Date().getFullYear();
+// `anchor` should be the same latest-transaction-date passed to
+// filterByPeriod — otherwise the label can say "September 2026" over data
+// that's actually August's, which is its own confusing bug even once the
+// filter itself is anchored correctly. Defaults to literal today so
+// existing callers that never pass it keep their old behavior.
+export function getPeriodLabel(period, anchor = new Date()) {
+  const anchorYear = anchor.getFullYear();
   if (period === 'all') return 'All Time';
   if (period === 'week') return 'Last 7 Days';
   if (period === '3month') return 'Last 3 Months';
   if (period === '6month') return 'Last 6 Months';
   if (isSpecificYearPeriod(period)) return period.slice(5);
-  if (period === 'year') return String(thisYear);
-  if (period === 'lastyear') return String(thisYear - 1);
-  return format(new Date(), 'MMMM yyyy');
+  if (period === 'year') return String(anchorYear);
+  if (period === 'lastyear') return String(anchorYear - 1);
+  return format(anchor, 'MMMM yyyy');
 }
 
-export function getPeriodPhrase(period) {
-  const thisYear = new Date().getFullYear();
+export function getPeriodPhrase(period, anchor = new Date()) {
+  const anchorYear = anchor.getFullYear();
   if (period === 'all') return 'all time';
   if (period === 'week') return 'this week';
   if (period === '3month') return 'in the last 3 months';
   if (period === '6month') return 'in the last 6 months';
   if (isSpecificYearPeriod(period)) {
     const y = period.slice(5);
-    return y === String(thisYear) ? 'this year' : `in ${y}`;
+    return y === String(anchorYear) ? 'this year' : `in ${y}`;
   }
   if (period === 'year') return 'this year';
   if (period === 'lastyear') return 'last year';
