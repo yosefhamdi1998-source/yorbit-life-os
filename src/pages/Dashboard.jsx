@@ -687,6 +687,24 @@ export default function Dashboard() {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Explore</p>
           </div>
           <div className="divide-y divide-border/40">
+            {/* First in the list on purpose — this was the actual reported
+                problem: crypto activity is real and untouched (nothing was
+                deleted, only separated from spending so it stopped
+                inflating every budget number), but it had no link
+                anywhere on Home, so it was genuinely impossible to find
+                without already knowing the URL. "Crypto" spelled out in
+                the subtitle, not just "Investments", since that's the
+                word being searched for. */}
+            <Link to="/investments" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-[18px] h-[18px] text-violet-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Investments</p>
+                <p className="text-xs text-muted-foreground">Crypto trades &amp; holdings</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </Link>
             <Link to="/save-more" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <Sparkles className="w-[18px] h-[18px] text-primary" />

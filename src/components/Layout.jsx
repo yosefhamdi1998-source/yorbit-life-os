@@ -25,18 +25,22 @@ const bottomNavItems = [
 
 export const sidebarItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
+  // Was near the bottom of this list AND gated `advanced` — buried twice
+  // over for something used constantly, not a power-user extra. Right
+  // after Home now, and visible in Simple Mode too, same reasoning as
+  // Upload Statement just below it.
+  ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync' }] : []),
   { path: '/finance', icon: DollarSign, label: 'Transactions' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
   { path: '/bills', icon: Receipt, label: 'Bills' },
+  { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/save-more', icon: Sparkles, label: 'Save More', advanced: true },
   { path: '/payments-sent', icon: Send, label: 'Payments Sent', advanced: true },
-  { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/recurring', icon: Repeat, label: 'Recurring', advanced: true },
   { path: '/totals', icon: BarChart3, label: 'Totals', advanced: true },
   { path: '/notifications', icon: Bell, label: 'Notifications' },
   { path: '/coach', icon: Brain, label: 'AI Coach' },
-  ...(FEATURES.bankSync ? [{ path: '/bank-sync', icon: Landmark, label: 'Bank Sync', advanced: true }] : []),
   // Not gated `advanced` — someone in Simple Mode is exactly who most needs
   // an obvious way to get their transactions in without touching Supabase
   // or GitHub, so hiding this behind the power-user filter defeated its
