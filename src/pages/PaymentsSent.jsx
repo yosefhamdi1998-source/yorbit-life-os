@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader';
 import { PERIODS, filterByPeriod, getLatestTransactionDate, getPeriodLabel } from '@/lib/periods';
 import { toast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
+import { prettyMerchant } from '@/lib/merchantName';
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
 
@@ -131,7 +132,7 @@ export default function PaymentsSent() {
                   <ArrowUpRight className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{t.title}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{prettyMerchant(t.title)}</p>
                   <p className="text-xs text-muted-foreground">{detectApp(t.title || '')} · {t.date ? format(parseISO(t.date), 'MMM d, yyyy') : ''}</p>
                 </div>
                 <p className="text-sm font-bold text-foreground tabular-nums shrink-0">−${fmt(t.amount)}</p>

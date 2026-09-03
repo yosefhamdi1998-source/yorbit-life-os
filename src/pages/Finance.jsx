@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
+import { prettyMerchant } from '@/lib/merchantName';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
 import { FEATURES } from '@/lib/features';
@@ -100,7 +101,7 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
           {CAT_ICONS[tx.category] || '💸'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{tx.title}</p>
+          <p className="text-sm font-semibold truncate">{prettyMerchant(tx.title)}</p>
           <p className="text-xs text-muted-foreground capitalize truncate">
             {tx.category}{showDate ? ` · ${dateHeading(tx.date)}` : ''}
           </p>

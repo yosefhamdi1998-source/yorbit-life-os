@@ -20,6 +20,7 @@ import Sparkline from '@/components/Sparkline';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { prettyMerchant } from '@/lib/merchantName';
 
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 const CAT_BILL_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
@@ -614,7 +615,7 @@ export default function Dashboard() {
                     {CAT_ICONS[tx.category] || '💸'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{tx.title}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{prettyMerchant(tx.title)}</p>
                     <p className="text-xs text-muted-foreground capitalize truncate">{tx.category} · {tx.date}</p>
                   </div>
                   <span className={`text-sm font-bold shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
