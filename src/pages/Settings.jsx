@@ -134,7 +134,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `moneyglow-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `yorbit-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setExportDone(true);
@@ -162,7 +162,7 @@ export default function Settings() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <p className="font-bold text-sm text-emerald-800">Welcome to MoneyGlow Pro! 🎉</p>
+              <p className="font-bold text-sm text-emerald-800">Welcome to Yorbit Pro! 🎉</p>
               <p className="text-xs text-emerald-700 mt-0.5">Your subscription is active. Enjoy all Pro features.</p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function Settings() {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-bold text-sm text-white">MoneyGlow Pro</p>
+                <p className="font-bold text-sm text-white">Yorbit Pro</p>
                 <p className="text-xs text-white/70 mt-0.5">Unlock AI Coach, unlimited budgets & more</p>
               </div>
             </div>
@@ -249,7 +249,7 @@ export default function Settings() {
               <Star className="w-5 h-5 text-yellow-500" />
             </div>
             <div>
-              <p className="font-bold text-sm">Enjoying MoneyGlow?</p>
+              <p className="font-bold text-sm">Enjoying Yorbit?</p>
               <p className="text-xs text-muted-foreground mt-0.5">Leave us a rating — it really helps!</p>
             </div>
           </div>
@@ -296,12 +296,12 @@ export default function Settings() {
               <Heart className="w-5 h-5 text-pink-500" />
             </div>
             <div>
-              <p className="font-bold text-sm">Share MoneyGlow</p>
+              <p className="font-bold text-sm">Share Yorbit</p>
               <p className="text-xs text-muted-foreground mt-0.5">Help a friend take control of their money</p>
             </div>
           </div>
           <button
-            onClick={() => { if (navigator.share) { navigator.share({ title: 'MoneyGlow', text: 'I use MoneyGlow to track my finances — check it out!', url: 'https://moneyglow.app' }); } }}
+            onClick={() => { if (navigator.share) { navigator.share({ title: 'Yorbit', text: 'I use Yorbit to track my finances — check it out!', url: 'https://yorbit-life-os.vercel.app' }); } }}
             className="flex items-center gap-1 bg-pink-400/10 hover:bg-pink-400/20 transition-colors text-pink-600 rounded-full px-3 py-1.5 text-xs font-bold"
           >
             Share
@@ -334,7 +334,7 @@ export default function Settings() {
             <div className="flex items-start gap-2">
               <Lock className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
               <p className="text-xs text-foreground/80 leading-relaxed">
-                Your financial data stays private and is used only to power your MoneyGlow insights. It is never shared or sold.
+                Your financial data stays private and is used only to power your Yorbit insights. It is never shared or sold.
               </p>
             </div>
           </div>
@@ -359,7 +359,7 @@ export default function Settings() {
           <div className="mt-3 pt-3 border-t border-border/60 flex gap-3">
             <Link to="/privacy-policy" className="text-xs text-primary font-medium hover:underline">Privacy Policy</Link>
             <Link to="/terms-of-use" className="text-xs text-primary font-medium hover:underline">Terms of Use</Link>
-            <a href="mailto:support@moneyglow.app" className="text-xs text-primary font-medium hover:underline">Support</a>
+            <a href="mailto:yosefhamdi1998@gmail.com" className="text-xs text-primary font-medium hover:underline">Support</a>
           </div>
         </div>
 
@@ -384,7 +384,7 @@ export default function Settings() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Link>
-            <a href="mailto:support@moneyglow.app" className="flex items-center justify-between py-2.5 active:opacity-70 transition-opacity">
+            <a href="mailto:yosefhamdi1998@gmail.com" className="flex items-center justify-between py-2.5 active:opacity-70 transition-opacity">
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-foreground">Contact Support</span>
@@ -460,7 +460,7 @@ export default function Settings() {
           {deleteResult === 'manual' ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
               <p className="font-semibold mb-1">Your data has been deleted.</p>
-              <p>To fully remove your account, email <a href="mailto:support@moneyglow.app" className="font-semibold underline">support@moneyglow.app</a>. We'll complete the deletion within 48 hours.</p>
+              <p>To fully remove your account, email <a href="mailto:yosefhamdi1998@gmail.com" className="font-semibold underline">yosefhamdi1998@gmail.com</a>. We'll complete the deletion within 48 hours.</p>
             </div>
           ) : (
             <AlertDialog onOpenChange={(open) => { if (!open) setDeleteConfirmText(''); }}>

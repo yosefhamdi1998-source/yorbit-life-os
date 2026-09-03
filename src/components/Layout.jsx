@@ -121,7 +121,7 @@ export default function Layout() {
           <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: '#0a0a0a', boxShadow: '0 0 0 1.5px #D4AF37' }}>
             <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} strokeWidth={2.5} />
           </div>
-          <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
+          <span className="font-black text-[15px] tracking-tight text-foreground">Yorbit</span>
         </div>
 
         {/* Nav */}
@@ -187,7 +187,7 @@ export default function Layout() {
             <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: '#0a0a0a', boxShadow: '0 0 0 1.5px #D4AF37' }}>
               <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} strokeWidth={2.5} />
             </div>
-            <span className="font-black text-[15px] tracking-tight text-foreground">MoneyGlow</span>
+            <span className="font-black text-[15px] tracking-tight text-foreground">Yorbit</span>
           </div>
           <div className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-9 w-9 rounded-full" aria-label="More">

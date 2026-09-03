@@ -38,7 +38,7 @@ export default class ErrorBoundary extends Component {
             That's on us, not your data — nothing you've saved is affected. Reloading usually fixes it.
           </p>
           <Button onClick={this.handleReload} className="gap-1.5">
-            <RotateCw className="w-4 h-4" /> Reload MoneyGlow
+            <RotateCw className="w-4 h-4" /> Reload Yorbit
           </Button>
         </div>
       </div>

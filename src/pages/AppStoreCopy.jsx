@@ -23,13 +23,13 @@ function CopyBlock({ label, content }) {
   );
 }
 
-const APP_NAME = `MoneyGlow – Personal Finance`;
+const APP_NAME = `Yorbit – Personal Finance`;
 
 const SUBTITLE = `Budget, Save & Track Money`;
 
 const TAGLINE = `Track your money. Know your next move.`;
 
-const DESCRIPTION = `MoneyGlow helps you take control of your finances — simply and clearly.
+const DESCRIPTION = `Yorbit helps you take control of your finances — simply and clearly.
 
 See exactly where your money goes, build smarter habits, and always know what to do next.
 
@@ -37,7 +37,7 @@ TRACK INCOME & EXPENSES
 Add transactions in seconds. Categorize by housing, food, transport, health, and more. See your monthly income, spending, and net savings at a glance.
 
 BUILD A BUDGET
-Set monthly limits for each spending category. MoneyGlow shows you at a glance whether you're on track, close to the edge, or over budget.
+Set monthly limits for each spending category. Yorbit shows you at a glance whether you're on track, close to the edge, or over budget.
 
 MANAGE YOUR BILLS
 Never miss a payment. Track recurring bills, see what's due this week, and mark bills paid as you go.
@@ -57,7 +57,7 @@ Ask for a deeper read. The AI Coach analyzes your spending patterns and suggests
 YOUR DATA STAYS YOURS
 Your financial data is never sold or shared. Export or delete your data at any time from Settings.
 
-MoneyGlow is designed for real life — not spreadsheets. Simple to start. Powerful once you're in it.`;
+Yorbit is designed for real life — not spreadsheets. Simple to start. Powerful once you're in it.`;
 
 const KEYWORDS = 'budget, money, finance, expense tracker, spending, bills, savings, income, personal finance, AI coach';
 
@@ -106,8 +106,8 @@ Data Linked to You:
 Data Not Linked to You: None collected
 Data Not Collected: Precise location, health, browsing history, contacts, usage data sold to third parties
 
-Privacy Policy URL: https://moneyglow.app/privacy-policy
-Support URL: https://moneyglow.app/support`;
+Privacy Policy URL: https://yorbit-life-os.vercel.app/privacy-policy
+Support URL: https://yorbit-life-os.vercel.app/support`;
 
 const CATEGORY = `Finance`;
 
@@ -115,11 +115,11 @@ const AGE_RATING = `4+ — No objectionable content`;
 
 const REVIEW_NOTES = `App Store Review Notes
 
-MoneyGlow is a personal finance tracking app. Users manually enter income, expenses, budgets, bills, and savings goals. The app also supports CSV bank statement import.
+Yorbit is a personal finance tracking app. Users manually enter income, expenses, budgets, bills, and savings goals. The app also supports CSV bank statement import.
 
-Subscription: MoneyGlow Pro is available as an auto-renewable subscription via Apple In-App Purchase.
-- Monthly: $4.99/month (Product ID: com.moneyglow.pro.monthly)
-- Annual: $29.99/year (Product ID: com.moneyglow.pro.yearly)
+Subscription: Yorbit Pro is available as an auto-renewable subscription via Apple In-App Purchase.
+- Monthly: $4.99/month (Product ID: app.yorbit.pro.monthly)
+- Annual: $29.99/year (Product ID: app.yorbit.pro.yearly)
 - Entitlement: pro
 
 Pro unlocks: unlimited budgets, unlimited savings goals, AI Money Coach, daily AI financial briefings, and priority support.
@@ -128,30 +128,30 @@ Account deletion: Available in Settings → Danger Zone → Delete Account & Dat
 
 Restore Purchases: Available on the Upgrade page and in Settings.
 
-Support: support@moneyglow.app
-Privacy Policy: https://moneyglow.app/privacy-policy
-Terms of Use: https://moneyglow.app/terms-of-use`;
+Support: yosefhamdi1998@gmail.com
+Privacy Policy: https://yorbit-life-os.vercel.app/privacy-policy
+Terms of Use: https://yorbit-life-os.vercel.app/terms-of-use`;
 
 const SUBSCRIPTION_INFO = `Subscription Details for App Store Connect
 
-Subscription Group: MoneyGlow Pro
+Subscription Group: Yorbit Pro
 
 Product 1:
-  - Reference Name: MoneyGlow Pro Monthly
-  - Product ID: com.moneyglow.pro.monthly
+  - Reference Name: Yorbit Pro Monthly
+  - Product ID: app.yorbit.pro.monthly
   - Duration: 1 Month
   - Price: $4.99/month
 
 Product 2:
-  - Reference Name: MoneyGlow Pro Yearly
-  - Product ID: com.moneyglow.pro.yearly
+  - Reference Name: Yorbit Pro Yearly
+  - Product ID: app.yorbit.pro.yearly
   - Duration: 1 Year
   - Price: $29.99/year
 
 Entitlement (RevenueCat): pro
 
 Subscription Description (shown to user):
-  MoneyGlow Pro unlocks unlimited budgets, unlimited savings goals, the AI Money Coach, daily AI financial briefings, and priority support.
+  Yorbit Pro unlocks unlimited budgets, unlimited savings goals, the AI Money Coach, daily AI financial briefings, and priority support.
 
   • Monthly: $4.99/month
   • Annual: $29.99/year
@@ -190,7 +190,7 @@ export default function AppStoreCopy() {
         <p className="text-sm font-bold text-foreground mb-3">App Icon</p>
         <img
           src="https://media.base44.com/images/public/6a1a08af1b08f6ace95e7c1d/33ac3faab_generated_image.png"
-          alt="MoneyGlow App Icon"
+          alt="Yorbit App Icon"
           className="w-32 h-32 rounded-3xl shadow-lg mx-auto block"
         />
         <p className="text-xs text-muted-foreground text-center mt-3">Generated concept — export at 1024×1024 PNG, no transparency, no rounded corners (Apple adds them).</p>

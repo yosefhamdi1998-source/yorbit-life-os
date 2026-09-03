@@ -68,7 +68,7 @@ const AuthenticatedApp = () => {
           <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center">
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-sm text-muted-foreground font-medium">Loading MoneyGlow…</p>
+          <p className="text-sm text-muted-foreground font-medium">Loading Yorbit…</p>
         </div>
       </div>
     );

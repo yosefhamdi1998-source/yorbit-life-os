@@ -328,7 +328,7 @@ export default function BankSync() {
       <div className="mt-6 sky-card rounded-2xl p-4">
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Privacy Note</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          MoneyGlow uses read-only bank connections powered by Plaid. Your login credentials are never stored — only a secure access token is saved to fetch transactions.
+          Yorbit uses read-only bank connections powered by Plaid. Your login credentials are never stored — only a secure access token is saved to fetch transactions.
         </p>
       </div>
     </div>

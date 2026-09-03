@@ -21,12 +21,12 @@ export default function Support() {
             Have a question, bug report, or feedback? We respond within 24–48 hours.
           </p>
           <a
-            href="mailto:support@moneyglow.app"
+            href="mailto:yosefhamdi1998@gmail.com"
             className="flex items-center gap-3 bg-primary/10 hover:bg-primary/15 transition-colors rounded-xl px-4 py-3"
           >
             <Mail className="w-5 h-5 text-primary shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-foreground">support@moneyglow.app</p>
+              <p className="text-sm font-semibold text-foreground">yosefhamdi1998@gmail.com</p>
               <p className="text-xs text-muted-foreground">Email support · 24–48h response</p>
             </div>
             <ExternalLink className="w-4 h-4 text-muted-foreground ml-auto shrink-0" />
@@ -40,7 +40,7 @@ export default function Support() {
             {[
               {
                 q: 'How do I cancel my subscription?',
-                a: 'On iPhone/iPad: go to Settings → Apple ID → Subscriptions → MoneyGlow and tap Cancel. On the web: go to Settings → Manage Subscription.'
+                a: 'On iPhone/iPad: go to Settings → Apple ID → Subscriptions → Yorbit and tap Cancel. On the web: go to Settings → Manage Subscription.'
               },
               {
                 q: 'How do I restore my Pro subscription?',
@@ -55,7 +55,7 @@ export default function Support() {
                 a: 'Yes. Your data is encrypted in transit and at rest. We never sell your data or share it with advertisers. See our Privacy Policy for full details.'
               },
               {
-                q: 'What does MoneyGlow Pro include?',
+                q: 'What does Yorbit Pro include?',
                 a: 'Pro includes unlimited budgets, unlimited savings goals, the AI Money Coach, daily AI financial briefings, and priority support.'
               },
               {
@@ -81,7 +81,7 @@ export default function Support() {
           </Link>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">MoneyGlow · support@moneyglow.app</p>
+        <p className="text-center text-xs text-muted-foreground">Yorbit · yosefhamdi1998@gmail.com</p>
       </div>
     </div>
   );
