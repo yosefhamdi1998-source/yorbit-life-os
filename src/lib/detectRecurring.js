@@ -1,97 +1,135 @@
-import { parseISO, differenceInCalendarDays, addDays } from 'date-fns';
+import { parseISO, addMonths } from 'date-fns';
+
+// Bank statement boilerplate that says nothing about WHO was paid. The
+// same Apple subscription arrives as "Apple" from a bank sync and as
+// "PURCHASE 0710 APPLE.COM/BILL 866-712-7753 CA" from a PDF statement —
+// stripping this noise makes both reduce to "apple" so they're recognised
+// as one subscription instead of two.
+const NOISE_WORDS = new Set([
+  'purchase', 'pmnt', 'payment', 'sent', 'recurring', 'debit', 'credit', 'card',
+  'checkcard', 'pos', 'ach', 'des', 'indn', 'ref', 'conf', 'confirmation', 'id',
+  'transaction', 'online', 'banking', 'com', 'inc', 'llc', 'ltd', 'co', 'the',
+  'of', 'and', 'to', 'from', 'on', 'at', 'for', 'www', 'http', 'https',
+]);
+const US_STATES = new Set([
+  'al','ak','az','ar','ca','co','ct','de','fl','ga','hi','id','il','in','ia','ks',
+  'ky','la','me','md','ma','mi','mn','ms','mo','mt','ne','nv','nh','nj','nm','ny',
+  'nc','nd','oh','ok','or','pa','ri','sc','sd','tn','tx','ut','vt','va','wa','wv','wi','wy',
+]);
 
 function normalizeTitle(title) {
-  return (title || '')
+  const words = (title || '')
     .toLowerCase()
-    .replace(/[0-9]/g, '')
+    .replace(/[0-9]/g, ' ')
     .replace(/[^a-z\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter(w => w.length > 1 && !NOISE_WORDS.has(w) && !US_STATES.has(w));
+  return words.join(' ').trim();
 }
 
-const INTERVALS = [
-  { key: 'weekly', label: 'Weekly', days: 7, tolerance: 2, minOccurrences: 3 },
-  { key: 'biweekly', label: 'Bi-Weekly', days: 14, tolerance: 3, minOccurrences: 3 },
-  { key: 'monthly', label: 'Monthly', days: 30, tolerance: 5, minOccurrences: 2 },
-  { key: 'quarterly', label: 'Quarterly', days: 91, tolerance: 10, minOccurrences: 2 },
-  { key: 'yearly', label: 'Yearly', days: 365, tolerance: 20, minOccurrences: 2 },
+// For display, prefer the cleanest title a merchant appears under — the
+// short human one ("Apple") over the raw bank string.
+function bestDisplayName(rows) {
+  return rows
+    .map(r => r.title || '')
+    .filter(Boolean)
+    .sort((a, b) => a.length - b.length)[0] || 'Subscription';
+}
+
+// Merchants whose repeat charges are never a subscription — money moving
+// to your own accounts, P2P sends, and crypto purchases all repeat at
+// similar amounts without being a bill anyone needs reminding about.
+const NOT_SUBSCRIPTIONS = [
+  /coinbase/i, /venmo/i, /zelle/i, /cash ?app/i, /paypal/i, /litecoin/i, /bitcoin/i,
+  /transfer/i, /keep the change/i, /atm/i, /withdrawal/i, /deposit/i, /pmnt sent/i,
 ];
 
 function median(nums) {
-  const sorted = [...nums].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const s = [...nums].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-// Scans real expense history for a merchant charged repeatedly at a
-// consistent amount and a regular interval — a real subscription or bill,
-// found from what actually happened instead of requiring someone to type
-// it in by hand before the app can track it.
+function monthKey(dateStr) {
+  return (dateStr || '').slice(0, 7); // YYYY-MM
+}
+
+// Real statement data doesn't look like a textbook: a subscription shows up
+// as the same merchant charging the same amount once a month, but the exact
+// day drifts, a month occasionally gets two charges, and the day-to-day gap
+// between rows is meaningless because unrelated purchases from the same
+// merchant land in between. So rather than measuring gaps between
+// consecutive rows, this asks the question that actually identifies a
+// subscription: does this merchant charge this amount in several separate
+// months?
 export function detectRecurring(transactions, existingBillNames = []) {
   const expenses = (transactions || []).filter(t => t.type === 'expense' && t.date && t.title);
-  const groups = new Map();
+  const existing = existingBillNames.map(normalizeTitle).filter(Boolean);
+
+  // merchant -> amount bucket -> set of months
+  const merchants = new Map();
   for (const t of expenses) {
     const key = normalizeTitle(t.title);
     if (!key || key.length < 3) continue;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(t);
+    if (NOT_SUBSCRIPTIONS.some(re => re.test(key))) continue;
+    if (existing.some(n => n === key || key.includes(n) || n.includes(key))) continue;
+
+    if (!merchants.has(key)) merchants.set(key, new Map());
+    const buckets = merchants.get(key);
+
+    // Bucket by amount so a merchant you also make one-off purchases from
+    // (Apple: a $10.29 subscription plus random app purchases) still has
+    // its subscription found instead of being averaged into noise.
+    // Cents-exact, then near-matches merged below.
+    const bucketKey = (t.amount || 0).toFixed(2);
+    if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+    buckets.get(bucketKey).push(t);
   }
 
-  const existingNormalized = existingBillNames.map(normalizeTitle).filter(Boolean);
-
   const results = [];
-  for (const [key, txs] of groups) {
-    if (txs.length < 2) continue;
-    // Skip anything that (loosely) matches a bill already being tracked —
-    // this is for surfacing what's NOT tracked yet, not duplicating it.
-    if (existingNormalized.some(n => n === key || key.includes(n) || n.includes(key))) continue;
-
-    const sorted = txs.slice().sort((a, b) => a.date.localeCompare(b.date));
-    const amounts = sorted.map(t => t.amount || 0);
-    const med = median(amounts);
-    if (med <= 0) continue;
-    // Every occurrence within 15% of the median — a real subscription
-    // repeats at the same price; unrelated one-off purchases from the
-    // same merchant (two different Amazon orders, say) won't cluster
-    // this tightly.
-    const consistentAmount = amounts.every(a => Math.abs(a - med) / med <= 0.15);
-    if (!consistentAmount) continue;
-
-    const gaps = [];
-    for (let i = 1; i < sorted.length; i++) {
-      gaps.push(differenceInCalendarDays(parseISO(sorted[i].date), parseISO(sorted[i - 1].date)));
+  for (const [key, buckets] of merchants) {
+    // Merge amount buckets within 5% of each other — a subscription whose
+    // price nudges (tax changes, a small increase) is still one thing.
+    const merged = [];
+    for (const [amtStr, rows] of [...buckets.entries()].sort((a, b) => Number(b[0]) - Number(a[0]))) {
+      const amt = Number(amtStr);
+      const target = merged.find(m => Math.abs(m.amount - amt) / Math.max(m.amount, amt) <= 0.05);
+      if (target) { target.rows.push(...rows); target.amount = median(target.rows.map(r => r.amount)); }
+      else merged.push({ amount: amt, rows: [...rows] });
     }
 
-    for (const interval of INTERVALS) {
-      if (sorted.length < interval.minOccurrences) continue;
-      const matchingGaps = gaps.filter(g => Math.abs(g - interval.days) <= interval.tolerance);
-      // Most of the gaps have to land on this interval — one late or
-      // skipped payment shouldn't disqualify an otherwise-clear pattern,
-      // but a scatter of unrelated gaps should.
-      if (matchingGaps.length / gaps.length >= 0.6) {
-        const last = sorted[sorted.length - 1];
-        const monthlyEquivalent =
-          interval.key === 'weekly' ? med * 4.33 :
-          interval.key === 'biweekly' ? med * 2.17 :
-          interval.key === 'monthly' ? med :
-          interval.key === 'quarterly' ? med / 3 :
-          med / 12;
-        results.push({
-          key,
-          name: last.title,
-          amount: Math.round(med * 100) / 100,
-          category: last.category || 'other',
-          interval: interval.key,
-          intervalLabel: interval.label,
-          occurrences: sorted.length,
-          lastDate: last.date,
-          nextDate: addDays(parseISO(last.date), interval.days).toISOString().slice(0, 10),
-          monthlyEquivalent,
-        });
-        break; // shortest matching interval wins (a monthly charge that
-               // also technically satisfies "yearly" tolerance shouldn't
-               // get filed as yearly)
-      }
+    for (const group of merged) {
+      const months = [...new Set(group.rows.map(r => monthKey(r.date)))].sort();
+      // Three separate months of the same charge is a strong signal and
+      // holds up on only a few months of history; two is too easy to hit
+      // by coincidence.
+      if (months.length < 3) continue;
+
+      // Months should be roughly consecutive — three charges spread over
+      // two years isn't a live subscription.
+      const first = parseISO(months[0] + '-01');
+      const last = parseISO(months[months.length - 1] + '-01');
+      const spanMonths = (last.getFullYear() - first.getFullYear()) * 12 + (last.getMonth() - first.getMonth()) + 1;
+      if (months.length / spanMonths < 0.6) continue;
+
+      const sorted = [...group.rows].sort((a, b) => a.date.localeCompare(b.date));
+      const last3 = sorted[sorted.length - 1];
+      const amount = Math.round(median(group.rows.map(r => r.amount)) * 100) / 100;
+      if (amount <= 0) continue;
+
+      results.push({
+        key: `${key}-${amount}`,
+        name: bestDisplayName(group.rows),
+        amount,
+        category: last3.category || 'other',
+        interval: 'monthly',
+        intervalLabel: 'Monthly',
+        occurrences: months.length,
+        lastDate: last3.date,
+        nextDate: addMonths(parseISO(last3.date), 1).toISOString().slice(0, 10),
+        monthlyEquivalent: amount,
+      });
     }
   }
 
