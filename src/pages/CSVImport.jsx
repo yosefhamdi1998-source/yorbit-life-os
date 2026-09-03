@@ -166,6 +166,15 @@ function parsePdfLinesToRows(lines) {
     const descEnd = line.length - amountMatch[0].length;
     if (descEnd <= descStart) continue;
     let desc = line.slice(descStart, descEnd).trim().replace(/^[-:•|,]+|[-:•|,]+$/g, '').trim();
+    // A real transaction description never contains a URL — seeing one
+    // means a page footer/disclaimer link that happened to land at the
+    // same vertical position as a real row got merged into it by the
+    // line-reconstruction above, which also means the "amount" this line
+    // matched can't be trusted either. Drop the row rather than import a
+    // real dollar figure under a corrupted description (this produced 16
+    // bogus rows — same broken title, same batch timestamp — before it
+    // was caught).
+    if (/https?:\/\/|www\./i.test(desc)) continue;
     let amtRaw = amountMatch[1];
     const negative = amtRaw.includes('(') || amtRaw.trim().startsWith('-');
     amtRaw = amtRaw.replace(/[()$,-]/g, '');
