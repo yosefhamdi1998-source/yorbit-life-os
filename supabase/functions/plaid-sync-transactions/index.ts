@@ -61,13 +61,32 @@ Deno.serve(async (req) => {
     });
     const plaidClient = new PlaidApi(config);
 
+    // First-ever sync for this account pulls a real backfill — 5 years back.
+    // Plaid only ever returns what the bank itself actually still has on
+    // file (most institutions cap out well under that regardless of what we
+    // ask for), so asking for 5 years costs nothing and just means "give me
+    // everything you've got." Every sync after that first one only needs
+    // the last 30 days — the backfill already covers everything older, so
+    // re-requesting years of data on every 30-minute cron tick would be
+    // slow and pointless.
+    const isFirstSync = !account.last_synced_at;
     const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = new Date(Date.now() - (isFirstSync ? 5 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const txRes = await plaidClient.transactionsGet({
-      access_token, start_date: startDate, end_date: endDate, options: { count: 100 },
-    });
-    const plaidTxs = txRes.data.transactions;
+    // transactionsGet caps each response at 500 rows and reports the true
+    // matching total in total_transactions — a single call silently missed
+    // everything past the first page for any account with real history.
+    // Page through with offset until we've pulled all of it.
+    const plaidTxs = [];
+    let offset = 0;
+    while (true) {
+      const txRes = await plaidClient.transactionsGet({
+        access_token, start_date: startDate, end_date: endDate, options: { count: 500, offset },
+      });
+      plaidTxs.push(...txRes.data.transactions);
+      offset += txRes.data.transactions.length;
+      if (offset >= txRes.data.total_transactions || txRes.data.transactions.length === 0) break;
+    }
 
     const { data: existing } = await admin.from('transactions').select('title, date, amount').eq('user_id', account.user_id);
     const existingKeys = new Set((existing || []).map((t) => `${t.title}-${t.date}-${t.amount}`));
