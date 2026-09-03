@@ -22,8 +22,8 @@ const config: CapacitorConfig = {
   ios: {
     // Allows safe-area CSS env() variables to work correctly
     contentInset: 'always',
-    // Match the light-mode background
-    backgroundColor: '#EAF6FF',
+    // Matches the app's dark background so launch doesn't flash light
+    backgroundColor: '#0F131A',
     // Prefer the mobile layout on iPad too
     preferredContentMode: 'mobile',
     // Required for WKWebView scroll feel
@@ -36,11 +36,12 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchAutoHide: true,
       launchShowDuration: 1000,
-      backgroundColor: '#EAF6FF',
+      backgroundColor: '#0F131A',
       showSpinner: false,
     },
     StatusBar: {
-      style: 'DEFAULT',
+      // DARK == light text, which is what a dark UI needs
+      style: 'DARK',
       backgroundColor: '#00000000',
       overlaysWebView: true,
     },
