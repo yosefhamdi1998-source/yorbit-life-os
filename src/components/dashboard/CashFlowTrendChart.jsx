@@ -53,11 +53,24 @@ function NetDot(props) {
   );
 }
 
-export default function CashFlowTrendChart({ data, period, onPeriodChange, simple }) {
+// How far back each option reaches, so options that can only ever show
+// empty space are never offered.
+const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36, all: Infinity };
+
+export default function CashFlowTrendChart({ data, period, onPeriodChange, simple, historyMonths }) {
   // Simple Mode: just "this month" and "this year" — the full 6-option
   // spread is exactly the kind of choice-overload a first-time/younger
   // user doesn't need.
-  const periodOptions = simple ? CASH_FLOW_PERIODS.filter(p => p.key === '1m' || p.key === '1y') : CASH_FLOW_PERIODS;
+  let periodOptions = simple ? CASH_FLOW_PERIODS.filter(p => p.key === '1m' || p.key === '1y') : CASH_FLOW_PERIODS;
+
+  // Offering 2Y and 3Y to someone with nine months of history produced a
+  // chart that was almost entirely blank — it read as broken rather than
+  // as "no data that far back". Keep the first option that covers the full
+  // history and drop anything longer.
+  if (typeof historyMonths === 'number' && historyMonths > 0) {
+    const covering = periodOptions.findIndex(p => PERIOD_MONTHS[p.key] >= historyMonths);
+    if (covering >= 0) periodOptions = periodOptions.slice(0, covering + 1);
+  }
   const activePeriod = CASH_FLOW_PERIODS.find(p => p.key === period) || CASH_FLOW_PERIODS[2];
   const hasAnyData = data.some(d => d.income > 0 || d.expense > 0);
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
@@ -141,23 +154,19 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
               />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={56} tickFormatter={v => fmtAxisCompact(v)} />
               <Tooltip content={<CashFlowTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.35 }} />
+              {/* The net line used to be drawn across the bars. It sat on
+                  top of the thing people actually want to read and made the
+                  bars harder to tap, and net is already stated in the
+                  tooltip — so the bars now have the chart to themselves. */}
               <Bar dataKey="income" fill="url(#incomeBarGrad)" radius={dense ? [2, 2, 0, 0] : [5, 5, 0, 0]} maxBarSize={barMaxSize} />
               <Bar dataKey="expense" fill="url(#expenseBarGrad)" radius={dense ? [2, 2, 0, 0] : [5, 5, 0, 0]} maxBarSize={barMaxSize} />
-              <Line
-                type="monotone"
-                dataKey="net"
-                stroke="#818cf8"
-                strokeWidth={2.5}
-                dot={<NetDot showDots={!dense} />}
-                activeDot={{ r: 6, fill: '#818cf8', stroke: 'hsl(var(--card))', strokeWidth: 2 }}
-              />
             </ComposedChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income</span>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Expenses</span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-indigo-400" /> Net</span>
           </div>
+          <p className="text-[11px] text-muted-foreground text-center mt-1.5">Tap any bar for that period's exact numbers.</p>
         </>
       )}
     </div>

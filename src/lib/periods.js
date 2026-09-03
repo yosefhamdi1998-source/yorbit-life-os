@@ -61,9 +61,14 @@ export function filterByPeriod(transactions, period, latestTxDate) {
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(period.slice(5)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(anchorYear)));
   if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 1)));
-  // month (default)
-  const anchorMonth = format(anchor, 'yyyy-MM');
-  return transactions.filter(t => t.date?.startsWith(anchorMonth));
+  // month (default) — trailing 30 days, NOT the calendar month. "Week" is
+  // already a trailing 7 days, so a calendar month sitting next to it was
+  // inconsistent, and on the 1st or 2nd of a month it showed one or two
+  // days of data: a hero reading "$0 income" purely because the month had
+  // just started. A trailing window always answers the question people
+  // actually mean by "this month".
+  const cutoff = startOfDay(subDays(anchor, 29));
+  return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
 }
 
 // The immediately-preceding window of the same length, for "vs last
@@ -90,10 +95,14 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
   if (isSpecificYearPeriod(period)) return transactions.filter(t => t.date?.startsWith(String(parseInt(period.slice(5), 10) - 1)));
   if (period === 'year') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 1)));
   if (period === 'lastyear') return transactions.filter(t => t.date?.startsWith(String(anchorYear - 2)));
-  // month: the calendar month before the anchor's month, not before literal today
-  const d = subMonths(anchor, 1);
-  const lastMonth = format(d, 'yyyy-MM');
-  return transactions.filter(t => t.date?.startsWith(lastMonth));
+  // month: the 30 days before this trailing 30-day window
+  const end = startOfDay(subDays(anchor, 30));
+  const start = startOfDay(subDays(anchor, 59));
+  return transactions.filter(t => {
+    if (!t.date) return false;
+    const d = parseISO(t.date);
+    return d >= start && d <= end;
+  });
 }
 
 // `anchor` should be the same latest-transaction-date passed to
@@ -110,7 +119,7 @@ export function getPeriodLabel(period, anchor = new Date()) {
   if (isSpecificYearPeriod(period)) return period.slice(5);
   if (period === 'year') return String(anchorYear);
   if (period === 'lastyear') return String(anchorYear - 1);
-  return format(anchor, 'MMMM yyyy');
+  return 'Last 30 Days';
 }
 
 export function getPeriodPhrase(period, anchor = new Date()) {
@@ -125,7 +134,7 @@ export function getPeriodPhrase(period, anchor = new Date()) {
   }
   if (period === 'year') return 'this year';
   if (period === 'lastyear') return 'last year';
-  return 'this month';
+  return 'in the last 30 days';
 }
 
 export function sumByType(transactions) {

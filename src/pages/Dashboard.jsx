@@ -165,7 +165,28 @@ export default function Dashboard() {
   // Same trailing-4-years list as the Yearly picker on Money, so the two
   // don't quietly offer a different range of history.
   const thisYearNum = new Date().getFullYear();
-  const YEAR_OPTIONS = [thisYearNum, thisYearNum - 1, thisYearNum - 2, thisYearNum - 3];
+  // Only offer years that actually contain transactions. Listing the last
+  // four years regardless meant picking 2023 or 2024 showed a completely
+  // empty hero, which reads as the app being broken rather than as "you
+  // have no data from then."
+  const YEAR_OPTIONS = (() => {
+    const years = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))]
+      .map(Number)
+      .sort((a, b) => b - a);
+    return years.length ? years : [thisYearNum];
+  })();
+
+  // Months of real history on record — drives which trend ranges are worth
+  // offering at all.
+  const historyMonths = (() => {
+    if (!transactions.length) return 0;
+    let min = null;
+    for (const t of transactions) if (t.date && (!min || t.date < min)) min = t.date;
+    if (!min) return 0;
+    const start = parseISO(min);
+    return (latestTxDate.getFullYear() - start.getFullYear()) * 12
+      + (latestTxDate.getMonth() - start.getMonth()) + 1;
+  })();
 
   // Same period, one step back — powers the Savings Progress comparison
   // and the Financial Health Score's "why it changed" explanation.
@@ -421,7 +442,7 @@ export default function Dashboard() {
           score that can read as a critique, and it's information the hero
           numbers above don't show: the shape of the last 6 months, not
           just one period's total. */}
-      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} />
+      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead

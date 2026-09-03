@@ -28,8 +28,22 @@ export function usePullToRefresh(onRefresh, enabled = true) {
   useEffect(() => {
     if (!enabled) return;
 
+    // Anything a person can tap. A pull gesture must never begin on one of
+    // these: the preventDefault() in onTouchMove below cancels the click
+    // the browser synthesises on touchend, so a tap with even a few pixels
+    // of downward drift — completely normal with a thumb — silently did
+    // nothing. That made the header buttons (More, notifications,
+    // settings), the period chips and the tab bar feel broken on every
+    // page that has pull-to-refresh, which is most of them.
+    const INTERACTIVE = 'button, a, input, select, textarea, label, [role="button"], [role="tab"], [role="switch"], [contenteditable]';
+
     const onTouchStart = (e) => {
       if (window.scrollY > 5 || refreshingRef.current) return;
+      const target = e.target;
+      if (target?.closest?.(INTERACTIVE)) {
+        startYRef.current = null;
+        return;
+      }
       startYRef.current = e.touches[0].clientY;
     };
 
