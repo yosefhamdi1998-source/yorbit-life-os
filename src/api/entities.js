@@ -189,11 +189,14 @@ class TransactionEntity extends Entity {
     }, limit);
   }
 
-  // Investing activity only — powers the Investments section.
+  // Investing activity only — powers the Investments section. Note this
+  // filters on the REASON, not just the exclusion flag: bank-to-bank
+  // transfers are also kept out of budgeting, but they aren't investments
+  // and would be nonsense on that page.
   async listInvestments(sort, limit) {
     return this._paginated((from, to, withCount) => {
       let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
-      query = query.eq('exclude_from_budget', true);
+      query = query.eq('exclusion_reason', 'investment');
       query = applySort(query, sort || '-date');
       return query.range(from, to);
     }, limit);
