@@ -131,18 +131,37 @@ export default function SpendingSummary() {
   const [{ period: initialPeriod, cursor: initialCursor }] = useState(initialStateFromQuery);
   const [period, setPeriod] = useState(initialPeriod);
   const [cursor, setCursor] = useState(initialCursor);
+  // Was this page opened from Home with a specific period in the URL? If so
+  // don't override the user's choice with the newest-data month below.
+  const [openedWithExplicitPeriod] = useState(
+    () => new URLSearchParams(window.location.search).has('period')
+  );
 
   useEffect(() => {
     (async () => {
       try {
         const tx = await base44.entities.Transaction.list('-date', 50000);
         setTransactions(tx);
+
+        // Land on the newest month that actually has spending, rather than
+        // whatever month it happens to be today. Opening on the 1st or 2nd
+        // showed a near-empty month ("$61 spent, −98% vs. previous") that
+        // reads as a broken page instead of "the month just started".
+        // Skipped when the page was opened with an explicit ?period=/&year=
+        // from Home, since that's a deliberate choice by the user.
+        if (!openedWithExplicitPeriod) {
+          const latest = tx
+            .filter(t => t.type === 'expense' && t.date)
+            .reduce((max, t) => (!max || t.date > max ? t.date : max), null);
+          if (latest) setCursor(parseISO(latest));
+        }
       } catch {
         toast({ title: "Couldn't load your spending", description: "Please try again in a moment.", variant: 'destructive' });
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const expenses = useMemo(() => transactions.filter(t => t.type === 'expense'), [transactions]);
@@ -239,7 +258,14 @@ export default function SpendingSummary() {
   const goPrev = () => setCursor(c => period === 'monthly' ? subMonths(c, 1) : period === 'biweekly' ? subDays(c, 14) : subYears(c, 1));
   const goNext = () => { if (nextDisabled) return; setCursor(c => period === 'monthly' ? addMonths(c, 1) : period === 'biweekly' ? addDays(c, 14) : addYears(c, 1)); };
 
-  const switchPeriod = (p) => { setPeriod(p); setCursor(defaultCursor(p)); };
+  // Switching Monthly/Bi-Weekly/Yearly lands on the newest period that has
+  // data, not on literal today — otherwise flipping to Monthly at the start
+  // of a month drops you on an empty view again.
+  const switchPeriod = (p) => {
+    setPeriod(p);
+    const latest = expenses.reduce((max, t) => (t.date && (!max || t.date > max) ? t.date : max), null);
+    setCursor(latest ? parseISO(latest) : defaultCursor(p));
+  };
 
   if (loading) {
     return (
