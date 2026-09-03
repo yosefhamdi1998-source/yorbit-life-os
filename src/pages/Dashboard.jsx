@@ -51,6 +51,23 @@ function fmt(n) {
   return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
+// "Today" / "Yesterday" / "Mon, Sep 1" — matches how the Money page reads
+// so the same transaction doesn't look different depending on where you
+// see it. Year appended once the date leaves the current year.
+function friendlyDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = parseISO(dateStr);
+    const now = startOfDay(new Date());
+    const days = differenceInDays(now, startOfDay(d));
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return format(d, d.getFullYear() === now.getFullYear() ? 'EEE, MMM d' : 'MMM d, yyyy');
+  } catch {
+    return dateStr;
+  }
+}
+
 const HEALTH_SCORE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 
 export default function Dashboard() {
@@ -616,7 +633,10 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{prettyMerchant(tx.title)}</p>
-                    <p className="text-xs text-muted-foreground capitalize truncate">{tx.category} · {tx.date}</p>
+                    {/* Was printing the raw ISO date ("2026-09-01") while
+                        the Money page showed "Today"/"Mon, Sep 1" for the
+                        same rows. Same treatment in both places now. */}
+                    <p className="text-xs text-muted-foreground capitalize truncate">{tx.category} · {friendlyDate(tx.date)}</p>
                   </div>
                   <span className={`text-sm font-bold shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
                     {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
