@@ -66,6 +66,38 @@ function parseCSV(text) {
 const DATE_VALUE_RE = /^\s*(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})/;
 const AMOUNT_VALUE_RE = /^\s*[-(]?\$?\s*-?\d[\d,]*\.\d{1,2}\)?\s*$/;
 
+// A Venmo / Cash App / PayPal-style personal-payments export, recognised by
+// its header shape rather than by any word appearing in the transaction
+// text. This is what lets P2P be detected from the SOURCE instead of from
+// a keyword: a Venmo payment whose note is just "🍕" contains nothing that
+// says "venmo" anywhere, so keyword matching could never have caught it.
+function detectP2PFormat(headers) {
+  const h = headers.map(x => x.trim().toLowerCase());
+  const has = (n) => h.includes(n);
+  // Venmo: Datetime, Type, Status, Note, From, To, Amount (total)...
+  if (has('from') && has('to') && (has('note') || has('type'))) return 'venmo';
+  // Cash App: Date, Transaction Type, Currency, Amount, Notes, Name of sender/receiver
+  if (h.some(x => x.includes('sender')) || h.some(x => x.includes('receiver'))) return 'cashapp';
+  return null;
+}
+
+// For a P2P export the counterparty is in "To" when money went out and
+// "From" when it came in, so neither column alone is correct for every
+// row. Falls back to the note only if both are blank, which at least
+// keeps SOME label rather than importing an empty title.
+function resolveP2PTitle(row, mapping, amountRaw) {
+  // A leading minus means money LEFT the account, so the counterparty is
+  // whoever it went "To". (Getting this backwards titles every row with
+  // the account owner's own name instead of the person they paid.)
+  const outgoing = String(amountRaw ?? '').trim().startsWith('-');
+  const to = (row[mapping.p2pTo] || '').trim();
+  const from = (row[mapping.p2pFrom] || '').trim();
+  const primary = outgoing ? (to || from) : (from || to);
+  const note = (row[mapping.p2pNote] || '').trim();
+  if (primary && note) return `${primary} — ${note}`;
+  return primary || note || '';
+}
+
 function sniffColumn(rows, headers, predicate, exclude = []) {
   const sample = rows.slice(0, Math.min(rows.length, 25)).filter(r => headers.some(h => (r[h] || '').trim()));
   if (sample.length === 0) return '';
@@ -103,7 +135,7 @@ function guessCategory(description) {
 // becomes one real transaction candidate here. Every source (CSV columns,
 // PDF text lines) funnels through this one function so date parsing,
 // amount cleanup, and category guessing only exist in one place.
-function normalizeRow({ date: rawDate, description, amount: rawAmount }) {
+function normalizeRow({ date: rawDate, description, amount: rawAmount, p2p = false }) {
   const rawAmt = String(rawAmount || '').replace(/[^0-9.-]/g, '');
   const amount = Math.abs(parseFloat(rawAmt)) || 0;
   if (!amount) return null;
@@ -121,7 +153,14 @@ function normalizeRow({ date: rawDate, description, amount: rawAmount }) {
       date = format(d, 'yyyy-MM-dd');
     } catch { return null; }
   }
-  return { title: desc, amount, type, category, date };
+  // A P2P export's rows are person-to-person payments regardless of what
+  // the note says, so they're excluded from budgeting the same way
+  // bank-synced P2P is — otherwise the same payment counts as "spending"
+  // when it arrives by CSV but not when it arrives from Plaid.
+  return {
+    title: desc, amount, type, category, date,
+    ...(p2p ? { exclude_from_budget: true, exclusion_reason: 'p2p' } : {}),
+  };
 }
 
 // pdf.js hands back individual text fragments with x/y positions, not
@@ -227,14 +266,38 @@ export default function CSVImport() {
             continue;
           }
           const guess = (keywords) => headers.find(hh => keywords.some(k => hh.toLowerCase().includes(k))) || '';
+          // Exact header match, for short column names where a substring
+          // check would grab the wrong column ("To" would otherwise match
+          // "Total", "Terminal Location"...).
+          const guessExact = (names) => headers.find(hh => names.includes(hh.trim().toLowerCase())) || '';
+
+          const p2pFormat = detectP2PFormat(headers);
+
           const mapping = {
             date: guess(['date', 'time', 'posted']),
-            // 'note' catches Venmo's own column name for this field —
-            // without it, every real Venmo CSV export fell back to manual
-            // mapping even though the date/amount columns auto-detected fine.
-            description: guess(['desc', 'merchant', 'name', 'memo', 'payee', 'narration', 'note']),
+            // Priority matters. 'memo'/'note' are LAST on purpose: Venmo's
+            // export has both a "Note" column (the memo — "🍕", "thanks")
+            // and To/From columns (who was actually paid). Matching 'note'
+            // first titled every Venmo payment with a pizza emoji instead
+            // of a person, which also made it invisible to P2P detection
+            // since nothing in the title said "venmo". Counterparty first,
+            // memo only as a last resort.
+            description:
+              guessExact(['payee', 'merchant', 'merchant name', 'description', 'counterparty', 'name'])
+              || guess(['desc', 'merchant', 'payee', 'narration'])
+              || guess(['memo', 'note']),
             amount: guess(['amount', 'debit', 'credit', 'value']),
           };
+
+          // A Venmo/Cash App style export: the counterparty lives in To or
+          // From depending on which way the money went, so no single column
+          // is right for every row. Resolved per-row below instead.
+          if (p2pFormat) {
+            mapping.p2pTo = guessExact(['to', 'destination']);
+            mapping.p2pFrom = guessExact(['from', 'source']);
+            mapping.p2pNote = guess(['note', 'memo']);
+            mapping.description = mapping.p2pTo || mapping.p2pFrom || mapping.description;
+          }
           // Name-based guessing failed — before ever asking a person to
           // pick columns by hand, try reading the column by what's actually
           // in it. This is what makes an odd or unlabeled export still
@@ -260,7 +323,15 @@ export default function CSVImport() {
           }
           if (mapping.date && mapping.amount && mapping.description) {
             const norm = rows.map(row => normalizeRow({
-              date: row[mapping.date], description: row[mapping.description], amount: row[mapping.amount],
+              date: row[mapping.date],
+              description: p2pFormat
+                ? resolveP2PTitle(row, mapping, row[mapping.amount])
+                : row[mapping.description],
+              amount: row[mapping.amount],
+              // Flagged from the FILE FORMAT, not from words in the title.
+              // Every row in a Venmo/Cash App export is a person-to-person
+              // payment by definition, whatever the note happens to say.
+              p2p: !!p2pFormat,
             })).filter(Boolean);
             allNormalized.push(...norm);
             summaries.push({ name, count: norm.length, kind: 'csv' });

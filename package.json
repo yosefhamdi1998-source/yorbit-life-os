@@ -11,7 +11,8 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "check:enums": "node scripts/check-enums.cjs",
-    "prebuild:check": "node scripts/check-enums.cjs"
+    "prebuild:check": "node scripts/check-enums.cjs",
+    "test:venmo": "node scripts/test-venmo-mapping.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
