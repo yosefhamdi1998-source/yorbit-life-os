@@ -241,7 +241,24 @@ export default function CSVImport() {
           // "just work" instead of stopping to ask.
           if (!mapping.date) mapping.date = sniffColumn(rows, headers, v => DATE_VALUE_RE.test(v));
           if (!mapping.amount) mapping.amount = sniffColumn(rows, headers, v => AMOUNT_VALUE_RE.test(v), [mapping.date].filter(Boolean));
-          if (mapping.date && mapping.amount) {
+          // Description got no fallback of its own, and the check below
+          // only required date + amount — so an export whose description
+          // column wasn't recognised imported EVERY row titled with the
+          // literal placeholder "Transaction". Those rows are unusable:
+          // nothing can categorise them, they can't be searched for, and
+          // they can't be matched as recurring. (17 such rows, $5,561, in
+          // real data.) Description is as essential as date and amount, so
+          // it gets the same treatment: sniff for the most text-like
+          // column that isn't already taken, and if that still fails, ask
+          // rather than import placeholders.
+          if (!mapping.description) {
+            mapping.description = sniffColumn(
+              rows, headers,
+              v => v.length >= 3 && /[a-z]{3}/i.test(v) && !DATE_VALUE_RE.test(v) && !AMOUNT_VALUE_RE.test(v),
+              [mapping.date, mapping.amount].filter(Boolean)
+            );
+          }
+          if (mapping.date && mapping.amount && mapping.description) {
             const norm = rows.map(row => normalizeRow({
               date: row[mapping.date], description: row[mapping.description], amount: row[mapping.amount],
             })).filter(Boolean);
@@ -288,7 +305,13 @@ export default function CSVImport() {
 
   const confirmCurrentMapping = () => {
     const current = pendingMapFiles[mapIndex];
-    if (!current.mapping.date || !current.mapping.amount) { setError('Please match at least Date and Amount.'); return; }
+    // Description is required, not optional. Without it every row imports
+    // as the placeholder "Transaction" — unsearchable, uncategorisable,
+    // and impossible to match as a recurring charge.
+    if (!current.mapping.date || !current.mapping.amount || !current.mapping.description) {
+      setError('Please match Date, Amount and Description — a transaction with no description can\'t be categorised or searched later.');
+      return;
+    }
     const norm = current.rawRows.map(row => normalizeRow({
       date: row[current.mapping.date], description: row[current.mapping.description], amount: row[current.mapping.amount],
     })).filter(Boolean);
