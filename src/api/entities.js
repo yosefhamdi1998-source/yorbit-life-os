@@ -189,13 +189,17 @@ const TX_COLUMNS = 'id,user_id,title,amount,type,category,date,notes,created_dat
 // provider_memo carries Coinbase's own text, and 845 of those rows contain
 // actual coin quantities ("Converted 0.037 BTC to 0.632 ETH") - the only
 // quantity data anywhere in this dataset.
-const INVESTMENT_COLUMNS = 'id,title,amount,date,provider_memo';
+// Real columns now, not prose. crypto_asset and crypto_quantity come
+// straight from Coinbase's export; quantity is SIGNED, so summing it per
+// asset is the position. Investments.jsx no longer parses titles.
+const INVESTMENT_COLUMNS = 'id,title,amount,date,type,crypto_asset,crypto_quantity,provider_memo';
 
 class TransactionEntity extends Entity {
   async list(sort, limit) {
     return this._paginated((from, to, withCount) => {
       let query = supabase.from(this.table).select(TX_COLUMNS, withCount ? { count: 'exact' } : undefined);
       query = query.eq('exclude_from_budget', false);
+      query = query.eq('superseded_by_import', false);
       query = applySort(query, sort || '-created_date');
       return query.range(from, to);
     }, limit);
@@ -205,6 +209,7 @@ class TransactionEntity extends Entity {
     return this._paginated((from, to, withCount) => {
       let query = supabase.from(this.table).select(TX_COLUMNS, withCount ? { count: 'exact' } : undefined);
       query = query.eq('exclude_from_budget', false);
+      query = query.eq('superseded_by_import', false);
       for (const [key, value] of Object.entries(queryObj)) {
         query = query.eq(key, value);
       }
@@ -234,6 +239,10 @@ class TransactionEntity extends Entity {
       // asset/action is stored as a real column.
       let query = supabase.from(this.table).select(INVESTMENT_COLUMNS, withCount ? { count: 'exact' } : undefined);
       query = query.eq('exclusion_reason', 'investment');
+      // Rows replaced by the authoritative Coinbase import are kept for
+      // audit but must never be counted - including them double-counts
+      // every 2023-2026 trade.
+      query = query.eq('superseded_by_import', false);
       query = applySort(query, sort || '-date');
       return query.range(from, to);
     }, limit);
@@ -248,6 +257,7 @@ class TransactionEntity extends Entity {
     return this._paginated((from, to, withCount) => {
       let query = supabase.from(this.table).select(TX_COLUMNS + ',exclusion_reason', withCount ? { count: 'exact' } : undefined);
       query = query.in('exclusion_reason', ['p2p', 'cash']);
+      query = query.eq('superseded_by_import', false);
       query = applySort(query, sort || '-date');
       return query.range(from, to);
     }, limit);

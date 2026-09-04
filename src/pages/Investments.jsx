@@ -7,10 +7,24 @@ import { toast } from '@/components/ui/use-toast';
 import { fmtFull, fmtCompact, fmtAxisCompact } from '@/lib/format';
 import { format, parseISO } from 'date-fns';
 
+// Crypto quantities span fifteen orders of magnitude — 0.00001659 BTC and
+// 15,831,486 SHIB are both ordinary. A fixed decimal count renders one as
+// "0.00" and the other as a wall of zeros, so precision scales with size.
+function formatQty(q) {
+  const a = Math.abs(q);
+  if (a >= 1000) return q.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (a >= 1) return q.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  if (a >= 0.0001) return q.toFixed(6);
+  return q.toFixed(8);
+}
+
+// FALLBACK ONLY. Asset and quantity are real columns now (crypto_asset,
+// crypto_quantity) straight from Coinbase's export. This regex is kept for
+// rows imported before those columns existed — chiefly 2022, which no
+// export covers. Everything from 2023 on uses the structured fields.
+//
 // A Coinbase-style title reads "Coinbase Buy LTC" / "Coinbase Send DOGE" —
-// the second word is what happened, the third is the asset. Parsing it
-// here keeps the imported rows untouched while still giving this page real
-// structure to group and total by.
+// the second word is what happened, the third is the asset.
 function parseActivity(title = '') {
   const m = title.match(/^Coinbase\s+([A-Za-z]+(?:\s+(?:Out|In))?)\s*-?\s*([A-Z]{2,6})?/i);
   if (!m) return { action: 'Other', asset: null };
@@ -55,22 +69,44 @@ export default function Investments() {
     const yearMap = {};
 
     for (const t of rows) {
-      const { action, asset } = parseActivity(t.title);
-      const key = asset || '—';
-      if (!byAsset[key]) byAsset[key] = { asset: key, count: 0, bought: 0, sold: 0 };
+      // crypto_asset and crypto_quantity are real columns from Coinbase's
+      // own export. Everything here used to be regex'd out of the title,
+      // which is why 1,562 rows were "unattributed" and no quantity was
+      // recoverable at all. parseActivity() is now only a fallback for
+      // pre-import rows that still have no structured asset.
+      const parsed = t.crypto_asset ? null : parseActivity(t.title);
+      const key = t.crypto_asset || parsed?.asset || '—';
+      const action = parsed?.action || '';
+
+      if (!byAsset[key]) {
+        byAsset[key] = { asset: key, count: 0, bought: 0, sold: 0, netQty: 0, hasQty: false };
+      }
       byAsset[key].count++;
 
+      // SIGNED quantity: negative for Sell/Send/Withdrawal. Summing it is
+      // the net change in that asset — not a holding, because history
+      // starts 2023 and the account opened in 2022.
+      if (t.crypto_quantity !== null && t.crypto_quantity !== undefined) {
+        byAsset[key].netQty += Number(t.crypto_quantity);
+        byAsset[key].hasQty = true;
+      }
+
       const amt = t.amount || 0;
-      if (/^Buy/i.test(action)) { byAsset[key].bought += amt; bought += amt; }
-      if (/^Sell/i.test(action)) { byAsset[key].sold += amt; sold += amt; }
-      if (MONEY_IN.test(action)) moneyIn += amt;
-      if (MONEY_OUT.test(action)) moneyOut += amt;
+      const isBuy = t.crypto_asset ? t.type === 'expense' : /^Buy/i.test(action);
+      const isSell = t.crypto_asset ? t.type === 'income' : /^Sell/i.test(action);
+      if (isBuy) { byAsset[key].bought += amt; bought += amt; }
+      if (isSell) { byAsset[key].sold += amt; sold += amt; }
+      if (!t.crypto_asset) {
+        if (MONEY_IN.test(action)) moneyIn += amt;
+        if (MONEY_OUT.test(action)) moneyOut += amt;
+      } else if (isSell) moneyIn += amt;
+      else moneyOut += amt;
 
       const y = (t.date || '').slice(0, 4);
       if (y) {
         if (!yearMap[y]) yearMap[y] = { year: y, bought: 0, sold: 0 };
-        if (/^Buy/i.test(action)) yearMap[y].bought += amt;
-        if (/^Sell/i.test(action)) yearMap[y].sold += amt;
+        if (isBuy) yearMap[y].bought += amt;
+        if (isSell) yearMap[y].sold += amt;
       }
     }
 
@@ -211,6 +247,18 @@ export default function Investments() {
       {assets.length > 0 && (
         <>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">By asset</p>
+          {/* Deliberately "net change since 2023", never "holdings". The
+              imported history starts 2023-01-01 while the account opened in
+              2022, so a per-asset sum is a CHANGE, not a balance. Under the
+              holdings framing several assets read negative, which is
+              impossible and would be an obviously broken number; as a change
+              it is simply a position drawn down, which is true. */}
+          {assets.some(a => a.hasQty) && (
+            <p className="text-[11px] text-muted-foreground mb-2 px-1 leading-relaxed">
+              Quantities are the <strong className="text-foreground">net change since January 2023</strong>,
+              not current holdings — earlier history isn&apos;t in the imported data.
+            </p>
+          )}
           <div className="sky-card rounded-2xl overflow-hidden mb-5">
             <div className="divide-y divide-border/50">
               {assets.slice(0, 12).map(a => (
@@ -224,7 +272,17 @@ export default function Investments() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">{a.asset}</p>
-                    <p className="text-xs text-muted-foreground">{a.count.toLocaleString()} transactions</p>
+                    <p className="text-xs text-muted-foreground">
+                      {a.count.toLocaleString()} transactions
+                      {a.hasQty && Math.abs(a.netQty) > 1e-8 && (
+                        <>
+                          {' · '}
+                          <span className={a.netQty > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
+                            {a.netQty > 0 ? '+' : ''}{formatQty(a.netQty)} since 2023
+                          </span>
+                        </>
+                      )}
+                    </p>
                   </div>
                   {/* fmtCompact already emits the currency symbol — don't
                       prefix another one. */}
