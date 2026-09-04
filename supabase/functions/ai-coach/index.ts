@@ -1,5 +1,6 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-5'; // update as newer models become available
@@ -20,22 +21,72 @@ const DAILY_REQUEST_LIMIT_PER_USER = 40;
 const MONTHLY_BUDGET_USD = 15;
 const COST_PER_1K_INPUT_TOKENS = 0.003;
 const COST_PER_1K_OUTPUT_TOKENS = 0.015;
+// Cached input is billed at a large discount on reads. Kept as its own
+// constant so the estimate stays honest rather than pretending a cache
+// read costs the same as a fresh one.
+const COST_PER_1K_CACHE_READ_TOKENS = 0.0003;
+const COST_PER_1K_CACHE_WRITE_TOKENS = 0.00375;
+
+// --- per-user ceilings --------------------------------------------------
+// The shared monthly cap above protects the bill but not the product: the
+// first heavy user consumes it and every later user meets a dead feature.
+// With strangers that is the normal case, not the edge case. These are the
+// per-user allowances that decide what a signup actually costs.
+//
+// Measured against real data: a full advisor turn was ~26,000 input tokens
+// because 200 complete transaction rows were serialised into every single
+// message. After trimming (below) a turn is roughly 4-6k input tokens, so
+// these dollar figures are what actually bound a user.
+const TIER_MONTHLY_USD: Record<string, number> = {
+  free: 0.40,
+  pro: 6.00,
+  unlimited: 100.00,
+};
+const TIER_MONTHLY_REQUESTS: Record<string, number> = {
+  free: 15,
+  pro: 300,
+  unlimited: 5000,
+};
+
+function monthKeyUTC(d = new Date()) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
 
 async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId: string) {
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
+  const month = monthKeyUTC();
 
-  const [{ count: dailyCount }, { data: monthRows }] = await Promise.all([
-    admin.from('ai_usage_log').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).gte('created_at', dayAgo),
-    admin.from('ai_usage_log').select('estimated_cost_usd')
-      .gte('created_at', monthStart.toISOString()),
-  ]);
+  const [{ count: dailyCount }, { data: monthRows }, { data: profile }, { data: budgetRow }] =
+    await Promise.all([
+      admin.from('ai_usage_log').select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).gte('created_at', dayAgo),
+      admin.from('ai_usage_log').select('estimated_cost_usd')
+        .gte('created_at', monthStart.toISOString()),
+      admin.from('profiles').select('ai_tier').eq('id', userId).single(),
+      admin.from('ai_user_budgets').select('requests, spend_usd')
+        .eq('user_id', userId).eq('month', month).maybeSingle(),
+    ]);
 
   if ((dailyCount ?? 0) >= DAILY_REQUEST_LIMIT_PER_USER) {
     return "You've reached today's AI Coach limit. It resets in a few hours — try again later.";
+  }
+
+  // Per-user ceiling, checked BEFORE the shared one so a user who has
+  // exhausted their own allowance gets a message about their allowance
+  // rather than a confusing global outage notice.
+  const tier = profile?.ai_tier || 'free';
+  const userSpend = Number(budgetRow?.spend_usd ?? 0);
+  const userRequests = Number(budgetRow?.requests ?? 0);
+  const tierUsd = TIER_MONTHLY_USD[tier] ?? TIER_MONTHLY_USD.free;
+  const tierRequests = TIER_MONTHLY_REQUESTS[tier] ?? TIER_MONTHLY_REQUESTS.free;
+
+  if (userRequests >= tierRequests || userSpend >= tierUsd) {
+    return tier === 'free'
+      ? `You've used all ${tierRequests} of this month's free AI Coach messages. They reset on the 1st.`
+      : "You've reached your AI Coach limit for this month. It resets on the 1st.";
   }
 
   const monthSpend = (monthRows || []).reduce((s, r) => s + (r.estimated_cost_usd || 0), 0);
@@ -77,21 +128,54 @@ async function maybeSendBudgetWarning(admin: ReturnType<typeof serviceClient>, m
   }
 }
 
-async function logUsage(admin: ReturnType<typeof serviceClient>, userId: string, usage: { input_tokens?: number; output_tokens?: number }) {
+async function logUsage(
+  admin: ReturnType<typeof serviceClient>,
+  userId: string,
+  usage: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+  },
+) {
   const input_tokens = usage?.input_tokens || 0;
   const output_tokens = usage?.output_tokens || 0;
+  const cache_write = usage?.cache_creation_input_tokens || 0;
+  const cache_read = usage?.cache_read_input_tokens || 0;
+
+  // Cache reads and writes are billed differently from fresh input. Rolling
+  // them all into the plain input rate would overstate cost by roughly 10x
+  // on cached turns and make the budget trip far too early.
   const estimated_cost_usd =
     (input_tokens / 1000) * COST_PER_1K_INPUT_TOKENS +
-    (output_tokens / 1000) * COST_PER_1K_OUTPUT_TOKENS;
+    (output_tokens / 1000) * COST_PER_1K_OUTPUT_TOKENS +
+    (cache_write / 1000) * COST_PER_1K_CACHE_WRITE_TOKENS +
+    (cache_read / 1000) * COST_PER_1K_CACHE_READ_TOKENS;
+
   // Best-effort — a logging failure should never break the actual response
   // the user is waiting on.
   try {
-    await admin.from('ai_usage_log').insert({ user_id: userId, input_tokens, output_tokens, estimated_cost_usd });
+    const monthKey = monthKeyUTC();
 
-    const now = new Date();
-    const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const { data: monthRows } = await admin.from('ai_usage_log').select('estimated_cost_usd').gte('created_at', monthStart.toISOString());
+    await admin.from('ai_usage_log').insert({
+      user_id: userId, input_tokens, output_tokens, estimated_cost_usd,
+    });
+
+    // Atomic per-user accumulation. Doing this as read-then-write would let
+    // two concurrent requests both read the same total and both write
+    // base+cost, losing one — the same race that made goal contributions
+    // silently vanish.
+    await admin.rpc('record_ai_usage', {
+      p_user_id: userId,
+      p_month: monthKey,
+      p_spend: estimated_cost_usd,
+    });
+
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const { data: monthRows } = await admin.from('ai_usage_log')
+      .select('estimated_cost_usd').gte('created_at', monthStart.toISOString());
     const monthSpend = (monthRows || []).reduce((s, r) => s + (r.estimated_cost_usd || 0), 0);
     await maybeSendBudgetWarning(admin, monthKey, monthSpend);
   } catch (err) {
@@ -113,9 +197,106 @@ const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance
 10. Never make up numbers — always base advice on the actual data provided below.
 11. If there is no data yet, encourage the user to add transactions, set budgets, add bills, or log custom records.`;
 
-async function callAnthropic(messages: { role: string; content: string }[], system?: string) {
+const MAX_HISTORY_MESSAGES = 20;
+const RECENT_TX_DETAIL = 40;
+
+// Builds the model's view of the user's finances.
+//
+// This previously serialised 200 complete transaction rows straight into
+// the prompt. Measured against real data that was 89,059 characters —
+// roughly 26,000 tokens — per message, and most of it was UUIDs, ISO
+// timestamps and created/updated columns the model cannot use. At ~$0.003
+// per 1K input tokens that was about 8 cents of pure overhead on every
+// turn, re-billed in full each time.
+//
+// What the model actually needs to give advice: totals per category, how
+// that compares to budget, and enough recent line items to name specific
+// merchants. So: aggregate everything, then include only the most recent
+// few dozen transactions in detail, stripped to the fields that matter.
+function buildContext(d: {
+  budgets: any[] | null;
+  transactions: any[] | null;
+  bills: any[] | null;
+  forms: any[] | null;
+  records: any[] | null;
+}) {
+  const txs = d.transactions || [];
+
+  const byCategory = new Map<string, { spent: number; count: number }>();
+  let totalSpend = 0;
+  let totalIncome = 0;
+  for (const t of txs) {
+    const amt = Number(t.amount) || 0;
+    if (t.type === 'income') { totalIncome += amt; continue; }
+    totalSpend += amt;
+    const cur = byCategory.get(t.category) || { spent: 0, count: 0 };
+    cur.spent += amt;
+    cur.count += 1;
+    byCategory.set(t.category, cur);
+  }
+
+  const budgetByCat = new Map(
+    (d.budgets || []).map((b: any) => [b.category, Number(b.monthly_limit) || 0]),
+  );
+
+  const categoryLines = [...byCategory.entries()]
+    .sort((a, b) => b[1].spent - a[1].spent)
+    .map(([cat, v]) => {
+      const limit = budgetByCat.get(cat);
+      const limitPart = limit ? ` of $${limit} budget` : ' (no budget set)';
+      return `- ${cat}: $${v.spent.toFixed(2)}${limitPart} across ${v.count} transactions`;
+    });
+
+  // Only the fields that carry meaning. Dropping ids and timestamps is
+  // most of the saving.
+  const recent = txs.slice(0, RECENT_TX_DETAIL).map((t: any) =>
+    `${t.date} ${t.type === 'income' ? '+' : '-'}$${Number(t.amount).toFixed(2)} ${t.category} "${t.title}"`,
+  );
+
+  const billLines = (d.bills || []).map((b: any) =>
+    `- ${b.name}: $${b.amount} due ${b.due_date}${b.is_paid ? ' (paid)' : ''}`,
+  );
+
+  const recordLines = (d.records || []).slice(0, 20).map((r: any) =>
+    `- ${r.form_id}: ${JSON.stringify(r.data)}`,
+  );
+
+  return [
+    `Spending summary (${txs.length} transactions):`,
+    `Total spent: $${totalSpend.toFixed(2)} | Total income: $${totalIncome.toFixed(2)}`,
+    '',
+    'By category:',
+    ...(categoryLines.length ? categoryLines : ['- no spending recorded']),
+    '',
+    `Most recent ${recent.length} transactions:`,
+    ...(recent.length ? recent : ['- none']),
+    '',
+    'Bills:',
+    ...(billLines.length ? billLines : ['- none']),
+    '',
+    'Custom forms:',
+    ...((d.forms || []).map((f: any) => `- ${f.name}`)),
+    ...(recordLines.length ? ['', 'Recent custom records:', ...recordLines] : []),
+  ].join('\n');
+}
+
+async function callAnthropic(
+  messages: { role: string; content: string }[],
+  system?: string,
+  cacheSystem = false,
+) {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) throw new Error('AI features are not configured yet (missing ANTHROPIC_API_KEY).');
+
+  // The system block holds the instructions plus the user's financial
+  // context, and is identical for every turn of a conversation. Without a
+  // cache breakpoint it was re-billed at full input price on every single
+  // message. Marking it ephemeral makes turn 2 onward a cache read.
+  const systemPayload = system
+    ? (cacheSystem
+        ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+        : system)
+    : undefined;
 
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
@@ -124,7 +305,7 @@ async function callAnthropic(messages: { role: string; content: string }[], syst
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: 1500, system, messages }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 1500, system: systemPayload, messages }),
   });
 
   if (!res.ok) {
@@ -185,16 +366,27 @@ async function handleAdvisorChat(body: any, userId: string, admin: ReturnType<ty
     admin.from('custom_records').select('*').eq('user_id', userId).order('created_date', { ascending: false }).limit(100),
   ]);
 
-  const context = `User's financial data (JSON):\nBudgets: ${JSON.stringify(budgets)}\nRecent transactions: ${JSON.stringify(transactions)}\nBills: ${JSON.stringify(bills)}\nCustom forms: ${JSON.stringify(forms)}\nCustom records: ${JSON.stringify(records)}`;
+  const context = buildContext({ budgets, transactions, bills, forms, records });
 
-  // Full message history for this conversation
+  // History is bounded. It was previously fetched with no limit, so every
+  // turn re-sent the entire conversation and cost grew quadratically with
+  // its length. The last 20 messages is ample for continuity; anything
+  // older is not worth paying for on every subsequent message.
   const { data: history } = await admin
-    .from('advisor_messages').select('role, content').eq('conversation_id', conversation_id).order('created_date', { ascending: true });
+    .from('advisor_messages').select('role, content')
+    .eq('conversation_id', conversation_id)
+    .order('created_date', { ascending: false })
+    .limit(MAX_HISTORY_MESSAGES);
 
-  const messages = (history || []).map((m) => ({ role: m.role, content: m.content }));
+  const messages = (history || [])
+    .slice()
+    .reverse()
+    .map((m) => ({ role: m.role, content: m.content }));
   const system = `${ADVISOR_INSTRUCTIONS}\n\n${context}`;
 
-  const { text: replyText, usage } = await callAnthropic(messages, system);
+  // Cache the system block: it is byte-identical across turns of the same
+  // conversation, which is exactly what a cache breakpoint is for.
+  const { text: replyText, usage } = await callAnthropic(messages, system, true);
   await logUsage(admin, userId, usage);
 
   await admin.from('advisor_messages').insert({
@@ -213,6 +405,15 @@ Deno.serve(async (req) => {
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
     const admin = serviceClient();
+
+    // Burst protection, distinct from the monthly budget below. The budget
+    // stops the bill; this stops a script issuing hundreds of requests a
+    // minute, which the budget would only notice after the money was gone.
+    const limited = await enforceRateLimit(
+      'ai', identityFromRequest(req, user.id), RULES.ai,
+      'You are sending messages faster than AI Coach can keep up. Try again shortly.',
+    );
+    if (limited) return limited;
 
     // Checked before either mode ever calls Anthropic — a blocked request
     // costs nothing, and the caller gets a plain-English reason instead of

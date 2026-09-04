@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 // Investment/crypto accounts (Coinbase and similar) report a current
 // snapshot of positions via investmentsHoldingsGet, not a dated log of

@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 // --- categorisation -----------------------------------------------------
 // This used to read Plaid's LEGACY `category` array through a 12-entry map,
@@ -152,6 +153,20 @@ Deno.serve(async (req) => {
     if (!isServiceRoleCall) {
       const user = await getUser(req);
       if (!user || user.id !== account.user_id) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+      // User-initiated syncs only. The cron path is deliberately exempt —
+      // it legitimately calls this once per account per run, and rate
+      // limiting it would mean the accounts at the end of the list stop
+      // syncing once there are enough users.
+      //
+      // Every one of these calls costs real money at Plaid, and `full`
+      // is read straight from the request body, so without this a user
+      // can force unlimited 5-year backfills.
+      const limited = await enforceRateLimit(
+        'plaid-sync', identityFromRequest(req, user.id), RULES.sync,
+        "You've refreshed this account several times recently. Bank data updates roughly once a day, so give it a little while.",
+      );
+      if (limited) return limited;
     }
 
     const access_token = account.access_token_ref;
@@ -246,6 +261,7 @@ Deno.serve(async (req) => {
 
     let imported = 0;
     let skipped = 0;
+    let failed = 0;
 
     for (const tx of plaidTxs) {
       if (tx.pending) { skipped++; continue; }
@@ -283,7 +299,16 @@ Deno.serve(async (req) => {
         ...(exclusionReason ? { exclude_from_budget: true, exclusion_reason: exclusionReason } : {}),
         notes: `Imported from ${account.institution_name}`,
       });
-      if (!error) imported++;
+      // Insert failures were silently discarded here while the log below
+      // hardcoded error_count: 0 — so a sync where every single insert
+      // failed reported "success, imported 0" and the only telemetry that
+      // existed actively lied about it.
+      if (error) {
+        failed++;
+        if (failed <= 3) console.error('transaction insert failed:', error.message);
+      } else {
+        imported++;
+      }
     }
 
     // What history did we ACTUALLY get? The earliest date Plaid returned is
@@ -311,11 +336,11 @@ Deno.serve(async (req) => {
       connected_account_id,
       started_at: new Date().toISOString(),
       finished_at: new Date().toISOString(),
-      status: 'success',
+      status: failed > 0 ? 'partial' : 'success',
       imported_count: imported,
       skipped_duplicate_count: skipped,
-      error_count: 0,
-      message: `Imported ${imported} transactions, skipped ${skipped} duplicates`,
+      error_count: failed,
+      message: `Imported ${imported}, skipped ${skipped} duplicates, ${failed} failed`,
     });
 
     return jsonResponse({
@@ -329,6 +354,45 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('plaid-sync-transactions error:', error.response?.data || error.message);
+
+    // Release the 'syncing' status set before the Plaid call.
+    //
+    // Without this a single transient failure was permanent: the row stayed
+    // at 'syncing' forever, and sync-all-accounts selects only rows where
+    // sync_status = 'connected', so the cron never looked at that account
+    // again. The bank kept showing as connected in the UI while new
+    // transactions silently stopped arriving — the worst possible failure
+    // mode, because nothing anywhere said anything was wrong.
+    try {
+      const body = await req.clone().json().catch(() => ({}));
+      const id = body?.connected_account_id;
+      if (id) {
+        const admin2 = serviceClient();
+        const { data: acct } = await admin2
+          .from('connected_accounts').select('user_id').eq('id', id).single();
+        await admin2.from('connected_accounts').update({
+          sync_status: 'error',
+          error_message: "We couldn't sync this account. Please try again.",
+        }).eq('id', id);
+        if (acct?.user_id) {
+          await admin2.from('bank_sync_logs').insert({
+            user_id: acct.user_id,
+            provider: 'plaid',
+            connected_account_id: id,
+            started_at: new Date().toISOString(),
+            finished_at: new Date().toISOString(),
+            status: 'error',
+            imported_count: 0,
+            skipped_duplicate_count: 0,
+            error_count: 1,
+            message: 'Sync failed',
+          });
+        }
+      }
+    } catch (cleanupErr) {
+      console.error('plaid-sync-transactions cleanup failed:', cleanupErr.message);
+    }
+
     return jsonResponse({ error: "We couldn't sync your transactions. Please try again." }, 500);
   }
 });

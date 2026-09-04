@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);

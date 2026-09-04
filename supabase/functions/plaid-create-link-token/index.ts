@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from 'npm:plaid@29.0.0';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
@@ -13,6 +14,11 @@ Deno.serve(async (req) => {
 
     const user = await getUser(req);
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+    const limited = await enforceRateLimit(
+      'plaid-link', identityFromRequest(req, user.id), RULES.sync,
+    );
+    if (limited) return limited;
 
     const config = new Configuration({
       basePath: PlaidEnvironments.production,

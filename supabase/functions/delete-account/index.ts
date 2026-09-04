@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 // investment_holdings was missing here — verified live that deletion still
 // fully removes it (every one of these tables' user_id FK to auth.users is
@@ -21,6 +22,11 @@ Deno.serve(async (req) => {
   try {
     const user = await getUser(req);
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+    const limited = await enforceRateLimit(
+      'delete-account', identityFromRequest(req, user.id), RULES.destructive,
+    );
+    if (limited) return limited;
 
     const admin = serviceClient();
     const userId = user.id;

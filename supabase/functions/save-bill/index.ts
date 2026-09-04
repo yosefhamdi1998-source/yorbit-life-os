@@ -1,5 +1,6 @@
 import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
+import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
@@ -8,6 +9,11 @@ Deno.serve(async (req) => {
   try {
     const user = await getUser(req);
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+
+    const limited = await enforceRateLimit(
+      'write', identityFromRequest(req, user.id), RULES.write,
+    );
+    if (limited) return limited;
 
     const admin = serviceClient();
     const body = await req.json();

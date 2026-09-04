@@ -10,15 +10,26 @@ Deno.serve(async (req) => {
   try {
     const admin = serviceClient();
 
-    // If a user JWT is present, require admin. If not (system/cron call), proceed.
+    // Deny by default.
+    //
+    // This previously read: if not a service-role call, resolve the user,
+    // and IF a user resolved, require admin. Failing to resolve a user —
+    // no token, an expired one, or the public anon key that ships in the
+    // frontend bundle — skipped the check entirely and fell through to
+    // syncing every account in the system. The response then returned each
+    // account's name, so an unauthenticated caller got a directory of every
+    // connected bank account across all users, and triggered a paid Plaid
+    // call for each one.
+    //
+    // An unauthenticated caller is not an admin. That has to be the
+    // default branch, not a case that falls through.
     const authHeader = req.headers.get('Authorization') || '';
     const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
     if (!isServiceRoleCall) {
       const user = await getUser(req);
-      if (user) {
-        const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single();
-        if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403);
-      }
+      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+      const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403);
     }
 
     const { data: accounts } = await admin.from('connected_accounts').select('*').eq('sync_status', 'connected');

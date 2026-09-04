@@ -10,9 +10,16 @@ export function handleOptions(req: Request): Response | null {
   return null;
 }
 
-export function jsonResponse(body: unknown, status = 200): Response {
+// `extraHeaders` exists so rate-limited responses can carry Retry-After,
+// which is the difference between a client that backs off correctly and
+// one that hammers a 429 in a tight loop.
+export function jsonResponse(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extraHeaders },
   });
 }
