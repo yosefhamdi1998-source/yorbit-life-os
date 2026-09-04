@@ -66,13 +66,16 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
   // user doesn't need.
   let periodOptions = simple ? CASH_FLOW_PERIODS.filter(p => p.key === '1m' || p.key === '1y') : CASH_FLOW_PERIODS;
 
-  // Offering 2Y and 3Y to someone with nine months of history produced a
+  // Offering 3Y/All to someone with nine months of history produced a
   // chart that was almost entirely blank — it read as broken rather than
   // as "no data that far back". Keep the first option that covers the full
-  // history and drop anything longer.
+  // history and drop anything longer — but always keep 2Y as a floor
+  // regardless of how much real history exists, per explicit request.
   if (typeof historyMonths === 'number' && historyMonths > 0) {
+    const twoYearIndex = periodOptions.findIndex(p => p.key === '2y');
     const covering = periodOptions.findIndex(p => PERIOD_MONTHS[p.key] >= historyMonths);
-    if (covering >= 0) periodOptions = periodOptions.slice(0, covering + 1);
+    const cutoff = Math.max(covering, twoYearIndex);
+    if (cutoff >= 0) periodOptions = periodOptions.slice(0, cutoff + 1);
   }
   const activePeriod = CASH_FLOW_PERIODS.find(p => p.key === period) || CASH_FLOW_PERIODS[2];
   const hasAnyData = data.some(d => d.income > 0 || d.expense > 0);

@@ -90,7 +90,7 @@ export const BACKGROUND_THEMES = {
   },
 };
 
-const DEFAULT_THEME = 'gold';
+const DEFAULT_THEME = 'slate';
 const STORAGE_KEY = 'bgTheme';
 
 export function getBackgroundTheme() {

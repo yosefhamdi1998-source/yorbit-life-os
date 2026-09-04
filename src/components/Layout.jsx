@@ -77,13 +77,13 @@ const pageVariants = {
 const TAB_PATHS = ['/', '/finance', '/investments', '/budget', '/bills', '/coach'];
 
 export default function Layout() {
-  // Dark is the product's default look; light is opt-in via the toggle.
+  // Light is the product's default look; dark is opt-in via the toggle.
   // Anyone who has already picked a side (this device has a 'theme' key in
   // localStorage) keeps their own choice — this only changes what a brand
   // new visitor sees before they've ever touched the toggle.
   const [dark, setDark] = useState(() => {
     const stored = localStorage.getItem('theme');
-    return stored ? stored === 'dark' : true;
+    return stored ? stored === 'dark' : false;
   });
   const location = useLocation();
   const navigate = useNavigate();
