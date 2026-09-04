@@ -62,18 +62,38 @@ generic error.
 
 ### HIGH
 
-**H1. Every page fetches the entire transaction history.**
-Eight pages call `Transaction.list('-date', 50000)`:
-`Dashboard.jsx:107`, `Finance.jsx:549`, `Budget.jsx:68`, `Recurring.jsx:27`,
-`SaveMore.jsx:26`, `SpendingSummary.jsx:143`, `Totals.jsx:33`,
-`CSVImport.jsx:404`.
+**H1. ~~Every page fetches the entire transaction history.~~ CORRECTED AND
+LARGELY FIXED — 2026-09-04.**
 
-**Measured: 7,130 kB of JSON per page load** for 15,700 rows. On a phone on
-cellular this is the difference between an app that feels instant and one
-that feels broken. Indexes exist (`idx_transactions_user_date`) so the query
-is fine — the payload is the problem.
+The original claim ("7,130 kB per page load, eight pages") **was wrong.**
+It was measured with `select(*)` over ALL rows, without the
+`exclude_from_budget = false` filter that `Transaction.list()` actually
+applies. Correct figures for this account:
 
-*Fix:* server-side aggregation for summary screens; pagination for the list.
+| | rows | before | after |
+|---|---|---|---|
+| `list()` / `filter()` — 8 budget pages | **344** | 148 kB | **100 kB** |
+| `listInvestments()` — Investments page | **14,913** | **6,794 kB** | **2,234 kB** |
+| `listAll()` — data export only | 15,700 | 7,130 kB | unchanged, deliberately |
+
+Of 15,700 rows only 344 are budget-relevant; 15,356 are excluded, 14,913 of
+them crypto trades. So the weight was never spread across eight pages — it
+was **one page**, Investments, and it is the same complaint raised earlier
+in the session ("eleven thousand transactions from Litecoin").
+
+Fixed by selecting only columns the UI reads (`src/api/entities.js`,
+`TX_COLUMNS` and `INVESTMENT_COLUMNS`), verified by grepping every access
+before removing anything.
+
+*Still open:* Investments is 2,234 kB and still loads all 14,913 rows to
+aggregate client-side. Proper fix is storing asset/action as real columns
+and aggregating in Postgres. It is **not** safe to reimplement
+`parseActivity()` in SQL — two copies of that logic is the drift that
+caused the enum bugs.
+
+*Lesson recorded:* this is what "verify against the database, not the
+screen" is for. The wrong number survived a full write-up because the
+measurement omitted a filter the application code applies.
 
 **H2. `verify_jwt` is the only thing standing between the public anon key
 and several endpoints.**
@@ -138,12 +158,17 @@ shared behind NAT, trivially rotated. Only used pre-auth.
    `signup_mode` goes to `open`. Neither is set; neither can be set from code.
 7. **Privacy policy and terms reviewed by someone qualified.** Both pages
    exist but were not written for a public financial product.
-8. **Error monitoring confirmed working end to end** — Sentry is wired
-   (`main.jsx:8`, `ErrorBoundary.jsx:20`) and the DSN is in the bundle, but
-   **it was never verified that an event actually arrives**. Do that before
-   launch, not after.
-9. **Onboarding + empty states** (Section 6, not started). A stranger with
-   zero data currently lands on empty charts.
+8. ~~Error monitoring confirmed working~~ — **DONE 2026-09-04.** A real
+   event was posted to the live DSN and accepted: HTTP 200, id
+   `ebddc90776ec4111e71131d0ac0210f5`, logger `yorbit.handoff-verification`.
+   The pipeline works. What is still unverified is whether **alerting** is
+   configured — an event arriving in a dashboard nobody watches at 2am is
+   not monitoring. Set up an email/phone alert rule in Sentry.
+9. **Onboarding** (Section 6). Empty states turned out to be in better shape
+   than expected — BankSync, Budget, Bills, Dashboard, Finance, Notes,
+   Tasks, Habits, Journal, HealthLog, Goals, Recurring, Totals and SaveMore
+   all have real zero-data copy with a call to action. The gap is the
+   **guided first-run path**, not the individual screens.
 
 ---
 
@@ -402,6 +427,78 @@ directory. Last verified backup: 15,969 transactions, 25 tables, 16,059 rows.
 
 ---
 
+## 6b. Section 7 — Legal and store (what is missing)
+
+Everything here that could not be verified from the repo is marked as such.
+Treat those as leads to check, not answers.
+
+### What exists in the repo
+
+- `src/pages/PrivacyPolicy.jsx` — 84 lines, real content, "Last updated:
+  June 2026", contact is the owner's personal Gmail.
+- `src/pages/TermsOfUse.jsx` — 73 lines.
+- `src/pages/Support.jsx` — a single `mailto:` to the same Gmail.
+- Account deletion is implemented and verified: `delete-account` removes
+  the user across 23 tables with zero residue, and revokes Plaid items.
+
+### What is missing or unverifiable
+
+**Privacy policy / terms.** Both pages exist but were written for a
+four-person family app. For a public financial product they need, at
+minimum: what data is collected, that Plaid is a processor and what it
+receives, retention periods, deletion rights, and a real contact entity.
+**I am not qualified to tell you these are legally sufficient, and I cannot
+verify current requirements from your codebase.** Have someone qualified
+read them.
+
+**Apple.** I cannot verify current App Store review rules from this repo,
+and policy changes often. What I can say factually about *your* code:
+- `APP_STORE_ID` and `REVENUECAT_API_KEY` are empty strings
+  (`src/lib/appStoreConfig.js:17-18`).
+- The two subscription products and the RevenueCat `pro` entitlement
+  described in that file's header comment do not exist yet.
+- Account deletion exists in-app, which is the one requirement I can
+  confirm you actually meet in code.
+- Apple requires an account-deletion path for apps with accounts, and
+  finance apps get extra scrutiny — **verify the current specifics
+  yourself; do not take my summary as current policy.**
+
+**Plaid production status. Cannot be determined from the repo.** All four
+Plaid functions hardcode `PlaidEnvironments.production`. That means either
+production access is approved, or those calls fail. Your accounts sync, so
+production access appears live — but confirm your approved products,
+per-item limits, and whether your use requires a signed data-use agreement
+directly with Plaid.
+
+**Web app on the App Store.** A pure web app cannot be submitted. It needs
+native wrapping — this repo already contains Capacitor-shaped signals
+(`src/lib/revenuecat.js` uses `isNativeIOS()`, and RevenueCat's Capacitor
+purchases SDK is a dependency), so wrapping was at least started. What that
+involves: a native shell project, Xcode, a paid Apple Developer account,
+signing certificates, App Store Connect setup, and review. **I have not
+verified the wrapper builds.**
+
+**Data retention.** Nothing in the schema expires anything. `ai_usage_log`,
+`bank_sync_logs`, `advisor_messages` and `notifications` grow forever.
+`rate_limit_counters` has a prune function but nothing calls it on a
+schedule. Decide retention windows and add a cron.
+
+### Checklist — only you can do these
+
+1. Get the privacy policy and terms reviewed by someone qualified.
+2. Update the "Last updated" date once they change.
+3. Replace the personal Gmail with a real support address (§3.4).
+4. Confirm your Plaid production approval, approved products, and whether a
+   data-use agreement is required.
+5. Create the Apple Developer account, App Store Connect record, and the
+   two subscription products; fill in `APP_STORE_ID` and
+   `REVENUECAT_API_KEY`.
+6. Verify the native wrapper builds and runs.
+7. Decide retention windows and schedule pruning.
+8. Configure a Sentry **alert rule** so a 2am failure reaches you.
+
+---
+
 ## 7. Honest read on the gap
 
 The app works, the data is real, and it is genuinely useful to the person
@@ -424,13 +521,17 @@ transaction and silently duplicating another are both unacceptable in a
 product whose entire value proposition is "these numbers are true." A user
 who notices will never trust it again, and most will not notice.
 
-**Nobody finds out when it breaks.** Sentry is wired but unverified. If this
-fails for a stranger at 2am, the current mechanism for learning about it is
-that they email a personal Gmail address.
+**Nobody finds out when it breaks.** Sentry's pipeline is now *verified* —
+a real event was accepted — but no alert rule exists, so events land in a
+dashboard nobody is watching. If this fails for a stranger at 2am, the
+mechanism for learning about it is still that they email a personal Gmail.
 
-**The first five minutes are unbuilt.** A stranger signing up today lands on
-empty charts with no guidance. Sections 6 and 7 were never started, and
-Section 6 is the one that decides whether anyone comes back.
+**There is no guided first run.** The individual empty states are better
+than expected — almost every page tells a zero-data user what it is for and
+gives them a button. What is missing is the thread between them: a stranger
+signs up and is handed a menu, not a path. The single highest-value
+remaining product change is one flow that takes someone from signup to
+seeing one true fact about their own money.
 
 None of that is a reason not to launch — it is a reason to launch to a small
 number of people you can talk to, with the tokens encrypted and the dedup
