@@ -30,18 +30,37 @@ function friendlyMessage(message, fallback) {
   return message;
 }
 
+// Edge functions attach an error_id to every failure and log the same id
+// alongside the real cause. Appending it to the message the user sees is
+// the whole point: "Please try again" told a stranger nothing and told us
+// nothing either — there was no way to connect a report to a log line.
+// The id is safe to show; it identifies an event, not any user data.
+function withErrorId(message, errorId) {
+  if (!errorId) return message;
+  return `${message} (Reference: ${errorId})`;
+}
+
+// Reads the edge function's JSON error body out of Supabase's wrapper.
+async function readFunctionError(error, fallback) {
+  let message = error.message;
+  let errorId = null;
+  try {
+    const ctx = await error.context?.json?.();
+    if (ctx?.error) message = ctx.error;
+    if (ctx?.error_id) errorId = ctx.error_id;
+  } catch (_) { /* keep default message */ }
+  const err = new Error(withErrorId(friendlyMessage(message, fallback), errorId));
+  err.errorId = errorId;
+  return err;
+}
+
 async function invokeFunction(name, body) {
   const slug = FUNCTION_MAP[name] || name;
   const { data, error } = await supabase.functions.invoke(slug, { body: body || {} });
   if (error) {
     // Supabase wraps the Edge Function's JSON error body in error.context; surface it
     // the same way base44.functions.invoke did (throwing an Error with .message).
-    let message = error.message;
-    try {
-      const ctx = await error.context?.json?.();
-      if (ctx?.error) message = ctx.error;
-    } catch (_) { /* keep default message */ }
-    throw new Error(friendlyMessage(message, 'Something went wrong. Please try again in a moment.'));
+    throw await readFunctionError(error, 'Something went wrong. Please try again in a moment.');
   }
   return data;
 }
@@ -57,12 +76,7 @@ async function invokeLLM({ prompt, response_json_schema }) {
   if (error) {
     // Supabase wraps the Edge Function's JSON error body in error.context; surface it
     // the same way invokeFunction does, instead of the generic "non-2xx status" message.
-    let message = error.message;
-    try {
-      const ctx = await error.context?.json?.();
-      if (ctx?.error) message = ctx.error;
-    } catch (_) { /* keep default message */ }
-    throw new Error(friendlyMessage(message, 'The AI coach is temporarily unavailable. Please try again later.'));
+    throw await readFunctionError(error, 'The AI coach is temporarily unavailable. Please try again later.');
   }
   return data.result;
 }
@@ -120,12 +134,7 @@ const agents = {
       body: { mode: 'advisor_chat', conversation_id: conversation.id },
     });
     if (error) {
-      let message = error.message;
-      try {
-        const ctx = await error.context?.json?.();
-        if (ctx?.error) message = ctx.error;
-      } catch (_) { /* keep default message */ }
-      throw new Error(friendlyMessage(message, 'The AI coach is temporarily unavailable. Please try again later.'));
+      throw await readFunctionError(error, 'The AI coach is temporarily unavailable. Please try again later.');
     }
   },
 };

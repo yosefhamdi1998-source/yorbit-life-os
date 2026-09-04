@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 
 // CHANGED FROM BASE44: the original function deleted a hardcoded list of ~33 Bill
@@ -16,11 +16,11 @@ Deno.serve(async (req) => {
 
   try {
     const user = await getUser(req);
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
     const { data: profile } = await serviceClient()
       .from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403);
+    if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403, {}, req);
 
     const admin = serviceClient();
     const errors: unknown[] = [];
@@ -71,8 +71,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    return jsonResponse({ bills_deleted, budgets_deleted, errors });
+    return jsonResponse({ bills_deleted, budgets_deleted, errors }, 200, {}, req);
   } catch (error) {
-    return jsonResponse({ error: error.message }, 500);
+    return errorResponse("Something went wrong on our end. Please try again, and if it keeps happening send us this code.", 500, { internal: error, fn: 'cleanup-duplicate-records', req });
   }
 });

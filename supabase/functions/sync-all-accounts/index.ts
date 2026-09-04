@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 
 // System job (pg_cron with the service-role key) — but also callable by an admin
@@ -27,15 +27,15 @@ Deno.serve(async (req) => {
     const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
     if (!isServiceRoleCall) {
       const user = await getUser(req);
-      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
       const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single();
-      if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403);
+      if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403, {}, req);
     }
 
     const { data: accounts } = await admin.from('connected_accounts').select('*').eq('sync_status', 'connected');
     if (!accounts || accounts.length === 0) {
       console.log('No connected accounts to sync.');
-      return jsonResponse({ message: 'No connected accounts to sync.', synced: 0 });
+      return jsonResponse({ message: 'No connected accounts to sync.', synced: 0 }, 200, {}, req);
     }
 
     console.log(`Starting sync for ${accounts.length} connected account(s)...`);
@@ -83,9 +83,9 @@ Deno.serve(async (req) => {
     const succeeded = results.filter((r) => r.status === 'success').length;
     const failed = results.filter((r) => r.status === 'error').length;
     console.log(`Sync complete. Success: ${succeeded}, Failed: ${failed}`);
-    return jsonResponse({ synced: succeeded, failed, results });
+    return jsonResponse({ synced: succeeded, failed, results }, 200, {}, req);
   } catch (error) {
     console.error('sync-all-accounts fatal error:', error.message);
-    return jsonResponse({ error: "We couldn't sync your accounts. Please try again." }, 500);
+    return errorResponse("We couldn't sync your accounts. Please try again.", 500, { internal: error, fn: 'sync-all-accounts', req });
   }
 });

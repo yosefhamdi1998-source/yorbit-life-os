@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   try {
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501);
+    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
 
     ({ connected_account_id } = await req.json());
     const admin = serviceClient();
@@ -26,17 +26,35 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || '';
     const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
 
+    // Identity before data — see plaid-sync-transactions for why. The
+    // 404/401 split otherwise told an unauthenticated caller whether a
+    // given connected_account_id was real.
+    let user = null;
+    if (!isServiceRoleCall) {
+      user = await getUser(req);
+      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
+    }
+
     const { data: account } = await admin
       .from('connected_accounts').select('*').eq('id', connected_account_id).single();
-    if (!account) return jsonResponse({ error: "We couldn't find this account. Please reconnect it." }, 404);
+
+    if (!account || (!isServiceRoleCall && account.user_id !== user.id)) {
+      return jsonResponse({ error: "We couldn't find this account. Please reconnect it." }, 404, {}, req);
+    }
 
     if (!isServiceRoleCall) {
-      const user = await getUser(req);
-      if (!user || user.id !== account.user_id) return jsonResponse({ error: 'Unauthorized' }, 401);
+      // User-initiated only; the cron path is exempt for the same reason
+      // as plaid-sync-transactions. Holdings calls cost money at Plaid too.
+      const limited = await enforceRateLimit(
+        'plaid-holdings', identityFromRequest(req, user.id), RULES.sync,
+        "You've refreshed this account several times recently. Holdings update roughly once a day.",
+        req,
+      );
+      if (limited) return limited;
     }
 
     const access_token = account.access_token_ref;
-    if (!access_token) return jsonResponse({ error: 'Your connection needs to be reconnected.' }, 400);
+    if (!access_token) return jsonResponse({ error: 'Your connection needs to be reconnected.' }, 400, {}, req);
 
     await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', connected_account_id);
 
@@ -88,7 +106,7 @@ Deno.serve(async (req) => {
       message: `Synced ${synced} holding(s)`,
     });
 
-    return jsonResponse({ success: true, synced });
+    return jsonResponse({ success: true, synced }, 200, {}, req);
   } catch (error) {
     console.error('plaid-sync-holdings error:', error.response?.data || error.message);
     if (connected_account_id) {
@@ -100,6 +118,6 @@ Deno.serve(async (req) => {
         }).eq('id', connected_account_id);
       } catch { /* best-effort status update only */ }
     }
-    return jsonResponse({ error: "We couldn't sync your holdings. Please try again." }, 500);
+    return errorResponse("We couldn't sync your holdings. Please try again.", 500, { internal: error, fn: 'plaid-sync-holdings', req });
   }
 });

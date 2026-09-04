@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
@@ -21,10 +21,11 @@ Deno.serve(async (req) => {
 
   try {
     const user = await getUser(req);
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
     const limited = await enforceRateLimit(
       'delete-account', identityFromRequest(req, user.id), RULES.destructive,
+      req,
     );
     if (limited) return limited;
 
@@ -103,13 +104,13 @@ Deno.serve(async (req) => {
     const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId);
     if (authDeleteError) {
       console.error('[delete-account] Failed to delete auth user:', authDeleteError.message);
-      return jsonResponse({ error: "We couldn't complete your account deletion. Please try again or contact support." }, 500);
+      return errorResponse("We couldn't complete your account deletion. Please try again or contact support.", 500, { internal: error, fn: 'delete-account', req });
     }
 
     console.log(`[delete-account] Full deletion complete for user ${userId}`);
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true }, 200, {}, req);
   } catch (error) {
     console.error('[delete-account] Fatal error:', error.message);
-    return jsonResponse({ error: "We couldn't complete your account deletion. Please try again or contact support." }, 500);
+    return errorResponse("We couldn't complete your account deletion. Please try again or contact support.", 500, { internal: error, fn: 'delete-account', req });
   }
 });

@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -8,10 +8,11 @@ Deno.serve(async (req) => {
 
   try {
     const user = await getUser(req);
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
     const limited = await enforceRateLimit(
       'write', identityFromRequest(req, user.id), RULES.write,
+      req,
     );
     if (limited) return limited;
 
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
     const { id, name, amount, due_date, category, is_recurring, is_paid, notes } = body;
 
     if (!name || amount == null || !due_date) {
-      return jsonResponse({ error: 'Missing required fields' }, 400);
+      return jsonResponse({ error: 'Missing required fields' }, 400, {}, req);
     }
 
     const payload: Record<string, unknown> = {
@@ -39,10 +40,10 @@ Deno.serve(async (req) => {
       : admin.from('bills').insert({ ...payload, is_paid: (payload.is_paid as boolean) ?? false, user_id: user.id });
 
     const { data, error } = await query.select().single();
-    if (error) return jsonResponse({ error: error.message }, 500);
-    return jsonResponse(data);
+    if (error) return errorResponse("Something went wrong on our end. Please try again, and if it keeps happening send us this code.", 500, { internal: error, fn: 'save-bill', req });
+    return jsonResponse(data, 200, {}, req);
   } catch (error) {
     console.error('save-bill error:', error.message);
-    return jsonResponse({ error: error.message }, 500);
+    return errorResponse("Something went wrong on our end. Please try again, and if it keeps happening send us this code.", 500, { internal: error, fn: 'save-bill', req });
   }
 });

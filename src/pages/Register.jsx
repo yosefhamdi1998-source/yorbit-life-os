@@ -39,15 +39,24 @@ export default function Register() {
       }
       setShowOtp(true);
     } catch (err) {
-      // Signup is invite-only, enforced by a database trigger — Supabase
-      // Auth doesn't pass a trigger's custom error text through to the
-      // client, it just reports this one generic message for any signup
-      // the database rejected. Translate it here instead of showing
+      // Signup can be rejected by the database trigger that enforces the
+      // allowlist (see app_settings.signup_mode). Supabase Auth doesn't
+      // pass a trigger's custom error text through to the client — it
+      // reports this one generic message for any signup the database
+      // rejected — so it has to be translated here rather than showing
       // someone a raw "Database error saving new user."
+      //
+      // The wording deliberately does not say "ask the owner." A stranger
+      // has no idea who that is or how to reach them, and once signup_mode
+      // is 'open' this branch should almost never fire at all. It reads as
+      // "we're not open yet" plus a way to be told when that changes,
+      // which is true in both modes and useful in both.
       if (err.message?.includes('Database error saving new user')) {
-        setError("This app is invite-only right now. Ask the owner to add your email, then try again.");
+        setError(
+          "Yorbit isn't open for new accounts yet. If you were invited, double-check the email address matches your invitation exactly — otherwise email support@yorbit.app and we'll let you know when signups open."
+        );
       } else {
-        setError(err.message || "Registration failed");
+        setError(err.message || "We couldn't create your account. Please try again.");
       }
     } finally {
       setLoading(false);

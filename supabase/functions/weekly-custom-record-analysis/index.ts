@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
     if (!records || records.length === 0) {
       console.log('No custom records to analyze this week.');
-      return jsonResponse({ message: 'No custom records to analyze.', analyzed: 0 });
+      return jsonResponse({ message: 'No custom records to analyze.', analyzed: 0 }, 200, {}, req);
     }
 
     const formMap = new Map((forms || []).map((f) => [f.id, f]));
@@ -86,9 +86,9 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Weekly analysis stored. Records analyzed: ${analyzed}`);
-    return jsonResponse({ analyzed, stored: true });
+    return jsonResponse({ analyzed, stored: true }, 200, {}, req);
   } catch (error) {
     console.error('weekly-custom-record-analysis error:', error);
-    return jsonResponse({ error: "We couldn't generate this week's analysis. Please try again later." }, 500);
+    return errorResponse("We couldn't generate this week's analysis. Please try again later.", 500, { internal: error, fn: 'weekly-custom-record-analysis', req });
   }
 });

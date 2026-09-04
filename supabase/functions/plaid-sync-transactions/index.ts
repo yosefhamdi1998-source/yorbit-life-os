@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   try {
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501);
+    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
 
     const { connected_account_id, full } = await req.json();
     const admin = serviceClient();
@@ -146,14 +146,29 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || '';
     const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
 
+    // Identity is established BEFORE the account is looked up.
+    //
+    // The lookup used to come first, using the service-role client, and
+    // returned 404 for an unknown id versus 401 for a real one — which let
+    // an unauthenticated caller probe whether any given connected_account_id
+    // exists. UUIDs make that expensive to exploit, but an endpoint should
+    // not answer questions about data before it knows who is asking.
+    let user = null;
+    if (!isServiceRoleCall) {
+      user = await getUser(req);
+      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
+    }
+
     const { data: account } = await admin
       .from('connected_accounts').select('*').eq('id', connected_account_id).single();
-    if (!account) return jsonResponse({ error: "We couldn't find this account. Please reconnect your bank." }, 404);
+
+    // Same response for "does not exist" and "not yours", so neither case
+    // confirms the other.
+    if (!account || (!isServiceRoleCall && account.user_id !== user.id)) {
+      return jsonResponse({ error: "We couldn't find this account. Please reconnect your bank." }, 404, {}, req);
+    }
 
     if (!isServiceRoleCall) {
-      const user = await getUser(req);
-      if (!user || user.id !== account.user_id) return jsonResponse({ error: 'Unauthorized' }, 401);
-
       // User-initiated syncs only. The cron path is deliberately exempt —
       // it legitimately calls this once per account per run, and rate
       // limiting it would mean the accounts at the end of the list stop
@@ -165,12 +180,13 @@ Deno.serve(async (req) => {
       const limited = await enforceRateLimit(
         'plaid-sync', identityFromRequest(req, user.id), RULES.sync,
         "You've refreshed this account several times recently. Bank data updates roughly once a day, so give it a little while.",
+        req,
       );
       if (limited) return limited;
     }
 
     const access_token = account.access_token_ref;
-    if (!access_token) return jsonResponse({ error: 'Your bank connection needs to be reconnected.' }, 400);
+    if (!access_token) return jsonResponse({ error: 'Your bank connection needs to be reconnected.' }, 400, {}, req);
 
     await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', connected_account_id);
 
@@ -351,7 +367,7 @@ Deno.serve(async (req) => {
       requestedFrom: startDate,
       actualHistoryStart: historyStart,
       transactionsAvailableFromPlaid: plaidTxs.length,
-    });
+    }, 200, {}, req);
   } catch (error) {
     console.error('plaid-sync-transactions error:', error.response?.data || error.message);
 
@@ -393,6 +409,6 @@ Deno.serve(async (req) => {
       console.error('plaid-sync-transactions cleanup failed:', cleanupErr.message);
     }
 
-    return jsonResponse({ error: "We couldn't sync your transactions. Please try again." }, 500);
+    return errorResponse("We couldn't sync your transactions. Please try again.", 500, { internal: error, fn: 'plaid-sync-transactions', req });
   }
 });

@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
@@ -9,13 +9,13 @@ Deno.serve(async (req) => {
 
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeKey) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501);
+    if (!stripeKey) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501, {}, req);
     const stripe = new Stripe(stripeKey);
     const body = await req.json();
     const { priceId, successUrl, cancelUrl } = body;
 
     if (!priceId || !successUrl || !cancelUrl) {
-      return jsonResponse({ error: 'Something went wrong setting up checkout. Please try again.' }, 400);
+      return jsonResponse({ error: 'Something went wrong setting up checkout. Please try again.' }, 400, {}, req);
     }
 
     // Try to get user if logged in (optional — matches base44's "public app" behavior)
@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
       ...(userId ? { client_reference_id: userId } : {}),
     });
 
-    return jsonResponse({ url: session.url, sessionId: session.id });
+    return jsonResponse({ url: session.url, sessionId: session.id }, 200, {}, req);
   } catch (err) {
     console.error('create-checkout error:', err.message);
-    return jsonResponse({ error: "We couldn't open checkout. Please try again." }, 500);
+    return errorResponse("We couldn't open checkout. Please try again.", 500, { internal: error, fn: 'create-checkout', req });
   }
 });

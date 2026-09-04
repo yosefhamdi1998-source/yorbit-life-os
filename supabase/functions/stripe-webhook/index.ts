@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!stripeKey || !webhookSecret) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501);
+    if (!stripeKey || !webhookSecret) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501, {}, req);
 
     const stripe = new Stripe(stripeKey);
     const body = await req.text();
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       event = await stripe.webhooks.constructEventAsync(body, signature!, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
-      return jsonResponse({ error: 'Invalid signature' }, 400);
+      return jsonResponse({ error: 'Invalid signature' }, 400, {}, req);
     }
 
     const admin = serviceClient();
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       const customerId = session.customer;
       const subscriptionId = session.subscription;
       const userId = session.client_reference_id as string | undefined;
-      if (!subscriptionId) return jsonResponse({ received: true });
+      if (!subscriptionId) return jsonResponse({ received: true }, 200, {}, req);
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const priceId = subscription.items.data[0]?.price?.id;
@@ -93,9 +93,9 @@ Deno.serve(async (req) => {
       console.log(`Subscription canceled for customer ${customerId}`);
     }
 
-    return jsonResponse({ received: true });
+    return jsonResponse({ received: true }, 200, {}, req);
   } catch (err) {
     console.error('stripe-webhook error:', err.message);
-    return jsonResponse({ error: 'Something went wrong processing the payment.' }, 500);
+    return errorResponse('Something went wrong processing the payment.', 500, { internal: error, fn: 'stripe-webhook', req });
   }
 });

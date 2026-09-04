@@ -79,11 +79,16 @@ export async function checkRateLimit(
 
 // Convenience wrapper: returns a ready-to-return 429 Response when the
 // caller is over the limit, or null when the request should proceed.
+// `req` is needed so the 429 carries the correct Access-Control-Allow-Origin
+// for the caller. Without it the response falls back to the primary origin
+// and a browser on the other allowed origin cannot read the error — it sees
+// an opaque CORS failure instead of "you are being rate limited."
 export async function enforceRateLimit(
   bucket: string,
   identity: string,
   rule: RateLimitRule,
   message = 'Too many requests. Please wait a moment and try again.',
+  req?: Request,
 ): Promise<Response | null> {
   const result = await checkRateLimit(bucket, identity, rule);
   if (result.allowed) return null;
@@ -96,5 +101,6 @@ export async function enforceRateLimit(
     { error: message, retry_after_seconds: retryAfter },
     429,
     { 'Retry-After': String(retryAfter) },
+    req,
   );
 }

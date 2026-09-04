@@ -15,8 +15,9 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context",
-    "test:ai-context": "node scripts/test-ai-context.js"
+    "test": "npm run check:enums && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids",
+    "test:ai-context": "node scripts/test-ai-context.js",
+    "test:error-ids": "node scripts/test-error-ids.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

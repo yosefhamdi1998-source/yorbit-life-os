@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 
 // Runs across ALL users (this is a system job triggered by pg_cron with the
@@ -70,9 +70,9 @@ Deno.serve(async (req) => {
       if (!insertError) created++;
     }
 
-    return jsonResponse({ checked: (bills || []).length, upcoming: upcoming.length, created });
+    return jsonResponse({ checked: (bills || []).length, upcoming: upcoming.length, created }, 200, {}, req);
   } catch (error) {
     console.error('generate-subscription-reminders error:', error);
-    return jsonResponse({ error: error.message }, 500);
+    return errorResponse("Something went wrong on our end. Please try again, and if it keeps happening send us this code.", 500, { internal: error, fn: 'generate-subscription-reminders', req });
   }
 });

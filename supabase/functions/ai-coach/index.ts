@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -14,18 +14,25 @@ const MODEL = 'claude-sonnet-5'; // update as newer models become available
 //   - a per-user daily request count, to stop one account from hammering it
 //   - a global monthly dollar budget shared across every user, which is
 //     the one that actually protects against a surprise bill
-// PRICING NOTE: these per-token rates are an estimate for this model tier —
-// check https://www.anthropic.com/pricing and adjust if it's off; being
-// slightly conservative (rounding the cap down) is the safe direction.
+// PRICING: verified against claude.com/pricing on 2026-09-04 for Sonnet 5,
+// the model MODEL above actually calls. Published rates per million tokens:
+//   input $2  |  output $10  |  cache read $0.20  |  cache write $2.50
+// which is what the per-1K constants below encode.
+//
+// The previous values ($0.003 / $0.015) were an unverified guess and were
+// 1.5x too high across all four rates. That erred toward overstating cost,
+// which is the safe direction for a budget cap, but it meant the ceiling
+// tripped ~33% earlier than it should have and every tier calculation was
+// wrong. If the model in MODEL changes, these must change with it.
 const DAILY_REQUEST_LIMIT_PER_USER = 40;
 const MONTHLY_BUDGET_USD = 15;
-const COST_PER_1K_INPUT_TOKENS = 0.003;
-const COST_PER_1K_OUTPUT_TOKENS = 0.015;
-// Cached input is billed at a large discount on reads. Kept as its own
-// constant so the estimate stays honest rather than pretending a cache
-// read costs the same as a fresh one.
-const COST_PER_1K_CACHE_READ_TOKENS = 0.0003;
-const COST_PER_1K_CACHE_WRITE_TOKENS = 0.00375;
+const COST_PER_1K_INPUT_TOKENS = 0.002;
+const COST_PER_1K_OUTPUT_TOKENS = 0.010;
+// Cached input is billed at a large discount on reads and a premium on the
+// initial write. Kept as separate constants so the estimate stays honest
+// rather than pretending a cache read costs the same as a fresh one.
+const COST_PER_1K_CACHE_READ_TOKENS = 0.0002;
+const COST_PER_1K_CACHE_WRITE_TOKENS = 0.0025;
 
 // --- per-user ceilings --------------------------------------------------
 // The shared monthly cap above protects the bill but not the product: the
@@ -33,10 +40,17 @@ const COST_PER_1K_CACHE_WRITE_TOKENS = 0.00375;
 // With strangers that is the normal case, not the edge case. These are the
 // per-user allowances that decide what a signup actually costs.
 //
-// Measured against real data: a full advisor turn was ~26,000 input tokens
+// Measured against real data: a full advisor turn was ~25,100 input tokens
 // because 200 complete transaction rows were serialised into every single
-// message. After trimming (below) a turn is roughly 4-6k input tokens, so
-// these dollar figures are what actually bound a user.
+// message. After trimming (below) a turn is ~950 input tokens, which at
+// verified Sonnet 5 rates is about $0.009 per message, or $0.007 once the
+// system block is a cache read.
+//
+// So the free tier's 15 messages cost roughly $0.14/user/month. The dollar
+// ceilings sit deliberately above that: the request count is what should
+// bind in normal use, and the dollar figure is the backstop for a
+// pathological case (an enormous conversation, or a pricing change nobody
+// noticed) rather than the everyday limit.
 const TIER_MONTHLY_USD: Record<string, number> = {
   free: 0.40,
   pro: 6.00,
@@ -402,7 +416,7 @@ Deno.serve(async (req) => {
 
   try {
     const user = await getUser(req);
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
     const admin = serviceClient();
 
@@ -412,6 +426,7 @@ Deno.serve(async (req) => {
     const limited = await enforceRateLimit(
       'ai', identityFromRequest(req, user.id), RULES.ai,
       'You are sending messages faster than AI Coach can keep up. Try again shortly.',
+      req,
     );
     if (limited) return limited;
 
@@ -420,22 +435,22 @@ Deno.serve(async (req) => {
     // whatever Anthropic itself would have returned (or a raw 500, the way
     // running out of credits looked before this existed).
     const blockedReason = await checkSpendLimits(admin, user.id);
-    if (blockedReason) return jsonResponse({ error: blockedReason }, 429);
+    if (blockedReason) return jsonResponse({ error: blockedReason }, 429, {}, req);
 
     const body = await req.json();
     const mode = body.mode || 'invoke';
 
     if (mode === 'invoke') {
       const result = await handleInvoke(body, admin, user.id);
-      return jsonResponse({ result });
+      return jsonResponse({ result }, 200, {}, req);
     }
     if (mode === 'advisor_chat') {
       const result = await handleAdvisorChat(body, user.id, admin);
-      return jsonResponse(result);
+      return jsonResponse(result, 200, {}, req);
     }
-    return jsonResponse({ error: 'Unknown mode' }, 400);
+    return jsonResponse({ error: 'Unknown mode' }, 400, {}, req);
   } catch (error) {
     console.error('ai-coach error:', error.message);
-    return jsonResponse({ error: error.message }, 500);
+    return errorResponse("Something went wrong on our end. Please try again, and if it keeps happening send us this code.", 500, { internal: error, fn: 'ai-coach', req });
   }
 });

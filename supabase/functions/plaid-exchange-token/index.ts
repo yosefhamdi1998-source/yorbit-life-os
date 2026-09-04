@@ -1,4 +1,4 @@
-import { handleOptions, jsonResponse } from '../_shared/cors.ts';
+import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
@@ -10,13 +10,14 @@ Deno.serve(async (req) => {
   try {
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
-    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501);
+    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
 
     const user = await getUser(req);
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
     const limited = await enforceRateLimit(
       'plaid-exchange', identityFromRequest(req, user.id), RULES.sync,
+      req,
     );
     if (limited) return limited;
 
@@ -51,9 +52,9 @@ Deno.serve(async (req) => {
       created.push(data);
     }
 
-    return jsonResponse({ success: true, accounts: created });
+    return jsonResponse({ success: true, accounts: created }, 200, {}, req);
   } catch (error) {
     console.error('plaid-exchange-token error:', error.response?.data || error.message);
-    return jsonResponse({ error: "We couldn't connect your bank. Please try again." }, 500);
+    return errorResponse("We couldn't connect your bank. Please try again.", 500, { internal: error, fn: 'plaid-exchange-token', req });
   }
 });
