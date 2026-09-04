@@ -1,1 +1,0 @@
-import{o as a,p as r}from"./generateCategoricalChart-CRUlk2Xw.js";import{A as s}from"./Area-CiRiMPnc.js";import{X as i,Y as o}from"./YAxis-C02Blnk7.js";var A=a({chartName:"AreaChart",GraphicalChild:s,axisComponents:[{axisType:"xAxis",AxisComp:i},{axisType:"yAxis",AxisComp:o}],formatAxisMap:r});export{A};
