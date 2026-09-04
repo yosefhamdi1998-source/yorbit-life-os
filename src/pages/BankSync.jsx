@@ -159,7 +159,7 @@ export default function BankSync() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-4 text-sm text-red-700">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)}><X className="w-4 h-4" /></button>
+          <button onClick={() => setError(null)} aria-label="Dismiss" className="p-2.5 -m-1.5 shrink-0"><X className="w-4 h-4" /></button>
         </div>
       )}
 
@@ -178,7 +178,7 @@ export default function BankSync() {
                   )}
                 </>}
           </span>
-          <button onClick={() => setSyncResult(null)}><X className="w-4 h-4" /></button>
+          <button onClick={() => setSyncResult(null)} aria-label="Dismiss" className="p-2.5 -m-1.5 shrink-0"><X className="w-4 h-4" /></button>
         </div>
       )}
 

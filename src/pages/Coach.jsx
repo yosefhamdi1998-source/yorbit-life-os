@@ -126,8 +126,13 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
         const saved = await base44.entities.AIInsightCache.create({ type: 'coach', date: TODAY, content: result });
         setCacheId(saved.id);
       }
-    } catch {
-      setError("Couldn't generate this insight. Try again.");
+    } catch (err) {
+      // Was a hardcoded generic message regardless of cause — including
+      // when the reason was the monthly spend cap, where "Try again"
+      // is actively misleading (it won't work again until next month).
+      // invokeFunction already extracts a clean, user-safe message from
+      // the edge function's response; use it when there is one.
+      setError(err?.message || "Couldn't generate this insight. Try again.");
     }
     setGenerating(false);
   };

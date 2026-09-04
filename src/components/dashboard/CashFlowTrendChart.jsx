@@ -105,24 +105,26 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
 
   return (
     <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5 relative overflow-hidden">
-      <div className="flex items-start justify-between mb-3 gap-2">
+      {/* Dropping the repeated period text (previous fix) helped but didn't
+          fully solve it — icon + 2-line title/subtitle competing with the
+          Improving badge + 3-icon toggle in one unwrapped row still had
+          nowhere to go on a narrow phone. flex-wrap is the actual fix: the
+          right-hand cluster drops to its own row the moment it doesn't
+          fit, instead of squeezing the left side into truncating. Checked
+          every other card header in the app for this same combination
+          (title+subtitle block fighting a badge/button cluster) — this is
+          the only one that has it; nothing else needed this treatment. */}
+      <div className="flex flex-wrap items-start justify-between mb-3 gap-x-2 gap-y-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <BarChart3 className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
             <p className="font-bold text-sm leading-tight">Cash Flow Trend</p>
-            {/* Used to repeat the selected window ("Income vs. expenses,
-                last 6 months") — on a phone that's squeezed between this
-                icon and the Improving badge + 3-icon chart toggle on the
-                right, so it truncated mid-word into "...expenses, i…".
-                The period pills right below already say which window is
-                active, so dropping the repeated part fixes the cutoff for
-                every period, not just this one. */}
             <p className="text-xs text-muted-foreground truncate">Income vs. expenses</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           {hasAnyData && data.length > 1 && (
             <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${improving ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
               {improving ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -140,9 +142,12 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
                   onClick={() => setChartType(ct.key)}
                   aria-label={ct.label}
                   title={ct.label}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${chartType === ct.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  // Was w-6 h-6 (24x24px) — well under the ~44px tap-target
+                  // guideline, three of them side by side. Bumped as far as
+                  // this compact pill can go without changing the design.
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${chartType === ct.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                 >
-                  <ct.icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+                  <ct.icon className="w-4 h-4" strokeWidth={2.25} />
                 </button>
               ))}
             </div>

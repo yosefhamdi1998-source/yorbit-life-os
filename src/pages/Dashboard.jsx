@@ -14,8 +14,6 @@ import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
 import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat, BarChart3, Send } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
-import QuickAddTransactionSheet from '@/components/dashboard/QuickAddTransactionSheet';
-import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import Sparkline from '@/components/Sparkline';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
@@ -77,7 +75,6 @@ export default function Dashboard() {
   const [bills, setBills] = useState([]);
   const [netWorthEntries, setNetWorthEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
   const simpleMode = getSimpleMode();
   // Separate from cashFlowPeriod above (that one drives the hero's own
@@ -137,18 +134,6 @@ export default function Dashboard() {
   }, [loadData]);
 
   const { pullY, refreshing, threshold } = usePullToRefresh(loadData);
-  useAutoOpenForm(() => setQuickAddOpen(true));
-
-  const handleQuickAdd = async (data) => {
-    try {
-      await base44.entities.Transaction.create(data);
-      toast({ title: 'Transaction added', description: `$${data.amount} · ${data.category}` });
-      await loadData();
-    } catch {
-      toast({ title: "Couldn't save transaction", description: "Please try again in a moment.", variant: 'destructive' });
-      throw new Error('save failed');
-    }
-  };
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
@@ -325,11 +310,6 @@ export default function Dashboard() {
     <div className="pb-8 overflow-x-hidden">
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
-      {/* Opened from the shared quick-action button in the layout. This page
-          used to render its own floating button at the identical position,
-          where the layout's button covered it completely and swallowed every
-          tap. */}
-      <QuickAddTransactionSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} onSave={handleQuickAdd} />
 
       {/* ── Hero ──────────────────────────────────────────────────────
           A flat stat row read as sterile on its own — this is the one

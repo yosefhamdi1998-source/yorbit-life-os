@@ -46,6 +46,37 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
   return null; // not blocked
 }
 
+// The $15 cap is deliberately SHARED, not per-user: one Anthropic API key
+// pays for the whole family, so that's the number that actually protects
+// against a surprise bill. The tradeoff is real — one person's heavy usage
+// can use up everyone's budget — so a silent cutoff isn't acceptable. This
+// warns every real account once the shared total crosses 80%, before
+// anyone actually gets blocked, and only once per month (tracked in
+// ai_usage_alerts) so it doesn't re-fire on every request past the
+// threshold.
+const WARNING_THRESHOLD_FRACTION = 0.8;
+
+async function maybeSendBudgetWarning(admin: ReturnType<typeof serviceClient>, monthKey: string, monthSpend: number) {
+  if (monthSpend < MONTHLY_BUDGET_USD * WARNING_THRESHOLD_FRACTION) return;
+  try {
+    const { error: insertAlertError } = await admin
+      .from('ai_usage_alerts')
+      .insert({ month: monthKey }); // primary key on month — fails harmlessly if already sent
+    if (insertAlertError) return; // already sent this month (or a real error — either way, don't spam)
+
+    const { data: users } = await admin.from('profiles').select('id');
+    const pctUsed = Math.round((monthSpend / MONTHLY_BUDGET_USD) * 100);
+    const notifications = (users || []).map(u => ({
+      user_id: u.id,
+      title: 'AI Coach nearing its monthly limit',
+      message: `AI Coach has used ${pctUsed}% of this month's shared usage budget. Once it's reached, Coach will pause for everyone until next month.`,
+    }));
+    if (notifications.length) await admin.from('notifications').insert(notifications);
+  } catch (err) {
+    console.error('ai-coach budget warning failed (non-fatal):', err.message);
+  }
+}
+
 async function logUsage(admin: ReturnType<typeof serviceClient>, userId: string, usage: { input_tokens?: number; output_tokens?: number }) {
   const input_tokens = usage?.input_tokens || 0;
   const output_tokens = usage?.output_tokens || 0;
@@ -56,6 +87,13 @@ async function logUsage(admin: ReturnType<typeof serviceClient>, userId: string,
   // the user is waiting on.
   try {
     await admin.from('ai_usage_log').insert({ user_id: userId, input_tokens, output_tokens, estimated_cost_usd });
+
+    const now = new Date();
+    const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const { data: monthRows } = await admin.from('ai_usage_log').select('estimated_cost_usd').gte('created_at', monthStart.toISOString());
+    const monthSpend = (monthRows || []).reduce((s, r) => s + (r.estimated_cost_usd || 0), 0);
+    await maybeSendBudgetWarning(admin, monthKey, monthSpend);
   } catch (err) {
     console.error('ai-coach usage logging failed (non-fatal):', err.message);
   }

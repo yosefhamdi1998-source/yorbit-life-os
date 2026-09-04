@@ -1,0 +1,33 @@
+select json_build_object(
+  'backup_taken_at', now(),
+  'profiles', (select coalesce(json_agg(row_to_json(t)), '[]') from profiles t),
+  'transactions', (select coalesce(json_agg(row_to_json(t)), '[]') from transactions t),
+  'bills', (select coalesce(json_agg(row_to_json(t)), '[]') from bills t),
+  'budgets', (select coalesce(json_agg(row_to_json(t)), '[]') from budgets t),
+  'goals', (select coalesce(json_agg(row_to_json(t)), '[]') from goals t),
+  'savings_goals', (select coalesce(json_agg(row_to_json(t)), '[]') from savings_goals t),
+  'net_worth_entries', (select coalesce(json_agg(row_to_json(t)), '[]') from net_worth_entries t),
+  'habits', (select coalesce(json_agg(row_to_json(t)), '[]') from habits t),
+  'tasks', (select coalesce(json_agg(row_to_json(t)), '[]') from tasks t),
+  'health_logs', (select coalesce(json_agg(row_to_json(t)), '[]') from health_logs t),
+  'journal_entries', (select coalesce(json_agg(row_to_json(t)), '[]') from journal_entries t),
+  'notes', (select coalesce(json_agg(row_to_json(t)), '[]') from notes t),
+  'notifications', (select coalesce(json_agg(row_to_json(t)), '[]') from notifications t),
+  'custom_forms', (select coalesce(json_agg(row_to_json(t)), '[]') from custom_forms t),
+  'custom_records', (select coalesce(json_agg(row_to_json(t)), '[]') from custom_records t),
+  'ai_insight_caches', (select coalesce(json_agg(row_to_json(t)), '[]') from ai_insight_caches t),
+  'ai_usage_log', (select coalesce(json_agg(row_to_json(t)), '[]') from ai_usage_log t),
+  'bank_sync_logs', (select coalesce(json_agg(row_to_json(t)), '[]') from bank_sync_logs t),
+  'subscriptions', (select coalesce(json_agg(row_to_json(t)), '[]') from subscriptions t),
+  'connected_accounts', (select coalesce(json_agg(row_to_json(t)), '[]') from connected_accounts t),
+  'investment_holdings', (select coalesce(json_agg(row_to_json(t)), '[]') from investment_holdings t),
+  'advisor_conversations', (select coalesce(json_agg(row_to_json(t)), '[]') from advisor_conversations t),
+  'advisor_messages', (select coalesce(json_agg(row_to_json(t)), '[]') from advisor_messages t),
+  'allowed_emails', (select coalesce(json_agg(row_to_json(t)), '[]') from allowed_emails t),
+  'auth_users', (select coalesce(json_agg(json_build_object(
+     'id', id, 'email', email, 'encrypted_password', encrypted_password,
+     'email_confirmed_at', email_confirmed_at, 'created_at', created_at,
+     'updated_at', updated_at, 'raw_app_meta_data', raw_app_meta_data,
+     'raw_user_meta_data', raw_user_meta_data
+  )), '[]') from auth.users)
+) as full_backup;
