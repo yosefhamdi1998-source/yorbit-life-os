@@ -37,7 +37,6 @@ export default function Bills() {
   const [deletedBills, setDeletedBills] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bills_recently_deleted') || '[]'); } catch { return []; }
   });
-  const timersRef = useRef({});
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -77,42 +76,16 @@ export default function Bills() {
       setShowForm(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
-    // Re-attach deletion timers for any persisted deleted bills. Any entry
-    // whose 30-minute window already lapsed (e.g. the tab was closed and
-    // reopened later) needs its real DB delete to finish BEFORE loadBills()
-    // fires below — the two used to run as an unawaited race, and if the
-    // GET beat the DELETE, the still-there-server-side row would load right
-    // back into `bills` and reappear in the UI even though it had already
-    // been "deleted". Awaiting the cleanup first closes that window. The
-    // localStorage write-back was also missing on this path, which left the
-    // same expired entry to repeat the race on every future page load.
+    // Deletion happens immediately now, so there are no deferred DB deletes
+    // to re-arm and no delete/load race to await — this only has to drop
+    // undo entries whose window has passed. That also removes the whole
+    // class of bug where a deletion silently never happened because the tab
+    // closed before its timer fired.
     const persisted = JSON.parse(localStorage.getItem('bills_recently_deleted') || '[]');
-    const stillPending = [];
-    const expiredCleanup = [];
-    for (const entry of persisted) {
-      const remaining = entry.expiresAt - Date.now();
-      if (remaining <= 0) {
-        expiredCleanup.push(entry.id);
-      } else {
-        stillPending.push(entry);
-        timersRef.current[entry.id] = setTimeout(async () => {
-          await base44.entities.Bill.delete(entry.id).catch(() => {});
-          setDeletedBills(prev => {
-            const next = prev.filter(d => d.id !== entry.id);
-            localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
-            return next;
-          });
-        }, remaining);
-      }
-    }
+    const stillPending = persisted.filter(e => e.expiresAt - Date.now() > 0);
     setDeletedBills(stillPending);
     localStorage.setItem('bills_recently_deleted', JSON.stringify(stillPending));
-    (async () => {
-      if (expiredCleanup.length) {
-        await Promise.all(expiredCleanup.map(id => base44.entities.Bill.delete(id).catch(() => {})));
-      }
-      loadBills(true);
-    })();
+    loadBills(true);
   }, []);
 
   const openEdit = (bill) => {
@@ -172,43 +145,65 @@ export default function Bills() {
 
   const RESTORE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 
-  const deleteBill = (id) => {
+  // Deletion is now immediate and durable, with undo implemented by
+  // re-creating the row from a local copy.
+  //
+  // It used to only hide the row locally and defer the real DB delete to a
+  // 30-minute setTimeout. Two things were broken by that:
+  //   1. The timer dies with the page. Close the tab, reload, or switch
+  //      apps on a phone and the delete simply never happened — the bill
+  //      lived in the database forever, and reappeared on any other device.
+  //   2. loadBills() re-fetches from the database, which still had the row,
+  //      so after a reload the "deleted" bill came BACK into the active
+  //      list and counted toward Total Due, while simultaneously offering
+  //      "Restore". Verified: resurrected on reload with 30 minutes still
+  //      left on the window.
+  const deleteBill = async (id) => {
     const bill = bills.find(b => b.id === id);
     if (!bill) return;
     setBills(prev => prev.filter(b => b.id !== id));
-    const expiresAt = Date.now() + RESTORE_WINDOW_MS;
-    const entry = { id, bill, expiresAt };
+    // Keep the whole row, not just the id — undo re-creates from this.
+    const entry = { id, bill, expiresAt: Date.now() + RESTORE_WINDOW_MS };
     setDeletedBills(prev => {
       const next = [entry, ...prev];
       localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
       return next;
     });
-    timersRef.current[id] = setTimeout(async () => {
-      await base44.entities.Bill.delete(id).catch(() => {});
+    try {
+      await base44.entities.Bill.delete(id);
+    } catch {
+      // Put it back rather than leaving the UI claiming it's gone.
+      setBills(prev => [...prev, bill]);
       setDeletedBills(prev => {
         const next = prev.filter(d => d.id !== id);
         localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
         return next;
       });
-    }, RESTORE_WINDOW_MS);
+      toast({ title: "Couldn't delete this bill", description: 'Please try again in a moment.', variant: 'destructive' });
+    }
   };
 
   const restoreBill = async (id) => {
     const entry = deletedBills.find(d => d.id === id);
     if (!entry) return;
-    clearTimeout(timersRef.current[id]);
-    delete timersRef.current[id];
-    // deleteBill() only ever hides the row locally - the real DB delete is
-    // deferred to the timer above, which we just canceled. So the original
-    // row is still there; restoring just means un-hiding it, not recreating
-    // it (recreating produced a permanent duplicate whenever the 30-minute
-    // window hadn't elapsed yet, which is the common case for an "undo").
-    setDeletedBills(prev => {
-      const next = prev.filter(d => d.id !== id);
-      localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
-      return next;
-    });
-    loadBills(false);
+    // The row is genuinely gone from the database now (see deleteBill), so
+    // undo re-creates it from the copy kept alongside the entry. It comes
+    // back with a new id, which is fine — nothing references bills by id
+    // across tables. This can't duplicate the way the old recreate-path
+    // could, because the original really was deleted first.
+    const { id: _oldId, created_date, updated_date, user_id, ...fields } = entry.bill;
+    try {
+      await base44.entities.Bill.create(fields);
+      setDeletedBills(prev => {
+        const next = prev.filter(d => d.id !== id);
+        localStorage.setItem('bills_recently_deleted', JSON.stringify(next));
+        return next;
+      });
+      loadBills(false);
+      toast({ title: 'Bill restored', description: entry.bill.name });
+    } catch {
+      toast({ title: "Couldn't restore this bill", description: 'Please try again in a moment.', variant: 'destructive' });
+    }
   };
 
   // Compare against local midnight so a bill due *today* is neither "overdue"
