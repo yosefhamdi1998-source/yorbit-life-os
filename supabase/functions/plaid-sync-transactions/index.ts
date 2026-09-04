@@ -240,6 +240,9 @@ Deno.serve(async (req) => {
     // everything past the first page for any account with real history.
     // Page through with offset until we've pulled all of it.
     const plaidTxs = [];
+    // Populated from the accounts array on each page; the last page wins,
+    // which is fine because every page reports the same current balance.
+    let latestBalances: Record<string, unknown> | null = null;
     let offset = 0;
     while (true) {
       const txRes = await plaidClient.transactionsGet({
@@ -254,6 +257,29 @@ Deno.serve(async (req) => {
         options: { count: 500, offset, account_ids: [account.provider_account_id] },
       });
       plaidTxs.push(...txRes.data.transactions);
+
+      // The response carries an `accounts` array alongside the
+      // transactions, and every entry has balances.current / .available /
+      // .limit. This was read for `.transactions` and `.total_transactions`
+      // only, so the balance for every account arrived on every sync and
+      // was discarded — which is why the Net Worth screen showed $0 after
+      // months of use. Capturing it needs no new Plaid product and no
+      // re-authorisation.
+      //
+      // Only the account this sync is scoped to; one access token covers
+      // every account at the institution and the array contains all of them.
+      const acctBal = (txRes.data.accounts || [])
+        .find((a: any) => a.account_id === account.provider_account_id);
+      if (acctBal?.balances) {
+        latestBalances = {
+          current_balance: acctBal.balances.current ?? null,
+          available_balance: acctBal.balances.available ?? null,
+          balance_limit: acctBal.balances.limit ?? null,
+          currency: acctBal.balances.iso_currency_code || 'USD',
+          balance_updated_at: new Date().toISOString(),
+        };
+      }
+
       offset += txRes.data.transactions.length;
       if (offset >= txRes.data.total_transactions || txRes.data.transactions.length === 0) break;
     }
@@ -352,6 +378,10 @@ Deno.serve(async (req) => {
       sync_status: 'connected',
       last_synced_at: new Date().toISOString(),
       history_start_date: historyStart,
+      // Spread only when we actually got a balance. Writing nulls would
+      // overwrite a good previous balance with "unknown" on any sync where
+      // Plaid omitted the payload.
+      ...(latestBalances || {}),
       // Only a full-window pass counts as a completed backfill.
       ...(wantsFullHistory ? { history_backfilled_at: new Date().toISOString() } : {}),
     }).eq('id', connected_account_id);

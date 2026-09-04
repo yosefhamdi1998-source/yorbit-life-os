@@ -24,6 +24,7 @@ import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
 import { NET_WORTH_CATEGORIES } from '@/lib/enums';
+import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
@@ -531,6 +532,7 @@ export default function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [netWorth, setNetWorth] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTxForm, setShowTxForm] = useState(false);
   useAutoOpenForm(() => setShowTxForm(true));
@@ -545,13 +547,14 @@ export default function Finance() {
     if (showSkeleton) setLoading(true);
     const timeout = setTimeout(() => setLoading(false), 5000);
     try {
-      const [tx, b, nw] = await Promise.all([
+      const [tx, b, nw, accts] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.NetWorthEntry.list(),
+        base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
       clearTimeout(timeout);
-      setTransactions(tx); setBudgets(b); setNetWorth(nw);
+      setTransactions(tx); setBudgets(b); setNetWorth(nw); setAccounts(accts || []);
     } catch (error) {
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
@@ -660,11 +663,13 @@ export default function Finance() {
   const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const lastMonthExpenses = lastMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  // Live bank balances + manual entries, with the label deciding itself.
+  const worth = composeNetWorth(accounts, netWorth);
   const totalAssets = netWorth.filter(n => n.type === 'asset').reduce((s, n) => s + (n.value || 0), 0);
   const totalLiabilities = netWorth.filter(n => n.type === 'liability').reduce((s, n) => s + (n.value || 0), 0);
   const netSaved = monthIncome - monthExpenses;
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
-  // into a five-figure percentage.
+  // into a five-figure percentage.
 
   // Summary row: trailing windows from shortest to longest, plus a whole
   // calendar year (this year and the 2 before it) — the rest of the page
@@ -889,16 +894,78 @@ export default function Finance() {
 
         {/* NET WORTH TAB */}
         <TabsContent value="networth">
+          {/* The headline names itself honestly: "Cash on Hand" while only
+              bank accounts are known, becoming "Net Worth" once the user has
+              added something outside the bank. Calling connected checking
+              and savings a net worth, with crypto and a car missing, is a
+              confidently wrong number on the screen people trust most. */}
           <div className="sky-card rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-bold">Net Worth</p>
+              <div>
+                <p className="text-sm font-bold">{worth.label}</p>
+                <p className="text-[11px] text-muted-foreground">{worth.sublabel}</p>
+              </div>
               <Button onClick={() => setShowNWForm(true)} variant="outline" size="sm" className="h-8 text-xs gap-1">
                 <Plus className="w-3 h-3" /> Add Entry
               </Button>
             </div>
-            <p className={`text-2xl font-black ${totalAssets - totalLiabilities >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-              ${fmt(totalAssets - totalLiabilities)}
+            <p className={`text-2xl font-black ${worth.total >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+              ${fmt(worth.total)}
             </p>
+
+            {/* Live bank money, separated from anything hand-entered. */}
+            {worth.cash.liveCount > 0 && (
+              <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    From your banks
+                  </span>
+                  <span className="font-bold tabular-nums">${fmt(worth.cash.net)}</span>
+                </div>
+                {worth.cash.updatedAt && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Updated {freshnessLabel(worth.cash.updatedAt)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* A balance we have never captured is UNKNOWN, not zero.
+                Silently treating it as $0 understates cash and reads to the
+                user as money having vanished. */}
+            {worth.cash.unknownCount > 0 && (
+              <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-500">
+                {worth.cash.unknownCount} account{worth.cash.unknownCount === 1 ? '' : 's'} not included yet
+                ({worth.cash.unknownNames.join(', ')}) — refresh it on Bank Sync to pull the balance.
+              </p>
+            )}
+
+            {worth.manual.count > 0 && (
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                  Added by you
+                </span>
+                <span className="font-bold tabular-nums">${fmt(worth.manual.net)}</span>
+              </div>
+            )}
+
+            {/* Nudge, not nag: only when something is actually months old. */}
+            {worth.manual.staleCount > 0 && (
+              <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-500">
+                {worth.manual.staleCount === 1
+                  ? `${worth.manual.staleNames[0]} hasn't been updated in months — still accurate?`
+                  : `${worth.manual.staleCount} entries haven't been updated in months — still accurate?`}
+              </p>
+            )}
+
+            {!worth.isCompleteNetWorth && (
+              <p className="mt-3 text-[11px] text-muted-foreground leading-relaxed">
+                This is money in your connected bank accounts. Add a car, crypto,
+                or a loan to turn it into a real net worth.
+              </p>
+            )}
           </div>
 
           <NetWorthHistoryChart entries={netWorth} />

@@ -47,6 +47,14 @@ Deno.serve(async (req) => {
         provider_item_id: item_id,
         access_token_ref: access_token,
         sync_status: 'connected',
+        // Plaid Link hands back balances at connect time. Storing them here
+        // means the Net Worth screen shows a real number immediately after
+        // connecting, instead of $0 until the first sync runs.
+        current_balance: acct.balances?.current ?? null,
+        available_balance: acct.balances?.available ?? null,
+        balance_limit: acct.balances?.limit ?? null,
+        currency: acct.balances?.iso_currency_code || 'USD',
+        balance_updated_at: acct.balances ? new Date().toISOString() : null,
       }).select().single();
       if (error) throw error;
       created.push(data);

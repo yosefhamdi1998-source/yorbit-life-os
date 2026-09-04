@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
+import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
@@ -74,6 +75,7 @@ export default function Dashboard() {
   const [savingsGoals, setSavingsGoals] = useState([]);
   const [bills, setBills] = useState([]);
   const [netWorthEntries, setNetWorthEntries] = useState([]);
+  const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
   const simpleMode = getSimpleMode();
@@ -103,14 +105,15 @@ export default function Dashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const [tr, b, sg, bl, nw] = await Promise.all([
+      const [tr, b, sg, bl, nw, accts] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Bill.list('due_date', 20),
         base44.entities.NetWorthEntry.list(),
+        base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
-      setTransactions(tr); setBudgets(b); setSavingsGoals(sg); setBills(bl); setNetWorthEntries(nw);
+      setTransactions(tr); setBudgets(b); setSavingsGoals(sg); setBills(bl); setNetWorthEntries(nw); setConnectedAccounts(accts || []);
       return { tr, b, sg, bl, nw };
     } catch {
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
@@ -144,6 +147,7 @@ export default function Dashboard() {
   // divided by it into a meaningless five-figure percentage. Require at
   // least $1 of real income before a rate means anything.
   const savingsRate = computeSavingsRate(monthIncome, monthExpenses);
+  const worth = composeNetWorth(connectedAccounts, netWorthEntries);
   const totalAssets = netWorthEntries.filter(e => e.type === 'asset').reduce((s, e) => s + (e.value || 0), 0);
   const totalLiabilities = netWorthEntries.filter(e => e.type === 'liability').reduce((s, e) => s + (e.value || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -447,17 +451,31 @@ export default function Dashboard() {
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
           of one centered and one edge-pinned. */}
-      {netWorthEntries.length > 0 && (
+      {(netWorthEntries.length > 0 || worth.cash.liveCount > 0) && (
         <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Net Worth</p>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{worth.label}</p>
+              <p className="text-[10px] text-muted-foreground/80">{worth.sublabel}</p>
+            </div>
             {netWorthTrend.length > 1 && (
               <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
             )}
           </div>
-          <p className={`font-numeric text-3xl lg:text-4xl font-black tabular-nums leading-none mb-4 ${netWorth >= 0 ? 'text-foreground' : 'text-red-500'}`}>
-            ${fmt(netWorth)}
+          <p className={`font-numeric text-3xl lg:text-4xl font-black tabular-nums leading-none mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+            ${fmt(worth.total)}
           </p>
+          {worth.cash.updatedAt && (
+            <p className="text-[10px] text-muted-foreground mb-3">
+              Bank balances updated {freshnessLabel(worth.cash.updatedAt)}
+            </p>
+          )}
+          {!worth.isCompleteNetWorth && (
+            <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+              Money in your connected accounts. Add a car, crypto or a loan on
+              Money → Net Worth to make this a real net worth.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
             <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
