@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { PiggyBank, Plus, X, CheckCircle, AlertTriangle, Clock, Wallet, CreditCard } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -13,7 +13,14 @@ import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull, fmtAxisCompact } from '@/lib/format';
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
+// Must match the budgets.category CHECK constraint in the database
+// exactly. 'investment' used to be offered here but the constraint
+// rejects it, so picking "📈 Investment" was a guaranteed save failure —
+// same bug class as the Recurring "Add" button (a dropdown offering a
+// value the database refuses). It's also the semantically right one to
+// drop: investing activity is deliberately excluded from budgeting now
+// and lives on its own Investments page.
+const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'other'];
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
 const BUDGET_SUGGESTIONS = [
   { cat: 'food', amount: 400 },
@@ -48,6 +55,7 @@ export default function Budget() {
   useAutoOpenForm(() => setShowForm(true));
   const [form, setForm] = useState({ category: 'food', monthly_limit: '' });
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
 
   const thisMonth = format(new Date(), 'yyyy-MM');
@@ -73,6 +81,10 @@ export default function Budget() {
 
   const save = async () => {
     if (!form.monthly_limit || parseFloat(form.monthly_limit) <= 0) return;
+    // Synchronous re-entry guard — see Bills.saveBill for why the
+    // `disabled={saving}` state alone doesn't stop a fast double-tap.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const existing = budgets.find(b => b.category === form.category && b.month === thisMonth);
@@ -91,6 +103,7 @@ export default function Budget() {
     } catch (error) {
       toast({ title: "Couldn't save budget", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

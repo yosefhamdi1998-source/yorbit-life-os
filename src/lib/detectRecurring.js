@@ -1,5 +1,11 @@
 import { parseISO, addMonths } from 'date-fns';
 
+// The exact set bills.category's CHECK constraint allows in the database —
+// keep this in sync with that constraint, not with transaction categories.
+const BILL_CATEGORIES = new Set([
+  'housing', 'utilities', 'phone', 'insurance', 'subscription', 'credit_card', 'loan', 'other',
+]);
+
 // Bank statement boilerplate that says nothing about WHO was paid. The
 // same Apple subscription arrives as "Apple" from a bank sync and as
 // "PURCHASE 0710 APPLE.COM/BILL 866-712-7753 CA" from a PDF statement —
@@ -123,7 +129,19 @@ export function detectRecurring(transactions, existingBillNames = []) {
         key: `${key}-${amount}`,
         name: bestDisplayName(group.rows),
         amount,
-        category: last3.category || 'other',
+        // bills.category has its own CHECK constraint (housing/utilities/
+        // phone/insurance/subscription/credit_card/loan/other) — a
+        // completely different set from transaction categories (food/
+        // shopping/entertainment/health/transport/...). Passing the
+        // transaction's own category straight through violated that
+        // constraint for nearly every real detection (Apple → "shopping"
+        // or "entertainment", gas → "transport"), so "Add" failed silently
+        // with no network call ever reaching Supabase — the whole
+        // Detected For You feature was broken for almost everything.
+        // 'subscription' is also just the semantically correct default
+        // for "a recurring charge this detector found", not merely a
+        // constraint workaround.
+        category: BILL_CATEGORIES.has(last3.category) ? last3.category : 'subscription',
         interval: 'monthly',
         intervalLabel: 'Monthly',
         occurrences: months.length,

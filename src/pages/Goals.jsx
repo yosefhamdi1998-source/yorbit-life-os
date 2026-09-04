@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays, parseISO, format, addYears } from 'date-fns';
 import { Target, Plus, X, Trash2, Pencil, Check } from 'lucide-react';
@@ -49,6 +49,7 @@ export default function Goals() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [contributingId, setContributingId] = useState(null);
   const [contributionAmt, setContributionAmt] = useState('');
   useAutoOpenForm(() => { setEditingId(null); setForm(EMPTY_FORM); setShowForm(true); });
@@ -77,6 +78,10 @@ export default function Goals() {
 
   const save = async () => {
     if (!form.name.trim() || !form.target_amount || parseFloat(form.target_amount) <= 0) return;
+    // Synchronous re-entry guard — see Bills.saveBill for why the
+    // `disabled={saving}` state alone doesn't stop a fast double-tap.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     const preset = GOAL_PRESETS[form.preset];
     const payload = {
@@ -102,6 +107,7 @@ export default function Goals() {
     } catch {
       toast({ title: "Couldn't save your goal", description: 'Please try again in a moment.', variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

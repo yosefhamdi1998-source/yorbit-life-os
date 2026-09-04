@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import { format } from 'date-fns';
+import useSubmitLock from '@/hooks/useSubmitLock';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
@@ -27,7 +28,10 @@ const DEFAULT_FORM = () => ({
 
 export default function AddTransactionSheet({ open, onClose, onSave }) {
   const [form, setForm] = useState(DEFAULT_FORM());
-  const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard — `disabled={saving}` alone let a fast
+  // triple-tap create three identical transactions (verified against the
+  // database). See useSubmitLock for why state can't enforce this.
+  const { saving, runGuarded } = useSubmitLock();
 
   // Mount/visibility are tracked explicitly and torn down on a timer rather
   // than relying on an exit animation to finish. An exit that never completes
@@ -74,9 +78,8 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
     }));
   };
 
-  const handleSave = async () => {
+  const handleSave = () => runGuarded(async () => {
     if (!form.amount) return;
-    setSaving(true);
     try {
       // Amount is the only thing worth insisting on. Requiring a description
       // too meant typing an amount, tapping Save and getting nothing, because
@@ -87,10 +90,8 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
       onClose();
     } catch {
       // Parent already shows the error toast
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   if (!mounted) return null;
 

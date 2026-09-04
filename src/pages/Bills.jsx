@@ -32,6 +32,7 @@ export default function Bills() {
   const [editingBill, setEditingBill] = useState(null);
   const [form, setForm] = useState({ name: '', amount: '', due_date: '', category: 'other', is_recurring: true });
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   // Persisted recently-deleted bills (survive page reload); timers re-attached on mount
   const [deletedBills, setDeletedBills] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bills_recently_deleted') || '[]'); } catch { return []; }
@@ -128,6 +129,12 @@ export default function Bills() {
 
   const saveBill = async () => {
     if (!form.name || !form.amount || !form.due_date) return;
+    // Synchronous re-entry guard. `disabled={saving}` can't stop a fast
+    // double-tap on its own — React batches the state update, so taps
+    // landing in the same tick all get through (verified on the
+    // transaction form: 3 taps produced 3 identical rows).
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload = { ...form, amount: parseFloat(form.amount) };
@@ -146,6 +153,7 @@ export default function Bills() {
       // Revert optimistic update for edit
       if (editingBill) loadBills(false);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
