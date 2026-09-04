@@ -52,8 +52,12 @@ export default function Register() {
       // "we're not open yet" plus a way to be told when that changes,
       // which is true in both modes and useful in both.
       if (err.message?.includes('Database error saving new user')) {
+        // Uses the same contact address as Support.jsx and the privacy
+        // policy. An earlier draft invented support@yorbit.app, which does
+        // not exist — a support path that bounces is worse than none,
+        // because the user believes they have reported something.
         setError(
-          "Yorbit isn't open for new accounts yet. If you were invited, double-check the email address matches your invitation exactly — otherwise email support@yorbit.app and we'll let you know when signups open."
+          "Yorbit isn't open for new accounts yet. If you were invited, check that this email matches your invitation exactly — otherwise write to yosefhamdi1998@gmail.com and we'll let you know when signups open."
         );
       } else {
         setError(err.message || "We couldn't create your account. Please try again.");

@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { getUser, serviceClient } from '../_shared/supabase.ts';
+import { serviceClient, requireSystemCaller } from '../_shared/supabase.ts';
 
 // System job (pg_cron with the service-role key) — but also callable by an admin
 // user for a manual "sync now" trigger, mirroring the original's dual auth check.
@@ -23,14 +23,8 @@ Deno.serve(async (req) => {
     //
     // An unauthenticated caller is not an admin. That has to be the
     // default branch, not a case that falls through.
-    const authHeader = req.headers.get('Authorization') || '';
-    const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
-    if (!isServiceRoleCall) {
-      const user = await getUser(req);
-      if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
-      const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single();
-      if (profile?.role !== 'admin') return jsonResponse({ error: 'Forbidden' }, 403, {}, req);
-    }
+    const denied = await requireSystemCaller(req, admin, jsonResponse);
+    if (denied) return denied;
 
     const { data: accounts } = await admin.from('connected_accounts').select('*').eq('sync_status', 'connected');
     if (!accounts || accounts.length === 0) {

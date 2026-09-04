@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { serviceClient } from '../_shared/supabase.ts';
+import { serviceClient, requireSystemCaller } from '../_shared/supabase.ts';
 
 // Runs across ALL users (this is a system job triggered by pg_cron with the
 // service-role key — see schema.sql bottom section — not a per-user request).
@@ -9,6 +9,11 @@ Deno.serve(async (req) => {
 
   try {
     const admin = serviceClient();
+
+    // System endpoint: acts across every user, so it must never be
+    // callable with the public anon key. See requireSystemCaller.
+    const denied = await requireSystemCaller(req, admin, jsonResponse);
+    if (denied) return denied;
 
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);

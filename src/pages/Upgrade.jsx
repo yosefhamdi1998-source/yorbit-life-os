@@ -38,11 +38,36 @@ export default function Upgrade() {
   const [restoring, setRestoring] = useState(false);
   const navigate = useNavigate();
 
+  // `iosOfferings` starts null and the buy button renders "Loading…" while
+  // it is null. Nothing ever resolved that when RevenueCat could not
+  // initialise — REVENUECAT_API_KEY is empty until App Store setup is done,
+  // so initRevenueCat() returns false, getOfferings() never yields a
+  // current offering, and the button sat disabled reading "Loading…"
+  // forever with no error and no timeout. A spinner with no terminal state
+  // is worse than an error: the user waits instead of acting.
+  const [offeringsFailed, setOfferingsFailed] = useState(false);
+
   useEffect(() => {
     if (!isNativeIOS()) return;
-    getOfferings().then(offerings => {
-      if (offerings?.current) setIosOfferings(offerings);
-    });
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) setOfferingsFailed(true);
+    }, 10000);
+
+    getOfferings()
+      .then(offerings => {
+        settled = true;
+        clearTimeout(timer);
+        if (offerings?.current) setIosOfferings(offerings);
+        else setOfferingsFailed(true);
+      })
+      .catch(() => {
+        settled = true;
+        clearTimeout(timer);
+        setOfferingsFailed(true);
+      });
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleCheckout = async () => {
@@ -259,13 +284,24 @@ export default function Upgrade() {
           <>
             <Button
               onClick={handleIOSPurchase}
-              disabled={loading || !iosOfferings}
+              disabled={loading || (!iosOfferings && !offeringsFailed)}
               className="w-full h-14 rounded-2xl text-base font-bold text-white shadow-xl shadow-primary/30 gap-2 active:scale-[0.98] transition-all"
               style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
             >
               <Zap className="w-5 h-5 text-yellow-300" />
-              {loading ? 'Processing…' : !iosOfferings ? 'Loading…' : `Start 7-Day Free Trial`}
+              {loading
+                ? 'Processing…'
+                : offeringsFailed
+                  ? 'Subscriptions unavailable'
+                  : !iosOfferings
+                    ? 'Loading…'
+                    : `Start 7-Day Free Trial`}
             </Button>
+            {offeringsFailed && (
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                We couldn&apos;t reach the App Store. Check your connection and try again — you have not been charged.
+              </p>
+            )}
             <p className="text-center text-xs text-muted-foreground mt-3 leading-relaxed">
               7 days free, then {PRICES[plan].amount}{PRICES[plan].period} · Cancel anytime · No hidden fees
             </p>

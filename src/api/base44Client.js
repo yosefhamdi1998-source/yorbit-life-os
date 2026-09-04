@@ -14,10 +14,8 @@ const FUNCTION_MAP = {
   plaidExchangeToken: 'plaid-exchange-token',
   plaidSyncTransactions: 'plaid-sync-transactions',
   plaidSyncHoldings: 'plaid-sync-holdings',
-  createCheckout: 'create-checkout',
-  customForms: 'custom-forms',
-  deleteAccount: 'delete-account',
-  saveBill: 'save-bill',
+  createCheckout: 'create-checkout',
+  deleteAccount: 'delete-account',
 };
 
 // Surface Edge Function errors to the UI without leaking raw provider

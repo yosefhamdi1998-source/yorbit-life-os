@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { serviceClient } from '../_shared/supabase.ts';
+import { serviceClient, requireSystemCaller } from '../_shared/supabase.ts';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-5';
@@ -33,6 +33,11 @@ Deno.serve(async (req) => {
 
   try {
     const admin = serviceClient();
+
+    // System endpoint: acts across every user, so it must never be
+    // callable with the public anon key. See requireSystemCaller.
+    const denied = await requireSystemCaller(req, admin, jsonResponse);
+    if (denied) return denied;
 
     const { data: forms } = await admin.from('custom_forms').select('*');
     const { data: records } = await admin
