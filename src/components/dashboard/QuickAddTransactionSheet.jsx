@@ -82,29 +82,35 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
       />
 
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out flex flex-col ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+            // Same fix as AddTransactionSheet: flex column with a min-h-0
+            // scrollable middle and the primary action pinned as a real
+            // footer, not just "last thing you can scroll to." This sheet
+            // also autoFocuses its amount input, which opens the keyboard
+            // immediately on a real phone — exactly the scenario where a
+            // non-pinned button is most likely to end up hidden.
+            style={{ maxHeight: '92dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className="flex justify-center pt-3 pb-1">
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-border" />
             </div>
 
-            <div className="px-5 pb-6">
-              <div className="flex items-center justify-between mb-5 pt-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black leading-none">Quick Add</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Fast expense entry</p>
-                  </div>
+            <div className="flex items-center justify-between px-5 pb-3 pt-1 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-white" />
                 </div>
-                <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center active:scale-95 transition-transform shrink-0">
-                  <X className="w-5 h-5" />
-                </button>
+                <div>
+                  <h3 className="text-base font-black leading-none">Quick Add</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Fast expense entry</p>
+                </div>
               </div>
+              <button onClick={onClose} aria-label="Close" className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center active:scale-95 transition-transform shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
+            <div className="overflow-y-auto min-h-0 px-5 pb-4" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
               <div className="space-y-3">
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">$</span>
@@ -125,11 +131,13 @@ export default function QuickAddTransactionSheet({ open, onClose, onSave }) {
                   options={OPTIONS}
                 />
               </div>
+            </div>
 
+            <div className="px-5 pt-3 shrink-0 border-t border-border/50 bg-card">
               <Button
                 onClick={handleSave}
                 disabled={!form.amount || saving}
-                className="w-full h-12 mt-4 text-white gap-1.5 bg-primary hover:bg-primary/90"
+                className="w-full h-12 mb-1 text-white gap-1.5 bg-primary hover:bg-primary/90"
               >
                 {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Add</>}
               </Button>

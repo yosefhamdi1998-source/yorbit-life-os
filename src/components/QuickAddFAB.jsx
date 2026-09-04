@@ -61,11 +61,20 @@ export default function QuickAddFAB() {
               exit={{ opacity: 0, scale: 0.85, x: 12 }}
               transition={{ delay: (ACTIONS.length - 1 - i) * 0.035, duration: 0.16, ease: [0.25, 0.46, 0.45, 0.94] }}
               onClick={() => handleAction(path)}
-              className="flex items-center gap-3 rounded-2xl pl-4 pr-2.5 py-2.5 shadow-xl active:scale-[0.97] transition-transform border border-border bg-card"
+              // `whitespace-nowrap` on labels below used to force this
+              // button as wide as its longest line demanded, with nothing
+              // stopping that from exceeding the viewport — fine at 390px+,
+              // but "Add Transaction" / "Upload Statement" ran off the
+              // right edge, unreadable, on a 375px-wide phone (iPhone
+              // SE/mini and still common). max-w caps it to the viewport
+              // with room for the right-4 inset either side; text wraps to
+              // a second line on the rare screen where it's actually needed
+              // instead of silently overflowing.
+              className="flex items-center gap-3 rounded-2xl pl-4 pr-2.5 py-2.5 shadow-xl active:scale-[0.97] transition-transform border border-border bg-card max-w-[calc(100vw-32px)]"
             >
-              <div className="text-right">
-                <p className="text-sm font-bold text-foreground whitespace-nowrap leading-tight">{label}</p>
-                <p className="text-[11px] text-muted-foreground whitespace-nowrap leading-tight mt-0.5">{hint}</p>
+              <div className="text-right min-w-0">
+                <p className="text-sm font-bold text-foreground leading-tight">{label}</p>
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{hint}</p>
               </div>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: color }}>
                 <Icon className="w-4 h-4 text-white" strokeWidth={2.4} />

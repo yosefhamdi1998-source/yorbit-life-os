@@ -102,7 +102,12 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
       />
 
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out flex flex-col ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+            // flex column + min-h-0 on the scrollable middle section (below)
+            // is what makes that section shrink to exactly whatever space
+            // header+footer don't use, automatically — no pixel math to get
+            // wrong, no fixed subtraction that assumes a header height that
+            // was never guaranteed.
             style={{ maxHeight: '92dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             {/* Handle */}
@@ -125,7 +130,18 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
               </button>
             </div>
 
-            <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(92dvh - 96px)', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+            {/* Save/Cancel used to be the last thing inside this scroll area —
+                correct in principle (they WERE reachable by scrolling), but
+                relying on `92dvh` math to leave exactly enough room is
+                fragile the moment a real phone's on-screen keyboard changes
+                the visible viewport (dvh support for that is inconsistent
+                across browsers, and this isn't something a desktop-browser
+                automated test can fully reproduce). Pinning the actions as
+                a sticky footer removes the whole "did I scroll far enough"
+                question by construction — they're always in view, full
+                stop, regardless of viewport quirks or how tall the form
+                content gets. */}
+            <div className="overflow-y-auto min-h-0 px-5" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
 
               {/* Type toggle */}
               <div className="flex rounded-xl overflow-hidden border border-border mb-4">
@@ -185,28 +201,33 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                   className="h-12"
                 />
               </div>
+              {/* Spacer so the last field never sits flush against the
+                  sticky footer below. */}
+              <div className="h-4" />
+            </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 mt-5">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1 h-12"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={!form.amount || saving}
-                  className={`flex-1 h-12 text-white border-0 gap-1.5 ${
-                    form.type === 'income'
-                      ? 'bg-emerald-600 hover:bg-emerald-700'
-                      : 'bg-primary hover:bg-primary/90'
-                  }`}
-                >
-                  {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Save Transaction</>}
-                </Button>
-              </div>
+            {/* Actions — sticky, not scrolled-to. Outside the overflow-y-auto
+                area entirely, same "always visible" treatment the header
+                above already gets. */}
+            <div className="flex gap-3 px-5 pt-3 pb-1 shrink-0 border-t border-border/50 bg-card">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="flex-1 h-12"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={!form.amount || saving}
+                className={`flex-1 h-12 text-white border-0 gap-1.5 ${
+                  form.type === 'income'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-primary hover:bg-primary/90'
+                }`}
+              >
+                {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Save Transaction</>}
+              </Button>
             </div>
       </div>
     </>
