@@ -60,13 +60,14 @@ alter table transaction_exclusion_backup enable row level security;
 -- classifies every row regardless of how it arrived.
 --
 -- Returns null when the row is ordinary budget-relevant money.
-create or replace function classify_exclusion_reason(p_title text, p_type text)
+create or replace function classify_exclusion_reason(p_title text, p_type text, p_notes text default null)
 returns text
 language plpgsql
 immutable
 as $$
 declare
   t text := coalesce(p_title, '');
+  n text := coalesce(p_notes, '');
   is_card boolean;
 begin
   -- Order matters throughout: the most specific rule that can rescue a row
@@ -97,8 +98,14 @@ begin
     return 'investment';
   end if;
 
-  -- (d) Movement between the user's own accounts.
-  if t ~* 'online banking transfer|keep the change transfer' then
+  -- (d) Movement between the user's own accounts. "Instant Add money From
+  --     Visa Debit" is the user topping up their own Venmo balance from
+  --     their own card - $832.60 of it in August alone was being counted as
+  --     INCOME. "KEEPTHECHANGE CREDIT FROM ACCT" is the receiving half of
+  --     the round-up whose sending half was already caught.
+  if t ~* 'online banking transfer'
+     or t ~* 'keep ?the ?change'
+     or t ~* 'instant add money|instant transfer to|add funds' then
     return 'transfer';
   end if;
 
@@ -106,8 +113,31 @@ begin
   --     entirely, which is what let P2P receipts count as income. Apple Cash
   --     and Uber Pro Card payouts ride the same rails. Card purchases are
   --     exempt - that is the whole point of the flag above.
+  -- Uber Pro Card is a DRIVER PAYOUT card, not a peer. 'UBER PRO CARD*
+  -- PMNT RCVD' is Uber paying wages, and treating it as P2P removed
+  -- $1,247.93 of real earnings from income across 9 months. Same logic for
+  -- any payment-processor payout: the money came from a business for work
+  -- done, which is the definition of income. PayFare is the processor
+  -- Uber pays drivers through, so it is the same money by another name.
+  if t ~* 'uber pro card|payfare|lyft driver|doordash|instacart|grubhub' then
+    return null;
+  end if;
+
   if not is_card
-     and t ~* 'zelle|venmo|cash ?app|apple cash|uber pro card|pmnt sent|pmnt rcvd' then
+     and t ~* 'zelle|venmo|cash ?app|apple cash|pmnt sent|pmnt rcvd' then
+    return 'p2p';
+  end if;
+
+  -- (e2) Rows imported from a Venmo CSV carry the COUNTERPARTY as their
+  --      title - a person's name, with no keyword to match on. 69 of the 72
+  --      such rows are income, i.e. people sending money. Money received
+  --      through Venmo from a person is not earnings.
+  --
+  --      Deliberately income-only: an EXPENSE on the same import is a
+  --      purchase made with the Venmo card ("10040 CAVA ROCKVILLE"), which
+  --      is real spending and must keep counting. Genuine payouts were
+  --      already returned as income above, so they never reach this rule.
+  if p_type = 'income' and n ~* 'imported from venmo' then
     return 'p2p';
   end if;
 
