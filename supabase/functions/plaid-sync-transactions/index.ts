@@ -100,12 +100,22 @@ const P2P_DETAILED = new Set([
 const P2P_TITLE_RE = /zelle|venmo|cash\s?app|cashapp|paypal|pmnt sent/i;
 const CASH_TITLE_RE = /\batm\b|withdrwl|withdrawal|cash withdrawal/i;
 
-function classifyExclusion(tx: any, title: string): string | null {
-  const detailed = tx?.personal_finance_category?.detailed;
-  if (detailed === 'TRANSFER_OUT_WITHDRAWAL' || CASH_TITLE_RE.test(title)) return 'cash';
-  if (P2P_TITLE_RE.test(title) || (detailed && P2P_DETAILED.has(detailed))) return 'p2p';
-  return null;
-}
+// REMOVED: classifyExclusion().
+//
+// This was a second implementation of the same ruleset that lives in the
+// database function classify_exclusion_reason(), and the two had already
+// drifted — this copy keyed off Plaid's personal_finance_category while the
+// SQL trigger keyed off the title, so a row's classification depended on
+// which path imported it. Two copies of a rule list is exactly the drift
+// that produced the enum bugs.
+//
+// The database trigger is now the single source of truth. It fires BEFORE
+// INSERT on every row regardless of origin (Plaid sync, CSV import, manual
+// entry), and it skips any row that already carries an explicit
+// exclusion_reason — so a deliberate manual classification still wins.
+//
+// Inserting without an exclusion_reason is therefore not an oversight here;
+// it is what lets the trigger classify the row.
 
 // Money moving between someone's own accounts — a Venmo balance sent to
 // their own linked bank, cash moved into their own savings — isn't income
@@ -300,7 +310,6 @@ Deno.serve(async (req) => {
 
       const type = tx.amount > 0 ? 'expense' : 'income';
       const category = mapCategory(tx);
-      const exclusionReason = classifyExclusion(tx, title);
 
       // Store Plaid's own category verbatim as well. Previously only the
       // mapped result was kept, so improving the mapping later could never
@@ -312,7 +321,8 @@ Deno.serve(async (req) => {
         title, amount, type, category, date,
         pfc_primary: tx?.personal_finance_category?.primary ?? null,
         pfc_detailed: tx?.personal_finance_category?.detailed ?? null,
-        ...(exclusionReason ? { exclude_from_budget: true, exclusion_reason: exclusionReason } : {}),
+        // exclusion_reason deliberately omitted — the database trigger
+        // classifies it. See the note where classifyExclusion() was removed.
         notes: `Imported from ${account.institution_name}`,
       });
       // Insert failures were silently discarded here while the log below
