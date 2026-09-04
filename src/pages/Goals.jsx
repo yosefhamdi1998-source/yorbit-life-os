@@ -42,6 +42,11 @@ function computeProgress(goal) {
 
 const EMPTY_FORM = { name: '', preset: 'custom', target_amount: '', current_amount: '0', target_date: format(addYears(new Date(), 1), 'yyyy-MM-dd') };
 
+// Mirrors the ceiling the transaction form enforces, so a fat-fingered
+// extra zero is caught here instead of by a database CHECK that surfaces
+// as a generic "please try again" the user can never succeed at.
+const MAX_CONTRIBUTION = 10000000;
+
 export default function Goals() {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +57,8 @@ export default function Goals() {
   const savingRef = useRef(false);
   const [contributingId, setContributingId] = useState(null);
   const [contributionAmt, setContributionAmt] = useState('');
+  const [contributing, setContributing] = useState(false);
+  const contribRef = useRef(false);
   useAutoOpenForm(() => { setEditingId(null); setForm(EMPTY_FORM); setShowForm(true); });
 
   const loadGoals = () => {
@@ -123,17 +130,51 @@ export default function Goals() {
     }
   };
 
+  // A contribution is a read-modify-write on a stored running total, which
+  // makes a double-tap here worse than the duplicate-row bug elsewhere:
+  // both calls read the SAME stale `goal.current_amount` off this closure
+  // and each writes `stale + amt`, so the second silently overwrites the
+  // first. Two $100 taps on a $500 goal land on $600, not $700 — the money
+  // doesn't duplicate, it disappears, and nothing in the UI says so.
+  //
+  // Two guards: a synchronous re-entry lock (state can't do this — see
+  // useSubmitLock), and re-reading the goal immediately before writing so
+  // the base amount isn't a value that's been sitting in a closure since
+  // the last render.
   const addContribution = async (goal) => {
     const amt = parseFloat(contributionAmt);
-    if (!amt || amt <= 0) return;
+    if (!contributionAmt || Number.isNaN(amt)) return;
+    if (amt <= 0) {
+      toast({ title: 'Enter an amount above $0', variant: 'destructive' });
+      return;
+    }
+    if (amt > MAX_CONTRIBUTION) {
+      toast({ title: `Contribution has to be $${MAX_CONTRIBUTION.toLocaleString()} or less`, variant: 'destructive' });
+      return;
+    }
+    if (contribRef.current) return;
+    contribRef.current = true;
+    setContributing(true);
     try {
-      await base44.entities.SavingsGoal.update(goal.id, { current_amount: (goal.current_amount || 0) + amt });
+      const fresh = await base44.entities.SavingsGoal.list('-created_date');
+      const live = fresh.find(g => g.id === goal.id);
+      if (!live) {
+        toast({ title: "That goal no longer exists", description: 'It may have been deleted on another device.', variant: 'destructive' });
+        setGoals(fresh);
+        setContributingId(null);
+        setContributionAmt('');
+        return;
+      }
+      await base44.entities.SavingsGoal.update(goal.id, { current_amount: (live.current_amount || 0) + amt });
       toast({ title: `+$${fmt(amt)} added`, description: goal.name });
       setContributingId(null);
       setContributionAmt('');
       loadGoals();
     } catch {
       toast({ title: "Couldn't add that contribution", description: 'Please try again in a moment.', variant: 'destructive' });
+    } finally {
+      contribRef.current = false;
+      setContributing(false);
     }
   };
 
@@ -263,7 +304,7 @@ export default function Goals() {
                       value={contributionAmt} onChange={e => setContributionAmt(e.target.value)}
                       className="flex-1" min="0.01"
                     />
-                    <Button size="icon" onClick={() => addContribution(goal)} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shrink-0" aria-label="Confirm contribution">
+                    <Button size="icon" onClick={() => addContribution(goal)} disabled={contributing} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shrink-0" aria-label="Confirm contribution">
                       <Check className="w-4 h-4" />
                     </Button>
                     <Button size="icon" variant="outline" onClick={() => { setContributingId(null); setContributionAmt(''); }} className="shrink-0" aria-label="Cancel">
