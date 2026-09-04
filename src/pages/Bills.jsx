@@ -8,6 +8,7 @@ import { MobileSelect } from '@/components/ui/mobile-select';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
+import useDeleteLock from '@/hooks/useDeleteLock';
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -25,6 +26,7 @@ const BILL_CAT_OPTIONS = Object.entries(CAT_ICONS).map(([key, icon]) => ({
 function fmt(n) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 export default function Bills() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -158,7 +160,7 @@ export default function Bills() {
   //      list and counted toward Total Due, while simultaneously offering
   //      "Restore". Verified: resurrected on reload with 30 minutes still
   //      left on the window.
-  const deleteBill = async (id) => {
+  const deleteBill = (id) => guardDelete(id, async () => {
     const bill = bills.find(b => b.id === id);
     if (!bill) return;
     setBills(prev => prev.filter(b => b.id !== id));
@@ -181,7 +183,7 @@ export default function Bills() {
       });
       toast({ title: "Couldn't delete this bill", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   const restoreBill = async (id) => {
     const entry = deletedBills.find(d => d.id === id);

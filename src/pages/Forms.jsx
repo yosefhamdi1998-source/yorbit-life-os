@@ -9,7 +9,10 @@ import CreateFormModal from '@/components/forms/CreateFormModal';
 import EditFormModal from '@/components/forms/EditFormModal';
 import AddRecordModal from '@/components/forms/AddRecordModal';
 
+import useDeleteLock from '@/hooks/useDeleteLock';
+
 export default function Forms() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const { toast } = useToast();
   const [forms, setForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
@@ -75,7 +78,7 @@ export default function Forms() {
     }
   };
 
-  const handleDeleteForm = async (form) => {
+  const handleDeleteForm = (form) => guardDelete(form.id, async () => {
     if (!confirm(`Delete "${form.name}" and all its records?`)) return;
     try {
       // custom_records has ON DELETE CASCADE on form_id, so deleting the form alone
@@ -87,7 +90,7 @@ export default function Forms() {
     } catch {
       toast({ title: "Couldn't delete form", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   const handleSaveRecord = async (data, notes) => {
     try {
@@ -105,7 +108,7 @@ export default function Forms() {
     }
   };
 
-  const handleDeleteRecord = async (record) => {
+  const handleDeleteRecord = (record) => guardDelete(record.id, async () => {
     if (!confirm('Delete this record?')) return;
     try {
       await base44.entities.CustomRecord.delete(record.id);
@@ -114,7 +117,7 @@ export default function Forms() {
     } catch {
       toast({ title: "Couldn't delete record", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   const renderFieldValue = (field, value) => {
     if (field.type === 'boolean') return value ? 'Yes' : 'No';

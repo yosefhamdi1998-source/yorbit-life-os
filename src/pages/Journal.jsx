@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useDeleteLock from '@/hooks/useDeleteLock';
 
 const MOODS = [
   { value: 'great', emoji: '😄', label: 'Great' },
@@ -23,6 +24,7 @@ const DEFAULT_FORM = () => ({ date: todayStr(), content: '', mood: 'good' });
 export default function Journal() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
@@ -66,7 +68,9 @@ export default function Journal() {
     }
   };
 
-  const deleteEntry = async (id) => {
+  // Guarded — see useDeleteLock. Optimistic removal plus rollback means a
+  // double-tap can resurrect a row the first delete legitimately removed.
+  const deleteEntry = (id) => guardDelete(id, async () => {
     const existing = entries.find(e => e.id === id);
     setEntries(prev => prev.filter(e => e.id !== id));
     try {
@@ -76,7 +80,7 @@ export default function Journal() {
       if (existing) setEntries(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete entry", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -154,7 +158,7 @@ export default function Journal() {
                   <span className="text-xl">{MOOD_EMOJI[entry.mood] || '📝'}</span>
                   <span className="text-xs font-semibold text-muted-foreground">{format(parseISO(entry.date), 'EEEE, MMM d')}</span>
                 </div>
-                <button onClick={() => deleteEntry(entry.id)} className="p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Delete entry" aria-label="Delete entry">
+                <button onClick={() => deleteEntry(entry.id)} disabled={isDeleting(entry.id)} className="disabled:opacity-40 p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors shrink-0" title="Delete entry" aria-label="Delete entry">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader';
 import BudgetExportMenu from '@/components/budget/BudgetExportMenu';
 import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
+import useDeleteLock from '@/hooks/useDeleteLock';
 import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull, fmtAxisCompact } from '@/lib/format';
@@ -46,6 +47,7 @@ function BudgetChartTooltip({ active, payload, label }) {
 }
 
 export default function Budget() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export default function Budget() {
     }
   };
 
-  const deleteBudget = async (id) => {
+  const deleteBudget = (id) => guardDelete(id, async () => {
     const b = budgets.find(x => x.id === id);
     if (!window.confirm(`Remove the ${b?.category || 'this'} budget limit?`)) return;
     try {
@@ -116,7 +118,7 @@ export default function Budget() {
     } catch (error) {
       toast({ title: "Couldn't delete budget", description: "Please try again in a moment.", variant: 'destructive' });
     }
-  };
+  });
 
   const rows = EXPENSE_CATS.map(cat => ({
     cat,

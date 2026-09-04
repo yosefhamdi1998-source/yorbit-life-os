@@ -19,6 +19,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate, Link } from 'react-router-dom';
 import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
+import useDeleteLock from '@/hooks/useDeleteLock';
 import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
@@ -525,6 +526,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
 
 // ─── Main Finance Page ────────────────────────────────────────────────────────
 export default function Finance() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -591,7 +593,9 @@ export default function Finance() {
   };
 
   // ── Optimistic delete ───────────────────────────────────────────────────────
-  const deleteTx = async (id) => {
+  // Guarded — see useDeleteLock. Optimistic removal plus rollback means a
+  // double-tap can resurrect a row the first delete legitimately removed.
+  const deleteTx = (id) => guardDelete(id, async () => {
     const existing = transactions.find(t => t.id === id);
     setTransactions(prev => prev.filter(t => t.id !== id));
     try {
@@ -601,7 +605,7 @@ export default function Finance() {
       if (existing) setTransactions(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete transaction", description: "Please try again in a moment.", variant: 'destructive' });
     }
-  };
+  });
 
   const [nwSaving, setNwSaving] = useState(false);
   const saveNW = async () => {
@@ -620,7 +624,7 @@ export default function Finance() {
     }
   };
 
-  const deleteNW = async (id) => {
+  const deleteNW = (id) => guardDelete(id, async () => {
     const existing = netWorth.find(n => n.id === id);
     if (!window.confirm(`Delete ${existing?.name || 'this entry'}?`)) return;
     setNetWorth(prev => prev.filter(n => n.id !== id));
@@ -631,7 +635,7 @@ export default function Finance() {
       if (existing) setNetWorth(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete entry", description: "Please try again in a moment.", variant: 'destructive' });
     }
-  };
+  });
 
   // Anchored to the latest transaction on record, not the literal calendar
   // date — someone who just bulk-imported statements that stop in a past

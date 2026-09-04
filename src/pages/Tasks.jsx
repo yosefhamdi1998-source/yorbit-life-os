@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useDeleteLock from '@/hooks/useDeleteLock';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low' },
@@ -23,6 +24,7 @@ const DEFAULT_FORM = () => ({ title: '', due_date: '', priority: 'medium', categ
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
@@ -78,7 +80,9 @@ export default function Tasks() {
     }
   };
 
-  const deleteTask = async (id) => {
+  // Guarded — see useDeleteLock. Optimistic removal plus rollback means a
+  // double-tap can resurrect a row the first delete legitimately removed.
+  const deleteTask = (id) => guardDelete(id, async () => {
     const existing = tasks.find(t => t.id === id);
     setTasks(prev => prev.filter(t => t.id !== id));
     try {
@@ -88,7 +92,7 @@ export default function Tasks() {
       if (existing) setTasks(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete task", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   const visible = tasks.filter(t => filter === 'all' ? true : filter === 'done' ? t.status === 'done' : t.status !== 'done');
   const activeCount = tasks.filter(t => t.status !== 'done').length;
@@ -195,7 +199,7 @@ export default function Tasks() {
                     <span className={`text-xs font-semibold ${PRIORITY_COLOR[task.priority]}`}>· {task.priority}</span>
                   </div>
                 </div>
-                <button onClick={() => deleteTask(task.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete task" aria-label="Delete task">
+                <button onClick={() => deleteTask(task.id)} disabled={isDeleting(task.id)} className="shrink-0 disabled:opacity-40 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete task" aria-label="Delete task">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

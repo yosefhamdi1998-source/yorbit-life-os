@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import { toast } from '@/components/ui/use-toast';
+import useDeleteLock from '@/hooks/useDeleteLock';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 // Category presets — same idea as categoryVisuals.jsx (icon + color per
@@ -48,6 +49,7 @@ const EMPTY_FORM = { name: '', preset: 'custom', target_amount: '', current_amou
 const MAX_CONTRIBUTION = 10000000;
 
 export default function Goals() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -119,7 +121,7 @@ export default function Goals() {
     }
   };
 
-  const deleteGoal = async (goal) => {
+  const deleteGoal = (goal) => guardDelete(goal.id, async () => {
     if (!window.confirm(`Delete "${goal.name}"? This can't be undone.`)) return;
     try {
       await base44.entities.SavingsGoal.delete(goal.id);
@@ -128,7 +130,7 @@ export default function Goals() {
     } catch {
       toast({ title: "Couldn't delete this goal", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   // A contribution is a read-modify-write on a stored running total, which
   // makes a double-tap here worse than the duplicate-row bug elsewhere:

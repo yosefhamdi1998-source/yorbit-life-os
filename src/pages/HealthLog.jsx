@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, parseISO } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useDeleteLock from '@/hooks/useDeleteLock';
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd');
 const DEFAULT_FORM = () => ({
@@ -19,6 +20,7 @@ const DEFAULT_FORM = () => ({
 export default function HealthLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
@@ -113,7 +115,9 @@ export default function HealthLog() {
     }
   };
 
-  const deleteLog = async (id) => {
+  // Guarded — see useDeleteLock. Optimistic removal plus rollback means a
+  // double-tap can resurrect a row the first delete legitimately removed.
+  const deleteLog = (id) => guardDelete(id, async () => {
     const existing = logs.find(l => l.id === id);
     setLogs(prev => prev.filter(l => l.id !== id));
     try {
@@ -123,7 +127,7 @@ export default function HealthLog() {
       if (existing) setLogs(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete log", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -192,7 +196,7 @@ export default function HealthLog() {
             <div key={log.id} className="sky-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-semibold text-muted-foreground">{format(parseISO(log.date), 'EEEE, MMM d')}</span>
-                <button onClick={() => deleteLog(log.id)} className="p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete log" aria-label="Delete log">
+                <button onClick={() => deleteLog(log.id)} disabled={isDeleting(log.id)} className="disabled:opacity-40 p-1.5 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete log" aria-label="Delete log">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

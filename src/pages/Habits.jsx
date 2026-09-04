@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, subDays } from 'date-fns';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useDeleteLock from '@/hooks/useDeleteLock';
 
 const ICONS = ['💧', '🏃', '📖', '🧘', '🥗', '😴', '✍️', '🚭'];
 const FREQ_OPTIONS = [{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }];
@@ -31,6 +32,7 @@ function computeStreak(completions) {
 export default function Habits() {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
@@ -88,7 +90,12 @@ export default function Habits() {
     }
   };
 
-  const deleteHabit = async (id) => {
+  // Guarded because this removes optimistically and rolls back on failure.
+  // Two fast taps both capture `existing` before React flushes the first
+  // filter; the first delete succeeds, the second fails against a row that
+  // is already gone, and its catch puts the deleted habit back on screen.
+  // It then stays there, looking alive, until the next reload.
+  const deleteHabit = (id) => guardDelete(id, async () => {
     const existing = habits.find(h => h.id === id);
     setHabits(prev => prev.filter(h => h.id !== id));
     try {
@@ -98,7 +105,7 @@ export default function Habits() {
       if (existing) setHabits(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete habit", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -204,7 +211,7 @@ export default function Habits() {
                 >
                   {doneToday && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </button>
-                <button onClick={() => deleteHabit(habit.id)} className="shrink-0 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete habit" aria-label="Delete habit">
+                <button onClick={() => deleteHabit(habit.id)} disabled={isDeleting(habit.id)} className="shrink-0 disabled:opacity-40 p-2 -m-1 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors" title="Delete habit" aria-label="Delete habit">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

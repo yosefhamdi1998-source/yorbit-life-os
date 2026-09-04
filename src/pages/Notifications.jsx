@@ -16,7 +16,10 @@ const TYPE_ICON = {
 const fmtAmount = (n) =>
   Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
+import useDeleteLock from '@/hooks/useDeleteLock';
+
 export default function Notifications() {
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState(null);
@@ -55,14 +58,14 @@ export default function Notifications() {
     }
   };
 
-  const remove = async (id) => {
+  const remove = (id) => guardDelete(id, async () => {
     try {
       await base44.entities.Notification.delete(id);
       setItems((prev) => (prev ? prev.filter((n) => n.id !== id) : prev));
     } catch (e) {
       toast({ title: 'Delete failed', description: e.message, variant: 'destructive' });
     }
-  };
+  });
 
   const unreadCount = (items || []).filter((n) => !n.is_read).length;
 

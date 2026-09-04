@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/ui/use-toast';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
+import useDeleteLock from '@/hooks/useDeleteLock';
 
 const COLORS = ['#FDE68A', '#BFDBFE', '#BBF7D0', '#FBCFE8', '#DDD6FE', '#FECACA'];
 const DEFAULT_FORM = () => ({ title: '', content: '', color: COLORS[0] });
@@ -15,6 +16,7 @@ const DEFAULT_FORM = () => ({ title: '', content: '', color: COLORS[0] });
 export default function Notes() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -81,7 +83,9 @@ export default function Notes() {
     }
   };
 
-  const deleteNote = async (id) => {
+  // Guarded — see useDeleteLock. Optimistic removal plus rollback means a
+  // double-tap can resurrect a row the first delete legitimately removed.
+  const deleteNote = (id) => guardDelete(id, async () => {
     const existing = notes.find(n => n.id === id);
     setNotes(prev => prev.filter(n => n.id !== id));
     try {
@@ -91,7 +95,7 @@ export default function Notes() {
       if (existing) setNotes(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete note", description: 'Please try again in a moment.', variant: 'destructive' });
     }
-  };
+  });
 
   const filtered = notes.filter(n =>
     !search.trim() ||
@@ -174,7 +178,7 @@ export default function Notes() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📌 Pinned</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {pinned.map(note => (
-                  <NoteCard key={note.id} note={note} onEdit={openEdit} onPin={togglePin} onDelete={deleteNote} />
+                  <NoteCard key={note.id} note={note} onEdit={openEdit} onPin={togglePin} onDelete={deleteNote} deleting={isDeleting(note.id)} />
                 ))}
               </div>
             </div>
@@ -184,7 +188,7 @@ export default function Notes() {
               {pinned.length > 0 && <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">All Notes</p>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {rest.map(note => (
-                  <NoteCard key={note.id} note={note} onEdit={openEdit} onPin={togglePin} onDelete={deleteNote} />
+                  <NoteCard key={note.id} note={note} onEdit={openEdit} onPin={togglePin} onDelete={deleteNote} deleting={isDeleting(note.id)} />
                 ))}
               </div>
             </div>
@@ -198,7 +202,7 @@ export default function Notes() {
   );
 }
 
-function NoteCard({ note, onEdit, onPin, onDelete }) {
+function NoteCard({ note, onEdit, onPin, onDelete, deleting }) {
   return (
     <div
       className="rounded-2xl p-4 border border-black/5 cursor-pointer transition-transform active:scale-[0.98]"
@@ -218,6 +222,7 @@ function NoteCard({ note, onEdit, onPin, onDelete }) {
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
+            disabled={deleting}
             className="p-1.5 rounded-lg hover:bg-black/10 transition-colors"
             title="Delete note"
             aria-label="Delete note"
