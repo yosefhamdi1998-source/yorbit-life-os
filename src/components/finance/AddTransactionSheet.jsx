@@ -5,9 +5,12 @@ import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import { format } from 'date-fns';
 import useSubmitLock from '@/hooks/useSubmitLock';
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/enums';
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
-const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
+// From the single source of truth — `npm run check:enums` verifies both
+// are valid subsets of transactions_category_check.
+const EXPENSE_CATS = EXPENSE_CATEGORIES;
+const INCOME_CATS = INCOME_CATEGORIES;
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 
 function getCatOptions(type) {

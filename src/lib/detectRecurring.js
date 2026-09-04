@@ -1,10 +1,9 @@
 import { parseISO, addMonths } from 'date-fns';
+import { BILL_CATEGORIES as BILL_CATEGORY_LIST } from '@/lib/enums';
 
-// The exact set bills.category's CHECK constraint allows in the database —
-// keep this in sync with that constraint, not with transaction categories.
-const BILL_CATEGORIES = new Set([
-  'housing', 'utilities', 'phone', 'insurance', 'subscription', 'credit_card', 'loan', 'other',
-]);
+// bills.category's allowed set, from the single source of truth that
+// `npm run check:enums` verifies against the live database constraint.
+const BILL_CATEGORIES = new Set(BILL_CATEGORY_LIST);
 
 // Bank statement boilerplate that says nothing about WHO was paid. The
 // same Apple subscription arrives as "Apple" from a bank sync and as

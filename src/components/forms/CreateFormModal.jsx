@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ export default function CreateFormModal({ onClose, onCreate }) {
   const [description, setDescription] = useState('');
   const [fields, setFields] = useState([{ id: crypto.randomUUID(), label: '', type: 'text', required: false }]);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const addField = () => setFields(prev => [...prev, { id: crypto.randomUUID(), label: '', type: 'text', required: false }]);
   const removeField = (id) => setFields(prev => prev.filter(f => f.id !== id));
@@ -26,8 +27,14 @@ export default function CreateFormModal({ onClose, onCreate }) {
 
   const handleCreate = async () => {
     if (!name.trim()) return;
+    // Synchronous re-entry guard — `disabled={saving}` alone can't stop a
+    // fast double-tap, because React batches the state update and taps in
+    // the same tick all run before the button re-renders as disabled.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     await onCreate({ name: name.trim(), icon, description, fields: fields.filter(f => f.label.trim()) });
+    savingRef.current = false;
     setSaving(false);
   };
 

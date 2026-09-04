@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { StickyNote, Plus, Pin, Trash2, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ export default function Notes() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const loadNotes = async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
@@ -46,6 +47,11 @@ export default function Notes() {
 
   const saveNote = async () => {
     if (!form.title.trim()) return;
+    // Synchronous re-entry guard — `disabled={saving}` alone can't stop a
+    // fast double-tap, because React batches the state update and taps in
+    // the same tick all run before the button re-renders as disabled.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       if (editingId) {
@@ -60,6 +66,7 @@ export default function Notes() {
     } catch {
       toast({ title: "Couldn't save note", description: 'Please try again in a moment.', variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

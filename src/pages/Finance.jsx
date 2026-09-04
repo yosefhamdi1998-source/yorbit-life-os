@@ -22,6 +22,7 @@ import { toast } from '@/components/ui/use-toast';
 import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
+import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
@@ -38,7 +39,9 @@ const NW_TYPE_OPTIONS = [
   { value: 'liability', label: '❌ Liability' },
 ];
 
-const NW_CAT_OPTIONS = ['cash', 'investment', 'property', 'vehicle', 'crypto', 'loan', 'mortgage', 'credit_card', 'other'].map(c => ({
+// From the single source of truth, verified against
+// net_worth_entries_category_check by `npm run check:enums`.
+const NW_CAT_OPTIONS = NET_WORTH_CATEGORIES.map(c => ({
   value: c,
   label: c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' '),
 }));

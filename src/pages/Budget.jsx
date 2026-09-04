@@ -12,15 +12,13 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull, fmtAxisCompact } from '@/lib/format';
+import { BUDGET_CATEGORIES } from '@/lib/enums';
 
-// Must match the budgets.category CHECK constraint in the database
-// exactly. 'investment' used to be offered here but the constraint
-// rejects it, so picking "📈 Investment" was a guaranteed save failure —
-// same bug class as the Recurring "Add" button (a dropdown offering a
-// value the database refuses). It's also the semantically right one to
-// drop: investing activity is deliberately excluded from budgeting now
-// and lives on its own Investments page.
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'other'];
+// From the single source of truth, verified against the database's
+// budgets_category_check by `npm run check:enums`. This list previously
+// offered 'investment', which the constraint rejects — picking it was a
+// guaranteed, silent save failure.
+const EXPENSE_CATS = BUDGET_CATEGORIES;
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
 const BUDGET_SUGGESTIONS = [
   { cat: 'food', amount: 400 },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,12 +13,19 @@ export default function AddRecordModal({ form, record, onClose, onSave }) {
   });
   const [notes, setNotes] = useState(record?.notes || '');
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const setField = (id, value) => setData(prev => ({ ...prev, [id]: value }));
 
   const handleSave = async () => {
+    // Synchronous re-entry guard — `disabled={saving}` alone can't stop a
+    // fast double-tap, because React batches the state update and taps in
+    // the same tick all run before the button re-renders as disabled.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     await onSave(data, notes);
+    savingRef.current = false;
     setSaving(false);
   };
 

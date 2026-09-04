@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Settings as SettingsIcon, Trash2, LogOut, AlertTriangle, Shield, Download, Lock, FileText, Mail, ChevronRight, Sparkles, Zap, CheckCircle2, Star, Heart } from 'lucide-react';
 import { isNativeIOS } from '@/lib/platform';
@@ -30,6 +30,10 @@ export default function Settings() {
   const urlParams = new URLSearchParams(window.location.search);
   const purchaseSuccess = urlParams.get('success') === '1';
   const [deleting, setDeleting] = useState(false);
+  // Synchronous guards — destructive actions must never run twice from a
+  // fast double-tap; React state alone does not prevent that.
+  const deletingRef = useRef(false);
+  const exportingRef = useRef(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteResult, setDeleteResult] = useState(''); // 'success' | 'manual' | ''
   const [deleteDataOpen, setDeleteDataOpen] = useState(false);
@@ -76,6 +80,10 @@ export default function Settings() {
   };
 
   const handleDeleteData = async () => {
+    if (deletingRef.current) return;
+
+    deletingRef.current = true;
+
     setDeleting(true);
     try {
       const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache, investments] = await Promise.all([
@@ -106,10 +114,15 @@ export default function Settings() {
     } catch {
       toast({ title: "Couldn't delete everything", description: 'Some items may remain. Please try again.', variant: 'destructive' });
     }
+    deletingRef.current = false;
     setDeleting(false);
   };
 
   const handleDeleteAccount = async () => {
+    if (deletingRef.current) return;
+
+    deletingRef.current = true;
+
     setDeleting(true);
     try {
       // Server-side: cancels Stripe subscription + wipes all user data
@@ -119,11 +132,16 @@ export default function Settings() {
       console.error('Delete account error:', err);
       // Fallback: show manual deletion message
       setDeleteResult('manual');
+      deletingRef.current = false;
       setDeleting(false);
     }
   };
 
   const handleExportData = async () => {
+    if (exportingRef.current) return;
+
+    exportingRef.current = true;
+
     setExporting(true);
     try {
       // Every table that actually holds this user's data — not just the
@@ -186,6 +204,7 @@ export default function Settings() {
       console.error('Export error:', err);
       toast({ title: "Couldn't export data", description: "Please try again in a moment.", variant: 'destructive' });
     }
+    exportingRef.current = false;
     setExporting(false);
   };
 

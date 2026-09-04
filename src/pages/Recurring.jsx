@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Repeat, ChevronRight, Sparkles, Plus, Check } from 'lucide-react';
+import { Repeat, ChevronRight, Sparkles, Plus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/ui/use-toast';
 import { detectRecurring } from '@/lib/detectRecurring';
@@ -19,6 +19,7 @@ export default function Recurring() {
   const [loading, setLoading] = useState(true);
   const [addedKeys, setAddedKeys] = useState(() => new Set());
   const [addingKey, setAddingKey] = useState(null);
+  const addingRef = useRef(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -40,6 +41,13 @@ export default function Recurring() {
   );
 
   const addDetected = async (d) => {
+    // Synchronous re-entry guard. `disabled={addingKey === d.key}` relies
+    // on a React state update that hasn't re-rendered yet when a fast
+    // double-tap fires, so both taps get through and create two identical
+    // bills. Keyed by detection key so tapping Add on two *different*
+    // rows quickly still works.
+    if (addingRef.current.has(d.key)) return;
+    addingRef.current.add(d.key);
     setAddingKey(d.key);
     try {
       await base44.entities.Bill.create({
@@ -50,6 +58,7 @@ export default function Recurring() {
     } catch {
       toast({ title: "Couldn't add this bill", description: 'Please try again in a moment.', variant: 'destructive' });
     }
+    addingRef.current.delete(d.key);
     setAddingKey(null);
   };
 

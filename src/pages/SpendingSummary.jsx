@@ -161,7 +161,7 @@ export default function SpendingSummary() {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const expenses = useMemo(() => transactions.filter(t => t.type === 'expense'), [transactions]);

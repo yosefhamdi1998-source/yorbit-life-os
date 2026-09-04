@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { CheckSquare, Plus, Trash2, X, Circle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ export default function Tasks() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [filter, setFilter] = useState('active');
 
   const loadTasks = async (showSkeleton = false) => {
@@ -47,6 +48,11 @@ export default function Tasks() {
 
   const saveTask = async () => {
     if (!form.title.trim()) return;
+    // Synchronous re-entry guard — `disabled={saving}` alone can't stop a
+    // fast double-tap, because React batches the state update and taps in
+    // the same tick all run before the button re-renders as disabled.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       await base44.entities.Task.create({ ...form, due_date: form.due_date || null });
@@ -56,6 +62,7 @@ export default function Tasks() {
     } catch {
       toast({ title: "Couldn't save task", description: 'Please try again in a moment.', variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

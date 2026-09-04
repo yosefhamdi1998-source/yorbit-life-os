@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Upload, CheckCircle, AlertTriangle, ArrowLeft, FileText, Loader2, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle, ArrowLeft, Loader2, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';

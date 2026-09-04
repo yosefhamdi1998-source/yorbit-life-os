@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, DollarSign, Target, Brain, PiggyBank,
-  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell,
-  StickyNote, CheckSquare, Flame, BookOpen, HeartPulse, Grid2x2, Repeat, BarChart3, Send, TrendingUp
+  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell, Grid2x2, Repeat, BarChart3, Send, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';

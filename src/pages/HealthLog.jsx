@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { HeartPulse, Plus, Trash2, X, Moon, Footprints, Droplet, Dumbbell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ export default function HealthLog() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(DEFAULT_FORM());
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const loadLogs = async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
@@ -73,6 +74,11 @@ export default function HealthLog() {
 
   const saveLog = async () => {
     if (!hasAnyValue) return;
+    // Synchronous re-entry guard — `disabled={saving}` alone can't stop a
+    // fast double-tap, because React batches the state update and taps in
+    // the same tick all run before the button re-renders as disabled.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload = {
@@ -102,6 +108,7 @@ export default function HealthLog() {
     } catch {
       toast({ title: "Couldn't save log", description: 'Please try again in a moment.', variant: 'destructive' });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
