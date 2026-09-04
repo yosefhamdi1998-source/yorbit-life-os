@@ -109,7 +109,14 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
           </div>
           <div className="min-w-0">
             <p className="font-bold text-sm leading-tight">Cash Flow Trend</p>
-            <p className="text-xs text-muted-foreground truncate">{activePeriod.subtitle}</p>
+            {/* Used to repeat the selected window ("Income vs. expenses,
+                last 6 months") — on a phone that's squeezed between this
+                icon and the Improving badge + 3-icon chart toggle on the
+                right, so it truncated mid-word into "...expenses, i…".
+                The period pills right below already say which window is
+                active, so dropping the repeated part fixes the cutoff for
+                every period, not just this one. */}
+            <p className="text-xs text-muted-foreground truncate">Income vs. expenses</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
