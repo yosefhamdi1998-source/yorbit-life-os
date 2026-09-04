@@ -170,11 +170,32 @@ export default function SpendingSummary() {
   const prevRange = getPrevRange(period, cursor);
 
   const periodTx = useMemo(() => expenses.filter(t => inRange(t.date, start, end)), [expenses, start, end]);
-  const prevTx = useMemo(() => expenses.filter(t => inRange(t.date, prevRange.start, prevRange.end)), [expenses, prevRange]);
+
+  // A period still in progress must not be compared against a COMPLETE
+  // earlier one. Three days into September against all of August reported
+  // "-96% vs. previous period" — arithmetically true, and completely
+  // misleading; a year with 9 months of data against a year with 1 read
+  // "+3034%". Both look like the app is broken or lying.
+  //
+  // So when the current period hasn't finished yet, the previous one is
+  // truncated to the same elapsed length: the first 3 days of September
+  // against the first 3 days of August. Like against like.
+  const today = new Date();
+  const isPartial = end > today;
+  const elapsedMs = isPartial ? today - start : end - start;
+
+  const prevTx = useMemo(() => {
+    const cutoff = isPartial
+      ? new Date(prevRange.start.getTime() + elapsedMs)
+      : prevRange.end;
+    return expenses.filter(t => inRange(t.date, prevRange.start, cutoff));
+  }, [expenses, prevRange, isPartial, elapsedMs]);
 
   const totalSpending = periodTx.reduce((s, t) => s + (t.amount || 0), 0);
   const prevTotal = prevTx.reduce((s, t) => s + (t.amount || 0), 0);
   const changePct = prevTotal > 0 ? Math.round(((totalSpending - prevTotal) / prevTotal) * 100) : null;
+  // Say plainly what's being compared, so the number can't be misread.
+  const comparisonLabel = isPartial ? 'vs. same point last period' : 'vs. previous period';
 
   const catData = useMemo(() => EXPENSE_CATS.map(cat => ({
     name: cat,
@@ -333,7 +354,7 @@ export default function SpendingSummary() {
             ${fmtFull(totalSpending)}
           </p>
           <p className="text-white/75 text-xs font-semibold mb-5 h-4">
-            {changePct !== null && `${changePct > 0 ? '+' : ''}${changePct}% vs. previous period`}
+            {changePct !== null && `${changePct > 0 ? '+' : ''}${changePct}% ${comparisonLabel}`}
           </p>
 
           <div className="grid grid-cols-2 gap-2.5">
