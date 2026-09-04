@@ -296,18 +296,39 @@ Deno.serve(async (req) => {
     // Two fixes: only look at the date window actually being synced (far
     // fewer rows), and page through it properly instead of trusting one
     // request to return everything.
-    const existingKeys = new Set<string>();
+    // Dedup on Plaid's OWN transaction id, never on title+date+amount.
+    //
+    // The old key was `title-date-amount`. That treats two rows sharing
+    // those fields as the same event, which is wrong for this user by
+    // design: they trade on Coinbase daily and send to gambling sites,
+    // routinely 10-20 transactions in one day, frequently for identical
+    // amounts. Same title, same date, same amount is their NORMAL pattern.
+    // Keying on it silently discarded real transactions.
+    //
+    // tx.transaction_id is stable across syncs AND across Plaid refining a
+    // merchant name later, which is the other direction the old key failed:
+    // 'SQ *COFFEE 12345' becoming 'Blue Bottle Coffee' changed the key and
+    // re-imported the same row.
+    //
+    // Rows imported before this column existed have a null
+    // provider_transaction_id and cannot be matched. They are left alone
+    // rather than guessed at - losing a real transaction is far worse than
+    // keeping a duplicate.
+    const existingIds = new Set<string>();
     const PAGE = 1000;
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await admin
         .from('transactions')
-        .select('title, date, amount')
+        .select('provider_transaction_id')
         .eq('user_id', account.user_id)
+        .not('provider_transaction_id', 'is', null)
         .gte('date', startDate)
         .lte('date', endDate)
         .range(from, from + PAGE - 1);
       if (error) throw error;
-      for (const t of data ?? []) existingKeys.add(`${t.title}-${t.date}-${t.amount}`);
+      for (const t of data ?? []) {
+        if (t.provider_transaction_id) existingIds.add(t.provider_transaction_id);
+      }
       if (!data || data.length < PAGE) break;
     }
 
@@ -322,17 +343,12 @@ Deno.serve(async (req) => {
       const title = tx.merchant_name || tx.name || 'Transaction';
       const amount = Math.abs(tx.amount);
       const date = tx.date;
-      const key = `${title}-${date}-${amount}`;
-      // Checked (and immediately recorded) against the SAME running set for
-      // every row in this batch, not just what was already in the database
-      // before this sync started. A large first-time historical pull from
-      // Plaid's transactionsGet can itself return the same transaction more
-      // than once across pages on a freshly-connected item — this is what
-      // actually produced 8 identical "Zelle payment to YOSEFH" rows on the
-      // 5-year backfill. Without updating the set as we go, nothing catches
-      // a duplicate that only exists within this one batch.
-      if (existingKeys.has(key)) { skipped++; continue; }
-      existingKeys.add(key);
+      // Same-batch guard as well as cross-sync: a first-time historical
+      // pull can return the same transaction_id more than once across
+      // pages on a freshly connected item.
+      const providerId = tx.transaction_id;
+      if (providerId && existingIds.has(providerId)) { skipped++; continue; }
+      if (providerId) existingIds.add(providerId);
 
       const type = tx.amount > 0 ? 'expense' : 'income';
       const category = mapCategory(tx);
@@ -345,6 +361,8 @@ Deno.serve(async (req) => {
       const { error } = await admin.from('transactions').insert({
         user_id: account.user_id,
         title, amount, type, category, date,
+        provider_transaction_id: tx.transaction_id ?? null,
+        import_source: 'plaid',
         pfc_primary: tx?.personal_finance_category?.primary ?? null,
         pfc_detailed: tx?.personal_finance_category?.detailed ?? null,
         // exclusion_reason deliberately omitted — the database trigger

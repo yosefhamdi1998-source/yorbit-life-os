@@ -401,18 +401,49 @@ export default function CSVImport() {
     setImportProgress(0);
     let imported = 0, skipped = 0, failed = 0;
 
-    const existing = await base44.entities.Transaction.list('-date', 50000);
-    const existingKeys = new Set(existing.map(t => `${t.date}|${t.title}|${t.amount}`));
+    // Records WHERE these rows came from, so a future sync can tell a
+    // cross-source double import (same event from Plaid and from a CSV)
+    // apart from two genuine transactions. Nothing stored this before.
+    const csvSource = 'csv:upload';
+
+    // COUNT-BASED dedup, not existence-based.
+    //
+    // This used to skip any row whose date|title|amount already existed.
+    // That protects against overlapping statement files, which is a real
+    // case — but it silently destroyed legitimate repeats. This user trades
+    // on Coinbase daily and sends to gambling sites, routinely 10-20 times
+    // a day, frequently for identical amounts. A CSV containing twenty
+    // identical same-day rows imported exactly ONE of them.
+    //
+    // Comparing counts keeps both properties: re-importing the same file
+    // adds nothing (the database already holds as many as the file has),
+    // while a file genuinely containing twenty identical trades imports all
+    // twenty the first time.
+    const existing = await base44.entities.Transaction.listAll('-date', 50000);
+    const existingCounts = new Map();
+    for (const t of existing) {
+      const k = `${t.date}|${t.title}|${t.amount}`;
+      existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
+    }
+
+    // How many of each key this file contains.
+    const fileCounts = new Map();
+    for (const r of collected) {
+      const k = `${r.date}|${r.title}|${r.amount}`;
+      fileCounts.set(k, (fileCounts.get(k) || 0) + 1);
+    }
+
+    const takenSoFar = new Map();
     const toImport = [];
     for (const r of collected) {
       const key = `${r.date}|${r.title}|${r.amount}`;
-      if (existingKeys.has(key)) { skipped++; continue; }
-      // Mark it seen immediately so the SAME transaction appearing twice
-      // across overlapping statement files (a common real case — she
-      // downloaded per-month files that can overlap by a few days) only
-      // gets imported once, not counted as "new" every time it recurs.
-      existingKeys.add(key);
-      toImport.push(r);
+      const already = existingCounts.get(key) || 0;
+      const taken = takenSoFar.get(key) || 0;
+      // Import this occurrence only if the file has more of this key than
+      // the database already does.
+      if (taken < already) { takenSoFar.set(key, taken + 1); skipped++; continue; }
+      takenSoFar.set(key, taken + 1);
+      toImport.push({ ...r, import_source: csvSource });
     }
 
     for (let i = 0; i < toImport.length; i++) {
