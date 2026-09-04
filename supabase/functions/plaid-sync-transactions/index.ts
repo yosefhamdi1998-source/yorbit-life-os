@@ -404,6 +404,23 @@ Deno.serve(async (req) => {
       ...(wantsFullHistory ? { history_backfilled_at: new Date().toISOString() } : {}),
     }).eq('id', connected_account_id);
 
+    // Surface any Plaid category the classifier has no explicit rule for,
+    // at the moment it arrives rather than whenever someone next thinks to
+    // check. TRANSFER_OUT_CRYPTO reclassified 113 crypto purchases as
+    // ordinary spending and nothing anywhere said a word.
+    try {
+      const { data: unreg } = await admin.rpc('unregistered_pfc_values');
+      if (unreg && unreg.length) {
+        console.error(
+          `UNREGISTERED PFC VALUES after sync: ${unreg
+            .map((u: any) => `${u.pfc_detailed} (${u.rows} rows)`)
+            .join(', ')} - classifier is falling through to text matching for these. Add them to pfc_registry.`,
+        );
+      }
+    } catch (e) {
+      console.error('pfc registry check failed (non-fatal):', (e as Error).message);
+    }
+
     await admin.from('bank_sync_logs').insert({
       user_id: account.user_id,
       provider: 'plaid',

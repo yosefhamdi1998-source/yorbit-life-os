@@ -47,7 +47,7 @@ begin
   --    Uber paying a driver is income regardless of the rail it arrives on,
   --    and Plaid labels those rails TRANSFER_IN_* - so letting PFC decide
   --    first classified real earnings as peer transfers.
-  if t ~* '\y(uber pro card|payfare|lyft driver|doordash|instacart|grubhub)\y' then
+  if t ~* '\y(uber pro card|payfare|raiser|lyft driver|doordash|instacart|grubhub)\y' then
     return null;
   end if;
 
@@ -88,7 +88,7 @@ begin
 
   is_card := t ~* '\y(venmo|cash ?app|apple cash)\s*card\y';
 
-  if t ~* '\y(rebate|refund|reversal)\y' or t ~* '\ycash back reward\y' then
+  if t ~* '\y(rebate|refund|reversal)\y' or t ~* '\ycash ?back\y' then
     return null;
   end if;
 

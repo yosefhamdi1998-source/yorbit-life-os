@@ -21,7 +21,8 @@
     "test:exclusions": "npx supabase db query --linked -f scripts/test-exclusion-rules.sql",
     "test:merchant-shapes": "npx supabase db query --linked -f scripts/test-merchant-shapes.sql",
     "test:net-worth": "node scripts/test-net-worth.js",
-    "test:dedup": "node scripts/test-dedup.js"
+    "test:dedup": "node scripts/test-dedup.js",
+    "test:pfc": "npx supabase db query --linked -f scripts/test-pfc-registry.sql"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
