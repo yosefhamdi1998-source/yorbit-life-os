@@ -186,7 +186,10 @@ class Entity {
 const TX_COLUMNS = 'id,user_id,title,amount,type,category,date,notes,created_date';
 
 // Investments.jsx reads only these four off each row.
-const INVESTMENT_COLUMNS = 'id,title,amount,date';
+// provider_memo carries Coinbase's own text, and 845 of those rows contain
+// actual coin quantities ("Converted 0.037 BTC to 0.632 ETH") - the only
+// quantity data anywhere in this dataset.
+const INVESTMENT_COLUMNS = 'id,title,amount,date,provider_memo';
 
 class TransactionEntity extends Entity {
   async list(sort, limit) {
