@@ -34,7 +34,9 @@ const SQL_OUT = args.includes('--sql') ? args[args.indexOf('--sql') + 1] : null;
 // positives overstated. Calling it a change makes every number true. That
 // reframing is why the earlier "reconstruction failed" verdict was the wrong
 // call rather than a missing-file problem.
-const HISTORY_START = '2023-01-01';
+// Derived from the data rather than hard-coded: the exports now reach back
+// to 2018, and a stale constant here would mislabel every number below it.
+let HISTORY_START = '(unknown)';
 
 // --- CSV ---------------------------------------------------------------
 // Notes contains commas and parenthesised addresses, so a naive split on
@@ -96,6 +98,16 @@ const TYPES = {
   'Subscription':   { direction: 'expense', crypto: false, note: 'Coinbase subscription fee' },
   // Support adjustment crediting crypto to the account.
   'Admin Debit':    { direction: 'income',  crypto: true,  note: 'Coinbase support adjustment' },
+  // Movement between Coinbase retail and Coinbase Pro/Exchange (the old
+  // GDAX). These are the SAME user's money changing venue, so they behave
+  // like transfers - the signed quantity already carries the direction.
+  'Exchange Withdrawal': { direction: 'income',  crypto: true,  note: 'out of Coinbase Exchange' },
+  'Exchange Deposit':    { direction: 'expense', crypto: false, note: 'USD into Coinbase Exchange/GDAX' },
+  'Pro Withdrawal':      { direction: 'income',  crypto: true,  note: 'out of Coinbase Pro' },
+  // Earned crypto, same treatment as Staking Income: income on receipt.
+  'Reward Income':  { direction: 'income',  crypto: true,  note: 'Coinbase Rewards' },
+  // Wrapping ETH2 into CBETH - one asset becomes another, net value zero.
+  'Wrap Asset':     { direction: 'expense', crypto: true,  note: 'asset wrapped, paired' },
 };
 
 function readExport(file) {
@@ -167,6 +179,7 @@ const all = [...byId.values()];
 const unknownTypes = [...new Set(all.map(r => r.tx_type))].filter(t => !TYPES[t]);
 
 const dates = all.map(r => r.date).filter(Boolean).sort();
+HISTORY_START = dates[0] || '(unknown)';
 console.log(`\n${all.length} unique transactions  (${dupes} duplicate ids skipped)`);
 console.log(`Date range: ${dates[0]} to ${dates[dates.length - 1]}`);
 console.log(`Accounts: ${[...new Set(all.map(r => r.account_id))].map(a => a.slice(0, 8)).join(', ')}`);

@@ -263,6 +263,30 @@ class TransactionEntity extends Entity {
     }, limit);
   }
 
+  // Cash arriving in the bank FROM investments — a Coinbase withdrawal, a
+  // brokerage transfer out. This is not earned income and must never be
+  // added to salary, but hiding it makes a user's cash flow nonsensical:
+  // this account showed $359 of income against $1,769 of spending in June
+  // while $8,846 of crypto withdrawals that year were invisible.
+  //
+  // Surfaced as its own line so "where did the money come from" has a true
+  // answer without overstating what was earned.
+  async listCashFromInvestments(sort, limit) {
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select(
+        'id,title,amount,date,type,crypto_asset',
+        withCount ? { count: 'exact' } : undefined,
+      );
+      query = query.eq('exclusion_reason', 'investment');
+      query = query.eq('superseded_by_import', false);
+      // The fiat leg only: USD leaving the exchange for a bank account.
+      query = query.eq('crypto_asset', 'USD');
+      query = query.ilike('title', 'Coinbase Withdrawal%');
+      query = applySort(query, sort || '-date');
+      return query.range(from, to);
+    }, limit);
+  }
+
   // Everything, unfiltered — for tools that genuinely need the full ledger.
   async listAll(sort, limit) {
     return super.list(sort, limit);
