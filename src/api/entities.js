@@ -287,6 +287,23 @@ class TransactionEntity extends Entity {
     }, limit);
   }
 
+  // Per-asset analytics computed in Postgres: flows, position, and FIFO
+  // realized P&L. Returns ~87 rows instead of the 17,274 the page would
+  // otherwise pull to aggregate in the browser.
+  async cryptoAssetSummary() {
+    const user_id = await getUserId();
+    const { data, error } = await supabase.rpc('crypto_asset_summary', { p_user_id: user_id });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  async cryptoYearlySummary() {
+    const user_id = await getUserId();
+    const { data, error } = await supabase.rpc('crypto_yearly_summary', { p_user_id: user_id });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
   // Everything, unfiltered — for tools that genuinely need the full ledger.
   async listAll(sort, limit) {
     return super.list(sort, limit);

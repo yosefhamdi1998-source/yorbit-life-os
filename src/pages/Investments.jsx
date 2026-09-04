@@ -53,17 +53,71 @@ export default function Investments() {
     requestAnimationFrame(() => activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
+  // Per-asset totals and FIFO realized P&L come from Postgres. Computing
+  // them here would mean pulling all 17,274 rows just to fold them into ~87
+  // numbers. The recent transaction list still needs rows, but only the
+  // most recent few hundred — nobody scrolls 17,000 trades.
+  const [summary, setSummary] = useState([]);
+  const [yearlyRows, setYearlyRows] = useState([]);
+
   useEffect(() => {
     Promise.all([
-      base44.entities.Transaction.listInvestments('-date', 50000),
+      base44.entities.Transaction.listInvestments('-date', 400),
       base44.entities.InvestmentHolding.list('-institution_value', 200).catch(() => []),
+      base44.entities.Transaction.cryptoAssetSummary().catch(() => []),
+      base44.entities.Transaction.cryptoYearlySummary().catch(() => []),
     ])
-      .then(([tx, h]) => { setRows(tx); setHoldings(h || []); })
+      .then(([tx, h, s, y]) => {
+        setRows(tx); setHoldings(h || []);
+        setSummary(s || []); setYearlyRows(y || []);
+      })
       .catch(() => toast({ title: "Couldn't load your investments", description: 'Please try again in a moment.', variant: 'destructive' }))
       .finally(() => setLoading(false));
   }, []);
 
-  const { assets, byAsset, totals, yearly } = useMemo(() => {
+  // Totals across every asset, straight from the server-side FIFO walk.
+  const pnl = useMemo(() => {
+    const num = (v) => Number(v) || 0;
+    const bought = summary.reduce((s, r) => s + num(r.usd_bought), 0);
+    const sold = summary.reduce((s, r) => s + num(r.usd_sold), 0);
+    const realized = summary.reduce((s, r) => s + num(r.realized_pnl), 0);
+    const uncosted = summary.reduce((s, r) => s + num(r.uncosted_proceeds), 0);
+    const winners = summary.filter(r => num(r.realized_pnl) > 0).length;
+    const losers = summary.filter(r => num(r.realized_pnl) < 0).length;
+    return {
+      bought, sold, realized, uncosted,
+      // Profit on lots that can actually be costed. Uncosted proceeds are
+      // sales whose buy is not in the data; counting them as profit is the
+      // error that made a Coinbase tax report show $147,189 of "gains" on
+      // top of a real loss.
+      costed: realized - uncosted,
+      winners, losers,
+      assets: summary.length,
+      txns: summary.reduce((s, r) => s + num(r.txns), 0),
+    };
+  }, [summary]);
+
+  // Server-computed asset rows, shaped for the list below. Falls back to
+  // the client-side aggregation only if the RPC returned nothing.
+  const serverAssets = useMemo(() => summary.map(r => ({
+    asset: r.asset,
+    count: Number(r.txns) || 0,
+    bought: Number(r.usd_bought) || 0,
+    sold: Number(r.usd_sold) || 0,
+    netQty: Number(r.net_qty) || 0,
+    realized: Number(r.realized_pnl) || 0,
+    uncosted: Number(r.uncosted_proceeds) || 0,
+    hasQty: true,
+  })), [summary]);
+
+  const serverYearly = useMemo(() => yearlyRows.map(r => ({
+    year: r.yr,
+    bought: Number(r.usd_bought) || 0,
+    sold: Number(r.usd_sold) || 0,
+    cashOut: Number(r.cash_withdrawn) || 0,
+  })), [yearlyRows]);
+
+  const { assets: clientAssets, byAsset, totals, yearly: clientYearly } = useMemo(() => {
     const byAsset = {};
     let bought = 0, sold = 0, moneyIn = 0, moneyOut = 0;
     const yearMap = {};
@@ -126,6 +180,11 @@ export default function Investments() {
       : rows.filter(t => parseActivity(t.title).asset === assetFilter);
     return list.slice(0, 100);
   }, [rows, assetFilter]);
+
+  // Prefer the server summary; the client aggregation remains as a fallback
+  // for a user whose rows predate the structured columns.
+  const assets = serverAssets.length ? serverAssets : clientAssets;
+  const yearly = serverYearly.length ? serverYearly : clientYearly;
 
   const holdingsValue = holdings.reduce((s, h) => s + (h.institution_value || 0), 0);
 
@@ -243,6 +302,67 @@ export default function Investments() {
         </div>
       )}
 
+      {/* Realized profit and loss.
+          FIFO, computed server-side, matching the method Coinbase's own tax
+          reports use so the two can be compared directly. */}
+      {pnl.assets > 0 && (
+        <div className="sky-card rounded-2xl p-4 mb-5">
+          <div className="flex items-baseline justify-between mb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Realized profit &amp; loss
+            </p>
+            <span className="text-[10px] text-muted-foreground">FIFO</span>
+          </div>
+          <p className={`font-numeric text-3xl font-black tabular-nums leading-none mb-1 ${pnl.costed >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+            {pnl.costed < 0 ? '−' : '+'}${fmtFull(Math.abs(pnl.costed))}
+          </p>
+          <p className="text-[11px] text-muted-foreground mb-4">
+            on trades where the original purchase is in your data
+          </p>
+
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div className="bg-secondary/60 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Total bought</p>
+              <p className="text-sm font-bold tabular-nums">${fmtFull(pnl.bought)}</p>
+            </div>
+            <div className="bg-secondary/60 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Total sold</p>
+              <p className="text-sm font-bold tabular-nums">${fmtFull(pnl.sold)}</p>
+            </div>
+            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Assets in profit</p>
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{pnl.winners}</p>
+            </div>
+            <div className="bg-red-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Assets at a loss</p>
+              <p className="text-sm font-bold text-red-500 tabular-nums">{pnl.losers}</p>
+            </div>
+          </div>
+
+          {/* This caveat is the whole reason the two figures are separated.
+              A sale whose purchase is missing has no cost basis, so counting
+              it as profit reports the entire proceeds as gain. That is what
+              made a Coinbase tax report read $147,189 of "gains" sitting on
+              top of a real loss. */}
+          {pnl.uncosted > 0 && (
+            <div className="rounded-xl bg-amber-500/10 px-3 py-2.5">
+              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-500 mb-0.5">
+                ${fmtFull(pnl.uncosted)} of sales have no recorded purchase
+              </p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Those coins arrived by a route your exports don&apos;t cover, so there&apos;s
+                no cost to compare against. They&apos;re kept out of the figure above
+                rather than counted as pure profit.
+              </p>
+            </div>
+          )}
+
+          <p className="text-[10px] text-muted-foreground mt-3">
+            {pnl.txns.toLocaleString()} transactions across {pnl.assets} assets
+          </p>
+        </div>
+      )}
+
       {/* By asset */}
       {assets.length > 0 && (
         <>
@@ -287,8 +407,21 @@ export default function Investments() {
                   {/* fmtCompact already emits the currency symbol — don't
                       prefix another one. */}
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-orange-500 font-semibold tabular-nums">−{fmtCompact(a.bought)}</p>
-                    <p className="text-xs text-emerald-500 font-semibold tabular-nums">+{fmtCompact(a.sold)}</p>
+                    {a.realized !== undefined ? (
+                      <>
+                        <p className={`text-sm font-bold tabular-nums ${a.realized >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                          {a.realized < 0 ? '−' : '+'}{fmtCompact(Math.abs(a.realized))}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground tabular-nums">
+                          {fmtCompact(a.bought)} in · {fmtCompact(a.sold)} out
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-orange-500 font-semibold tabular-nums">−{fmtCompact(a.bought)}</p>
+                        <p className="text-xs text-emerald-500 font-semibold tabular-nums">+{fmtCompact(a.sold)}</p>
+                      </>
+                    )}
                   </div>
                 </button>
               ))}
