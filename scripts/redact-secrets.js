@@ -13,23 +13,13 @@
 
 import fs from 'node:fs';
 import readline from 'node:readline';
+import { redact } from './lib/secretPatterns.js';
 
 const [, , INPUT, OUTPUT] = process.argv;
 if (!INPUT || !OUTPUT) {
   console.error('Usage: node scripts/redact-secrets.js <input> <output>');
   process.exit(1);
 }
-
-const PATTERNS = [
-  [/\bsbp_[a-f0-9]{40,}/g, 'SUPABASE_ACCESS_TOKEN'],
-  [/\bsk-ant-[A-Za-z0-9_-]{20,}/g, 'ANTHROPIC_API_KEY'],
-  [/\bsk-[A-Za-z0-9_-]{20,}/g, 'API_KEY'],
-  [/\bghp_[A-Za-z0-9]{30,}/g, 'GITHUB_TOKEN'],
-  [/\bgho_[A-Za-z0-9]{30,}/g, 'GITHUB_OAUTH_TOKEN'],
-  [/\baccess-(sandbox|development|production)-[a-f0-9-]{20,}/g, 'PLAID_ACCESS_TOKEN'],
-  [/\bAKIA[0-9A-Z]{16}\b/g, 'AWS_KEY_ID'],
-  [/\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, 'JWT'],
-];
 
 const counts = new Map();
 
@@ -40,14 +30,9 @@ const rl = readline.createInterface({
 });
 
 for await (const line of rl) {
-  let redacted = line;
-  for (const [re, label] of PATTERNS) {
-    redacted = redacted.replace(re, () => {
-      counts.set(label, (counts.get(label) || 0) + 1);
-      return `[REDACTED_${label}]`;
-    });
-  }
-  out.write(redacted + '\n');
+  const { text, counts: hit } = redact(line);
+  for (const [k, v] of hit) counts.set(k, (counts.get(k) || 0) + v);
+  out.write(text + '\n');
 }
 
 out.end();

@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "check:enums": "node scripts/check-enums.cjs",
     "prebuild:check": "node scripts/check-enums.cjs",
-    "test:venmo": "node scripts/test-venmo-mapping.cjs"
+    "test:venmo": "node scripts/test-venmo-mapping.cjs",
+    "test:delete-lock": "node scripts/test-delete-lock.js",
+    "test:redaction": "node scripts/test-redaction.js",
+    "test": "npm run check:enums && npm run test:venmo && npm run test:delete-lock && npm run test:redaction"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

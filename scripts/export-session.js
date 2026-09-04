@@ -10,6 +10,7 @@
 
 import fs from 'node:fs';
 import readline from 'node:readline';
+import { redact } from './lib/secretPatterns.js';
 
 const [, , INPUT, OUTPUT] = process.argv;
 if (!INPUT || !OUTPUT) {
@@ -17,24 +18,18 @@ if (!INPUT || !OUTPUT) {
   process.exit(1);
 }
 
-// Patterns worth warning about before this file goes anywhere. Not a
-// security scanner — just enough to catch an obvious pasted secret so it
-// isn't synced to cloud storage unnoticed.
-const SECRET_PATTERNS = [
-  [/\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, 'JWT'],
-  [/\bsk-[A-Za-z0-9_-]{20,}/g, 'OpenAI-style key'],
-  [/\bsbp_[a-f0-9]{40,}/g, 'Supabase access token'],
-  [/\baccess-(sandbox|development|production)-[a-f0-9-]{20,}/g, 'Plaid access token'],
-  [/\bghp_[A-Za-z0-9]{30,}/g, 'GitHub token'],
-  [/\bAKIA[0-9A-Z]{16}\b/g, 'AWS key id'],
-];
+// Credentials are stripped AS THE FILE IS WRITTEN, not detected afterwards.
+// The earlier version only warned, which meant the unredacted export
+// already existed on disk — and in cloud storage — by the time anyone read
+// the warning. A warning about a file that has already been written is not
+// a control.
 const secretHits = new Map();
 
-function scan(text) {
-  for (const [re, label] of SECRET_PATTERNS) {
-    const m = text.match(re);
-    if (m) secretHits.set(label, (secretHits.get(label) || 0) + m.length);
-  }
+// Every string that reaches the output passes through here first.
+function clean(text) {
+  const { text: out, counts } = redact(text);
+  for (const [k, v] of counts) secretHits.set(k, (secretHits.get(k) || 0) + v);
+  return out;
 }
 
 const out = fs.createWriteStream(OUTPUT, { encoding: 'utf8' });
@@ -68,14 +63,15 @@ for await (const line of rl) {
   for (const b of blocks) {
     if (!b || typeof b !== 'object') continue;
     if (b.type === 'text' && b.text && b.text.trim()) {
-      texts.push(b.text);
-      scan(b.text);
+      texts.push(clean(b.text));
     } else if (b.type === 'tool_use') {
       toolCalls++;
       // One line per tool call: the name plus the most identifying field.
+      // Cleaned too — a secret pasted into a shell command lives here, not
+      // in the prose.
       const i = b.input || {};
       const hint = i.file_path || i.command || i.pattern || i.path || i.url || i.prompt || '';
-      tools.push(`${b.name}${hint ? ': ' + clip(String(hint).replace(/\s+/g, ' '), 160) : ''}`);
+      tools.push(clean(`${b.name}${hint ? ': ' + clip(String(hint).replace(/\s+/g, ' '), 160) : ''}`));
     }
     // tool_result blocks are deliberately dropped - they are the bulk of
     // the file and almost never what someone rereads a session for.
@@ -110,9 +106,10 @@ console.log(`  ${userTurns} user turns, ${assistantTurns} assistant turns, ${too
 if (skipped) console.log(`  ${skipped} unparseable lines skipped`);
 
 if (secretHits.size) {
-  console.log('\nWARNING - secret-shaped strings found in the conversation text:');
-  for (const [k, v] of secretHits) console.log(`  ${k}: ${v} occurrence(s)`);
-  console.log('Review before putting this file in cloud storage.');
+  console.log('\nRedacted from this export (already replaced in the output):');
+  for (const [k, v] of secretHits) console.log(`  ${k}: ${v}`);
+  console.log('\nThese were present in the SOURCE log, which is unredacted on');
+  console.log('disk. Redacting the export does not un-leak them - rotate them.');
 } else {
-  console.log('\nNo secret-shaped strings found in the conversation text.');
+  console.log('\nNo credential-shaped strings found.');
 }
