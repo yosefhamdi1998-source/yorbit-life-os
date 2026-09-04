@@ -131,7 +131,9 @@ shared behind NAT, trivially rotated. Only used pre-auth.
 2. **B2** — store `provider_transaction_id` and dedup on it.
 3. **B3** — batch inserts so sync survives a real backfill.
 4. **H1** — stop shipping 7 MB per page load.
-5. **Rotate the three leaked credentials** (see §3).
+5. ~~Rotate the three leaked credentials~~ — **owner declined, 2026-09-04.**
+   Decision recorded in §3.0. Do not re-raise it as a blocker; revisit only
+   if the transcript file leaves the machine.
 6. **Email confirmation + CAPTCHA** in the Supabase dashboard before
    `signup_mode` goes to `open`. Neither is set; neither can be set from code.
 7. **Privacy policy and terms reviewed by someone qualified.** Both pages
@@ -146,6 +148,39 @@ shared behind NAT, trivially rotated. Only used pre-auth.
 ---
 
 ## 3. Only you can do these — numbered checklist
+
+### 3.0 Status: rotation declined by the owner (2026-09-04)
+
+The owner reviewed this and chose **not** to rotate. Recorded here so a
+future session does not keep raising it, and so the decision is legible
+rather than looking like an oversight.
+
+**What was exposed, precisely.** Three credentials were written to the
+Claude Code session log at
+`C:\Users\Yosef\.claude\projects\C--Users-Yosef\*.jsonl`:
+68 occurrences of a Supabase secret key, a Supabase personal access token
+(`sbp_`), an Anthropic API key, plus 16 Plaid access tokens and 2 Plaid link
+tokens. **None of this was ever published.** The copies in
+`iCloudDrive\Yorbit Session Logs` are redacted and verified clean under the
+full pattern set. The unredacted original is local-only.
+
+**The risk that remains.** The Supabase secret key bypasses every RLS
+policy — the per-user isolation verified in this audit does not constrain a
+caller holding it. Anyone with access to that machine, or to that file if it
+is ever copied, backed up, or shared, has unrestricted database access.
+
+**What the owner was told, and is accurate:** rotating the Supabase secret
+key does **not** log users out (sessions are JWTs signed with a separate
+secret; no user ever holds the service key), and the Anthropic key and
+`sbp_` token have zero user impact. Only the **Plaid** access tokens would
+require users to reconnect their banks — which is a legitimate reason to
+defer that one specifically.
+
+**Revisit this if:** the transcript file is copied off the machine, the
+laptop is lost or sold, the repo or logs are shared with anyone, or the app
+opens to public signup.
+
+The checklist below is retained for whenever it is wanted.
 
 ### 3.1 Rotate the Supabase secret key (do this first, in this order)
 
