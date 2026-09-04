@@ -29,12 +29,32 @@ const DEFAULT_FORM = () => ({
   notes: '',
 });
 
+// Mirrors the database's own CHECK constraints on transactions
+// (amount > 0 AND amount <= 10000000, char_length(title) <= 200).
+// Without these the button stayed enabled for a negative, zero, or
+// absurd amount, the insert was rejected server-side, and the user got
+// "Couldn't save transaction. Please try again in a moment." — advice
+// that is actively wrong, since trying again with the same input fails
+// forever and nothing said which field was the problem.
+const MAX_AMOUNT = 10000000;
+const MAX_TITLE = 200;
+
+function validate(form) {
+  const amount = parseFloat(form.amount);
+  if (!form.amount || Number.isNaN(amount)) return 'Enter an amount.';
+  if (amount <= 0) return 'Amount has to be more than $0.';
+  if (amount > MAX_AMOUNT) return `Amount has to be $${MAX_AMOUNT.toLocaleString()} or less.`;
+  if ((form.title || '').length > MAX_TITLE) return `Description has to be ${MAX_TITLE} characters or fewer.`;
+  return null;
+}
+
 export default function AddTransactionSheet({ open, onClose, onSave }) {
   const [form, setForm] = useState(DEFAULT_FORM());
   // Synchronous re-entry guard — `disabled={saving}` alone let a fast
   // triple-tap create three identical transactions (verified against the
   // database). See useSubmitLock for why state can't enforce this.
   const { saving, runGuarded } = useSubmitLock();
+  const [error, setError] = useState('');
 
   // Mount/visibility are tracked explicitly and torn down on a timer rather
   // than relying on an exit animation to finish. An exit that never completes
@@ -56,7 +76,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
 
   // Reset form when sheet opens
   useEffect(() => {
-    if (open) setForm(DEFAULT_FORM());
+    if (open) { setForm(DEFAULT_FORM()); setError(''); }
   }, [open]);
 
   // Lock body scroll when open — overflow hidden avoids iOS touch-event issues
@@ -82,7 +102,9 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
   };
 
   const handleSave = () => runGuarded(async () => {
-    if (!form.amount) return;
+    const problem = validate(form);
+    if (problem) { setError(problem); return; }
+    setError('');
     try {
       // Amount is the only thing worth insisting on. Requiring a description
       // too meant typing an amount, tapping Save and getting nothing, because
@@ -209,6 +231,15 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                   sticky footer below. */}
               <div className="h-4" />
             </div>
+
+            {/* Validation message sits with the actions, not buried up in
+                the scroll area where it could be off-screen when Save is
+                tapped. */}
+            {error && (
+              <div className="px-5 pt-2 shrink-0">
+                <p className="text-xs font-semibold text-red-500">{error}</p>
+              </div>
+            )}
 
             {/* Actions — sticky, not scrolled-to. Outside the overflow-y-auto
                 area entirely, same "always visible" treatment the header
