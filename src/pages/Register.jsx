@@ -39,7 +39,16 @@ export default function Register() {
       }
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      // Signup is invite-only, enforced by a database trigger — Supabase
+      // Auth doesn't pass a trigger's custom error text through to the
+      // client, it just reports this one generic message for any signup
+      // the database rejected. Translate it here instead of showing
+      // someone a raw "Database error saving new user."
+      if (err.message?.includes('Database error saving new user')) {
+        setError("This app is invite-only right now. Ask the owner to add your email, then try again.");
+      } else {
+        setError(err.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
