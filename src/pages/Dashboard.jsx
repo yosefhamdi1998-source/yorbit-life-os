@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
-import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase } from '@/lib/periods';
+import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
@@ -143,7 +143,7 @@ export default function Dashboard() {
   // real example in this data) technically passes `> 0` but turns netSaved
   // divided by it into a meaningless five-figure percentage. Require at
   // least $1 of real income before a rate means anything.
-  const savingsRate = monthIncome >= 1 ? Math.round((netSaved / monthIncome) * 100) : 0;
+  const savingsRate = computeSavingsRate(monthIncome, monthExpenses);
   const totalAssets = netWorthEntries.filter(e => e.type === 'asset').reduce((s, e) => s + (e.value || 0), 0);
   const totalLiabilities = netWorthEntries.filter(e => e.type === 'liability').reduce((s, e) => s + (e.value || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -161,7 +161,7 @@ export default function Dashboard() {
   const heroTx = filterByPeriod(transactions, cashFlowPeriod, latestTxDate);
   const { income: heroIncome, expenses: heroExpenses, net: heroNetSaved } = sumByType(heroTx);
   // Same fraction-of-a-cent guard as `savingsRate` above.
-  const heroSavingsRate = heroIncome >= 1 ? Math.round((heroNetSaved / heroIncome) * 100) : 0;
+  const heroSavingsRate = computeSavingsRate(heroIncome, heroExpenses);
   const heroPeriodLabel = getPeriodLabel(cashFlowPeriod, latestTxDate);
   const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod, latestTxDate);
   const isYearPeriod = cashFlowPeriod.startsWith('year-');
@@ -430,7 +430,7 @@ export default function Dashboard() {
             </Link>
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Savings rate</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">{heroSavingsRate}%</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">{savingsRateLabel(heroSavingsRate)}</p>
             </div>
           </div>
         </div>

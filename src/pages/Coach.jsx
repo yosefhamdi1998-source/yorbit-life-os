@@ -55,7 +55,7 @@ export default function Coach() {
   const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
   // into a five-figure percentage.
-  const savingsRate = monthIncome >= 1 ? ((1 - monthExpenses / monthIncome) * 100).toFixed(0) : 0;
+  const savingsRate = computeSavingsRate(monthIncome, monthExpenses);
 
   const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
   const catData = EXPENSE_CATS.map(cat => ({
@@ -94,7 +94,7 @@ export default function Coach() {
 User finances:
 - Regular income this month: $${monthIncome.toFixed(0)}
 - Total spending this month: $${monthExpenses.toFixed(0)}
-- Savings rate: ${savingsRate}%
+- Savings rate: ${savingsRate === null ? "unknown (recorded income is too small to compute one)" : savingsRate + "%"}
 - Spending by category: ${budgetStatus || 'no data yet'}
 - Savings goals: ${goals?.filter(g => g.target_amount > 0).map(g => `${g.name}: ${Math.round(((g.current_amount || 0) / g.target_amount) * 100)}%`).join(', ') || 'none set'}
 
@@ -256,7 +256,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
                   <p className="text-[10px] text-muted-foreground mt-0.5">Spending</p>
                 </div>
                 <div className="sky-card rounded-2xl p-3 text-center">
-                  <p className={`text-lg font-black ${Number(savingsRate) >= 20 ? 'text-emerald-500' : 'text-amber-500'}`}>{savingsRate}%</p>
+                  <p className={`text-lg font-black ${savingsRate === null ? 'text-muted-foreground' : savingsRate >= 20 ? 'text-emerald-500' : 'text-amber-500'}`}>{savingsRateLabel(savingsRate)}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Savings Rate</p>
                 </div>
               </div>

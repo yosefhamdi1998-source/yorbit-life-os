@@ -142,3 +142,38 @@ export function sumByType(transactions) {
   const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   return { income, expenses, net: income - expenses };
 }
+
+// Savings rate, or null when the number would be meaningless.
+//
+// Four screens computed this inline as `income >= 1 ? (net/income)*100 : 0`.
+// That guard exists to stop a fraction-of-a-cent staking reward producing a
+// five-figure percentage, but $1 is far too low a bar. Against real data,
+// July 2026 had $1.06 of counted income and $1,350 of spending, and the
+// Dashboard rendered a savings rate of MINUS 127,302 PERCENT.
+//
+// The deeper point: a savings rate is a statement about what share of your
+// income you kept. When recorded income is tiny relative to spending, the
+// honest reading is not "you saved -127,302%" — it is "we don't have your
+// income." Showing a number there is worse than showing nothing, because a
+// number invites the user to believe it.
+//
+// Returns null when the income figure cannot support the calculation. The
+// caller renders that as an em dash with an explanation rather than 0%,
+// since 0% is itself a claim (that you saved nothing) and is equally wrong.
+export const SAVINGS_RATE_MIN_INCOME = 1;
+export const SAVINGS_RATE_MIN_INCOME_RATIO = 0.1;
+
+export function savingsRate(income, expenses) {
+  const inc = Number(income) || 0;
+  const exp = Number(expenses) || 0;
+  if (inc < SAVINGS_RATE_MIN_INCOME) return null;
+  // Income under a tenth of spending means the income side is incomplete,
+  // not that the month was catastrophic.
+  if (exp > 0 && inc < exp * SAVINGS_RATE_MIN_INCOME_RATIO) return null;
+  return Math.round(((inc - exp) / inc) * 100);
+}
+
+// What to show when savingsRate() returns null.
+export function savingsRateLabel(rate) {
+  return rate === null ? '—' : `${rate}%`;
+}

@@ -664,8 +664,7 @@ export default function Finance() {
   const totalLiabilities = netWorth.filter(n => n.type === 'liability').reduce((s, n) => s + (n.value || 0), 0);
   const netSaved = monthIncome - monthExpenses;
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
-  // into a five-figure percentage.
-  const savingsRate = monthIncome >= 1 ? Math.round((netSaved / monthIncome) * 100) : 0;
+  // into a five-figure percentage.
 
   // Summary row: trailing windows from shortest to longest, plus a whole
   // calendar year (this year and the 2 before it) — the rest of the page
