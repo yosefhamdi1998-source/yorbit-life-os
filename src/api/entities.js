@@ -204,6 +204,20 @@ class TransactionEntity extends Entity {
     }, limit);
   }
 
+  // Person-to-person payments (Venmo/Zelle/Cash App) and ATM withdrawals.
+  // These are excluded from budgeting because they have no spending
+  // category — but they're still real money the user moved, so the
+  // Payments Sent page reads them here. Without this, marking them
+  // excluded would have silently emptied that entire page.
+  async listPayments(sort, limit) {
+    return this._paginated((from, to, withCount) => {
+      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      query = query.in('exclusion_reason', ['p2p', 'cash']);
+      query = applySort(query, sort || '-date');
+      return query.range(from, to);
+    }, limit);
+  }
+
   // Everything, unfiltered — for tools that genuinely need the full ledger.
   async listAll(sort, limit) {
     return super.list(sort, limit);

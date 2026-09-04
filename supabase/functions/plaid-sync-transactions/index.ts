@@ -2,24 +2,108 @@ import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 
-const CATEGORY_MAP: Record<string, string> = {
-  'Food and Drink': 'food',
-  'Shops': 'shopping',
-  'Recreation': 'entertainment',
-  'Healthcare': 'health',
-  'Travel': 'transport',
-  'Transfer': 'savings',
-  'Payment': 'other',
-  'Bank Fees': 'other',
-  'Interest': 'other',
-  'Tax': 'other',
-  'Payroll': 'salary',
-  'Income': 'salary',
+// --- categorisation -----------------------------------------------------
+// This used to read Plaid's LEGACY `category` array through a 12-entry map,
+// which dumped most spending into 'other'. Plaid's modern
+// personal_finance_category is far richer (16 primary values, 100+
+// detailed) and was already present in every response — this same file
+// reads its `.detailed` field for self-transfer detection. So the better
+// taxonomy was arriving all along and being thrown away.
+//
+// Matching is: detailed override first (most precise), then primary, then
+// the legacy array as a last resort for any older/edge response shape.
+
+// Primary covers everything; detailed below only overrides where the
+// specific value belongs somewhere different from its primary bucket.
+const PFC_PRIMARY_MAP: Record<string, string> = {
+  INCOME: 'salary',
+  TRANSFER_IN: 'savings',
+  TRANSFER_OUT: 'savings',
+  LOAN_PAYMENTS: 'other',
+  BANK_FEES: 'other',
+  ENTERTAINMENT: 'entertainment',
+  FOOD_AND_DRINK: 'food',
+  GENERAL_MERCHANDISE: 'shopping',
+  HOME_IMPROVEMENT: 'housing',
+  MEDICAL: 'health',
+  PERSONAL_CARE: 'health',
+  GENERAL_SERVICES: 'other',
+  GOVERNMENT_AND_NON_PROFIT: 'other',
+  TRANSPORTATION: 'transport',
+  TRAVEL: 'transport',
+  RENT_AND_UTILITIES: 'housing',
 };
 
-function mapCategory(plaidCategories?: string[]) {
-  if (!plaidCategories || plaidCategories.length === 0) return 'other';
-  return CATEGORY_MAP[plaidCategories[0]] || 'other';
+// Only the cases where the detailed value genuinely belongs elsewhere than
+// its primary — a mortgage payment is housing, not a generic loan; a
+// student loan is education; dividends are investment income, not wages.
+const PFC_DETAILED_MAP: Record<string, string> = {
+  INCOME_DIVIDENDS: 'investment',
+  INCOME_INTEREST_EARNED: 'investment',
+  INCOME_RETIREMENT_PENSION: 'salary',
+  INCOME_UNEMPLOYMENT: 'salary',
+  INCOME_WAGES: 'salary',
+  INCOME_TAX_REFUND: 'other',
+  INCOME_OTHER_INCOME: 'other',
+
+  LOAN_PAYMENTS_MORTGAGE_PAYMENT: 'housing',
+  LOAN_PAYMENTS_CAR_PAYMENT: 'transport',
+  LOAN_PAYMENTS_STUDENT_LOAN_PAYMENT: 'education',
+
+  GENERAL_SERVICES_EDUCATION: 'education',
+  GENERAL_SERVICES_CHILDCARE: 'other',
+  GENERAL_SERVICES_AUTOMOTIVE: 'transport',
+  GENERAL_SERVICES_INSURANCE: 'other',
+
+  PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS: 'health',
+  PERSONAL_CARE_HAIR_AND_BEAUTY: 'shopping',
+  PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING: 'other',
+
+  GENERAL_MERCHANDISE_BOOKSTORES_AND_NEWSSTANDS: 'education',
+  GENERAL_MERCHANDISE_CONVENIENCE_STORES: 'food',
+
+  ENTERTAINMENT_MUSIC_AND_AUDIO: 'entertainment',
+  ENTERTAINMENT_TV_AND_MOVIES: 'entertainment',
+
+  HOME_IMPROVEMENT_FURNITURE: 'shopping',
+
+  TRANSFER_OUT_WITHDRAWAL: 'other',
+};
+
+function mapCategory(tx: any): string {
+  const detailed = tx?.personal_finance_category?.detailed;
+  if (detailed && PFC_DETAILED_MAP[detailed]) return PFC_DETAILED_MAP[detailed];
+
+  const primary = tx?.personal_finance_category?.primary;
+  if (primary && PFC_PRIMARY_MAP[primary]) return PFC_PRIMARY_MAP[primary];
+
+  // Legacy fallback — only reached if a response somehow lacks PFC.
+  const legacy = tx?.category?.[0];
+  const LEGACY: Record<string, string> = {
+    'Food and Drink': 'food', 'Shops': 'shopping', 'Recreation': 'entertainment',
+    'Healthcare': 'health', 'Travel': 'transport', 'Transfer': 'savings',
+    'Payroll': 'salary', 'Income': 'salary',
+  };
+  return (legacy && LEGACY[legacy]) || 'other';
+}
+
+// --- P2P and cash detection --------------------------------------------
+// Sending money to a person is not spending on a category, and neither is
+// pulling cash out of an ATM. Forcing them into a spending breakdown makes
+// every category chart wrong. These are flagged so they're kept out of
+// budgeting totals while still being visible on the Payments Sent page.
+const P2P_DETAILED = new Set([
+  'TRANSFER_OUT_OTHER_TRANSFER_OUT',
+  'TRANSFER_IN_OTHER_TRANSFER_IN',
+]);
+const P2P_TITLE_RE = /zelle|venmo|cash\s?app|cashapp|paypal|pmnt sent/i;
+const CASH_TITLE_RE = /\batm\b|withdrwl|withdrawal|cash withdrawal/i;
+
+function classifyExclusion(tx: any, title: string): string | null {
+  const detailed = tx?.personal_finance_category?.detailed;
+  if (detailed === 'TRANSFER_OUT_WITHDRAWAL' || CASH_TITLE_RE.test(title)) return 'cash';
+  if (P2P_TITLE_RE.test(title) || (detailed && P2P_DETAILED.has(detailed))) return 'p2p';
+  return null;
 }
 
 // Money moving between someone's own accounts — a Venmo balance sent to
@@ -183,11 +267,20 @@ Deno.serve(async (req) => {
       existingKeys.add(key);
 
       const type = tx.amount > 0 ? 'expense' : 'income';
-      const category = mapCategory(tx.category);
+      const category = mapCategory(tx);
+      const exclusionReason = classifyExclusion(tx, title);
 
+      // Store Plaid's own category verbatim as well. Previously only the
+      // mapped result was kept, so improving the mapping later could never
+      // be applied to rows already imported without re-fetching everything
+      // from Plaid. Keeping the source value makes re-categorisation a
+      // local operation.
       const { error } = await admin.from('transactions').insert({
         user_id: account.user_id,
         title, amount, type, category, date,
+        pfc_primary: tx?.personal_finance_category?.primary ?? null,
+        pfc_detailed: tx?.personal_finance_category?.detailed ?? null,
+        ...(exclusionReason ? { exclude_from_budget: true, exclusion_reason: exclusionReason } : {}),
         notes: `Imported from ${account.institution_name}`,
       });
       if (!error) imported++;

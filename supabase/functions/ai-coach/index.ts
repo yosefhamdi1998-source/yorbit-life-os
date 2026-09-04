@@ -173,7 +173,13 @@ async function handleAdvisorChat(body: any, userId: string, admin: ReturnType<ty
   // Pull the user's financial context (read-only), scoped to this user
   const [{ data: budgets }, { data: transactions }, { data: bills }, { data: forms }, { data: records }] = await Promise.all([
     admin.from('budgets').select('*').eq('user_id', userId),
-    admin.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(200),
+    // exclude_from_budget filter matters here: the Coach was reading the
+    // raw table with a service-role client, so it saw crypto trading,
+    // self-transfers, P2P sends and ATM withdrawals as if they were
+    // ordinary spending — and then gave advice based on numbers no other
+    // screen in the app agreed with. Every user-facing surface filters
+    // these out; this one has to as well or the advice contradicts the app.
+    admin.from('transactions').select('*').eq('user_id', userId).eq('exclude_from_budget', false).order('date', { ascending: false }).limit(200),
     admin.from('bills').select('*').eq('user_id', userId),
     admin.from('custom_forms').select('*').eq('user_id', userId),
     admin.from('custom_records').select('*').eq('user_id', userId).order('created_date', { ascending: false }).limit(100),

@@ -50,7 +50,11 @@ export default function PaymentsSent() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    base44.entities.Transaction.list('-date', 50000)
+    // listPayments, not list — P2P and ATM rows are now excluded from
+    // budgeting (they have no spending category), and the default list()
+    // hides excluded rows. Reading through list() here would have left
+    // this page permanently empty.
+    base44.entities.Transaction.listPayments('-date', 50000)
       .then(setTransactions)
       .catch(() => toast({ title: "Couldn't load your payments", description: 'Please try again in a moment.', variant: 'destructive' }))
       .finally(() => setLoading(false));

@@ -28,7 +28,14 @@ export const TRANSACTION_CATEGORIES = [
   'housing', 'food', 'transport', 'entertainment', 'health', 'shopping',
   'education', 'savings', 'salary', 'freelance', 'investment', 'other',
 ];
-export const TRANSACTION_EXCLUSION_REASONS = ['investment', 'transfer'];
+// Why a transaction is kept out of budgeting totals. All four are still
+// the user's real data and still visible somewhere — they just aren't
+// spending *categories*:
+//   investment — crypto/brokerage trading (Investments page)
+//   transfer   — moving money between your own accounts
+//   p2p        — sending money to a person (Payments Sent page)
+//   cash       — ATM withdrawals
+export const TRANSACTION_EXCLUSION_REASONS = ['investment', 'transfer', 'p2p', 'cash'];
 
 // Which transaction categories belong to money coming in vs going out.
 // Not a database constraint — a UI split of TRANSACTION_CATEGORIES, kept
