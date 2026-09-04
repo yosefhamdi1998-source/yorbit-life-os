@@ -78,14 +78,18 @@ export default function Settings() {
   const handleDeleteData = async () => {
     setDeleting(true);
     try {
-      const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache] = await Promise.all([
-        base44.entities.Transaction.list('-date', 50000),
+      const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache, investments] = await Promise.all([
+        // listAll, not list — the default excludes investment/transfer rows
+        // from budgeting screens, but "delete all my financial data" means
+        // all of it, crypto trading activity included.
+        base44.entities.Transaction.listAll('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Goal.list(),
         base44.entities.Bill.list(),
         base44.entities.NetWorthEntry.list(),
         base44.entities.AIInsightCache.list(),
+        base44.entities.InvestmentHolding.list(),
       ]);
       await Promise.all([
         ...transactions.map(t => base44.entities.Transaction.delete(t.id)),
@@ -95,6 +99,7 @@ export default function Settings() {
         ...bills.map(b => base44.entities.Bill.delete(b.id)),
         ...netWorth.map(n => base44.entities.NetWorthEntry.delete(n.id)),
         ...aiCache.map(c => base44.entities.AIInsightCache.delete(c.id)),
+        ...investments.map(i => base44.entities.InvestmentHolding.delete(i.id)),
       ]);
       setDeleteDataOpen(false);
       toast({ title: 'Data deleted', description: 'All your financial data has been removed.' });
@@ -121,15 +126,53 @@ export default function Settings() {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const [transactions, budgets, savings_goals, goals, bills, net_worth_entries] = await Promise.all([
-        base44.entities.Transaction.list('-date', 50000),
+      // Every table that actually holds this user's data — not just the
+      // 6 finance tables this used to cover. Someone deleting their
+      // account deserves everything back first, including the leftover
+      // life-organizer data (habits/tasks/notes/journal), AI Coach chat
+      // history, and investing activity (via listAll — the default
+      // Transaction.list() deliberately hides investment/transfer rows
+      // from budgeting screens, but an export should hold nothing back).
+      const [
+        transactions, budgets, savings_goals, goals, bills, net_worth_entries,
+        habits, tasks, health_logs, journal_entries, notes, notifications,
+        custom_forms, custom_records, ai_insight_caches, bank_sync_logs,
+        subscriptions, connected_accounts, investment_holdings,
+        advisor_conversations, advisor_messages,
+      ] = await Promise.all([
+        base44.entities.Transaction.listAll('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Goal.list(),
         base44.entities.Bill.list(),
         base44.entities.NetWorthEntry.list(),
+        base44.entities.Habit.list(),
+        base44.entities.Task.list(),
+        base44.entities.HealthLog.list(),
+        base44.entities.JournalEntry.list(),
+        base44.entities.Note.list(),
+        base44.entities.Notification.list(),
+        base44.entities.CustomForm.list(),
+        base44.entities.CustomRecord.list(),
+        base44.entities.AIInsightCache.list(),
+        base44.entities.BankSyncLog.list(),
+        base44.entities.Subscription.list(),
+        // access_token_ref is a live bank-connection credential, not
+        // something to hand back in a downloadable file — every other
+        // field describing the connection is still included.
+        base44.entities.ConnectedAccount.list().then(rows => rows.map(({ access_token_ref, ...rest }) => rest)),
+        base44.entities.InvestmentHolding.list(),
+        base44.entities.AdvisorConversation.list(),
+        base44.entities.AdvisorMessage.list(),
       ]);
-      const data = { exported_at: new Date().toISOString(), transactions, budgets, savings_goals, goals, bills, net_worth_entries };
+      const data = {
+        exported_at: new Date().toISOString(),
+        transactions, budgets, savings_goals, goals, bills, net_worth_entries,
+        habits, tasks, health_logs, journal_entries, notes, notifications,
+        custom_forms, custom_records, ai_insight_caches, bank_sync_logs,
+        subscriptions, connected_accounts, investment_holdings,
+        advisor_conversations, advisor_messages,
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

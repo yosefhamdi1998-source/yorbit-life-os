@@ -22,6 +22,8 @@ const TABLE_MAP = {
   InvestmentHolding: 'investment_holdings',
   BankSyncLog: 'bank_sync_logs',
   Subscription: 'subscriptions',
+  AdvisorConversation: 'advisor_conversations',
+  AdvisorMessage: 'advisor_messages',
 };
 
 // Parses base44-style sort strings: 'due_date' (asc) or '-created_date' (desc).

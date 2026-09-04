@@ -2,11 +2,16 @@ import { handleOptions, jsonResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
 
+// investment_holdings was missing here — verified live that deletion still
+// fully removes it (every one of these tables' user_id FK to auth.users is
+// ON DELETE CASCADE, so step 5 below catches anything this loop misses),
+// but it belongs in the explicit list too so its row count actually gets
+// logged rather than silently vanishing via cascade with no record of it.
 const ENTITY_TABLES = [
   'transactions', 'bills', 'budgets', 'goals', 'savings_goals', 'net_worth_entries',
   'habits', 'tasks', 'health_logs', 'journal_entries', 'notes', 'custom_forms',
   'custom_records', 'ai_insight_caches', 'notifications', 'connected_accounts',
-  'bank_sync_logs', 'subscriptions',
+  'bank_sync_logs', 'subscriptions', 'investment_holdings',
 ];
 
 Deno.serve(async (req) => {
