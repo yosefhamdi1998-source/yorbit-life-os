@@ -9,6 +9,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHeader from '@/components/PageHeader';
 import AdvisorChat from '@/components/finance/AdvisorChat';
 import { format } from 'date-fns';
+// Both of these were USED in this file and imported in none of it. The page
+// threw ReferenceError on render and every user who opened the AI Coach - the
+// feature the Go Pro button sells - got the error boundary instead. `npm run
+// lint` reported zero problems the whole time, because the flat config's
+// `rules` key was overwriting the recommended set and switching off no-undef.
+// See the note in eslint.config.js.
+import { savingsRate as computeSavingsRate, savingsRateLabel } from '@/lib/periods';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 const MIN_TRANSACTIONS = 3;

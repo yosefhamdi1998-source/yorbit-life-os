@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
-import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Receipt, Lock, Infinity } from 'lucide-react';
+import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Receipt, Lock, Infinity as InfinityIcon } from 'lucide-react';
+// Aliased: importing lucide's `Infinity` under its own name shadows the
+// global numeric Infinity for this whole module. Nothing here divides by
+// zero today, but a plan comparison is exactly the file where an
+// `=== Infinity` check gets written later, and it would silently compare
+// against a React component.
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
@@ -256,7 +261,7 @@ export default function Upgrade() {
         <div className="grid grid-cols-3 gap-3 text-center">
           {[
             { icon: Lock, label: 'Secure', sub: isNativeIOS() ? 'Apple payments' : 'Stripe payments' },
-            { icon: Infinity, label: 'Cancel', sub: 'Anytime' },
+            { icon: InfinityIcon, label: 'Cancel', sub: 'Anytime' },
             { icon: Shield, label: 'Private', sub: 'Data never sold' },
           ].map(({ icon: Icon, label, sub }) => (
             <div key={label} className="flex flex-col items-center gap-1">

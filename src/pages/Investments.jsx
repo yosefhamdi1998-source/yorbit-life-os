@@ -61,23 +61,53 @@ export default function Investments() {
   const [yearlyRows, setYearlyRows] = useState([]);
   const [pnlYears, setPnlYears] = useState([]);
   const [coverage, setCoverage] = useState(null);
+  const [summaryFailed, setSummaryFailed] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   useEffect(() => {
+    // The two FIFO functions are the expensive ones. They are NOT awaited
+    // alongside the cheap queries any more: the page renders its transactions
+    // and yearly chart immediately, and the summary fills in when it arrives.
+    // Previously all six were in one Promise.all, so a slow summary held the
+    // entire page hostage - and when it timed out at 8s, twice, the page had
+    // spent 16 seconds arriving at nothing.
+    let alive = true;
+
     Promise.all([
       base44.entities.Transaction.listInvestments('-date', 400),
       base44.entities.InvestmentHolding.list('-institution_value', 200).catch(() => []),
-      base44.entities.Transaction.cryptoAssetSummary().catch(() => []),
       base44.entities.Transaction.cryptoYearlySummary().catch(() => []),
-      base44.entities.Transaction.cryptoPnlByYear().catch(() => []),
       base44.entities.Transaction.cryptoTimeCoverage().catch(() => null),
     ])
-      .then(([tx, h, s, y, p, cov]) => {
+      .then(([tx, h, y, cov]) => {
+        if (!alive) return;
         setRows(tx); setHoldings(h || []);
-        setSummary(s || []); setYearlyRows(y || []);
-        setPnlYears(p || []); setCoverage(cov);
+        setYearlyRows(y || []); setCoverage(cov);
       })
       .catch(() => toast({ title: "Couldn't load your investments", description: 'Please try again in a moment.', variant: 'destructive' }))
-      .finally(() => setLoading(false));
+      .finally(() => { if (alive) setLoading(false); });
+
+    // FIFO summary, separately. A failure here must NOT fall back to
+    // aggregating the 400 rows loaded above: doing that reported "$9,000
+    // bought / $5,000 sold" on an account that had moved $1.33M, and it
+    // looked exactly like a real answer. A number derived from 2% of the
+    // data is not a degraded version of the truth, it is a different and
+    // false claim. The page now says it could not load rather than
+    // guessing.
+    Promise.all([
+      base44.entities.Transaction.cryptoAssetSummary(),
+      base44.entities.Transaction.cryptoPnlByYear().catch(() => []),
+    ])
+      .then(([s, p]) => {
+        if (!alive) return;
+        setSummary(s || []);
+        setPnlYears(p || []);
+        setSummaryFailed(false);
+      })
+      .catch(() => { if (alive) setSummaryFailed(true); })
+      .finally(() => { if (alive) setSummaryLoading(false); });
+
+    return () => { alive = false; };
   }, []);
 
   // Totals across every asset, straight from the server-side FIFO walk.
@@ -225,7 +255,11 @@ export default function Investments() {
 
   // Prefer the server summary; the client aggregation remains as a fallback
   // for a user whose rows predate the structured columns.
-  const assets = serverAssets.length ? serverAssets : clientAssets;
+  // No silent fallback. clientAssets is computed from the 400 most recent
+  // rows and can only ever be a fraction of the truth on this data set.
+  // It is used ONLY when the server summary genuinely returned nothing to
+  // summarise, never to paper over a failure.
+  const assets = serverAssets.length ? serverAssets : (summaryFailed ? [] : clientAssets);
   const yearly = serverYearly.length ? serverYearly : clientYearly;
 
   const holdingsValue = holdings.reduce((s, h) => s + (h.institution_value || 0), 0);
@@ -428,6 +462,39 @@ export default function Investments() {
       {/* Realized profit and loss.
           FIFO, computed server-side, matching the method Coinbase's own tax
           reports use so the two can be compared directly. */}
+      {/* The summary is the only source for per-asset totals and realized
+          P&L. When it fails, say so. The alternative - quietly aggregating
+          the 400 rows already in memory - printed "$9,000 bought" for an
+          account that had moved $1.33M, indistinguishable from a real
+          figure. */}
+      {summaryFailed && (
+        <div className="sky-card rounded-2xl p-4 mb-5 border border-amber-500/30 bg-amber-500/10">
+          <p className="text-sm font-bold text-amber-700 dark:text-amber-400 mb-1">
+            Couldn&rsquo;t load your totals
+          </p>
+          <p className="text-xs text-amber-700/80 dark:text-amber-400/80 leading-relaxed mb-3">
+            Your per-asset totals and realized profit are calculated across your
+            whole history, and that calculation timed out. The activity and the
+            yearly chart below are still accurate. No totals are shown rather
+            than partial ones, because a total computed from part of your
+            history looks exactly like a real total.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300 hover:bg-amber-500/30 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {summaryLoading && !summaryFailed && pnl.assets === 0 && (
+        <div className="sky-card rounded-2xl p-4 mb-5 flex items-center gap-3">
+          <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-primary rounded-full animate-spin shrink-0" />
+          <p className="text-xs text-muted-foreground">Calculating your profit and loss across every trade…</p>
+        </div>
+      )}
+
       {pnl.assets > 0 && (
         <div className="sky-card rounded-2xl p-4 mb-5">
           <div className="flex items-baseline justify-between mb-1">
