@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, ArrowDownLeft, ArrowUpRight, Coins, Wallet } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import { toast } from '@/components/ui/use-toast';
 import { fmtFull, fmtCompact, fmtAxisCompact } from '@/lib/format';
@@ -59,6 +59,8 @@ export default function Investments() {
   // most recent few hundred — nobody scrolls 17,000 trades.
   const [summary, setSummary] = useState([]);
   const [yearlyRows, setYearlyRows] = useState([]);
+  const [pnlYears, setPnlYears] = useState([]);
+  const [coverage, setCoverage] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -66,10 +68,13 @@ export default function Investments() {
       base44.entities.InvestmentHolding.list('-institution_value', 200).catch(() => []),
       base44.entities.Transaction.cryptoAssetSummary().catch(() => []),
       base44.entities.Transaction.cryptoYearlySummary().catch(() => []),
+      base44.entities.Transaction.cryptoPnlByYear().catch(() => []),
+      base44.entities.Transaction.cryptoTimeCoverage().catch(() => null),
     ])
-      .then(([tx, h, s, y]) => {
+      .then(([tx, h, s, y, p, cov]) => {
         setRows(tx); setHoldings(h || []);
         setSummary(s || []); setYearlyRows(y || []);
+        setPnlYears(p || []); setCoverage(cov);
       })
       .catch(() => toast({ title: "Couldn't load your investments", description: 'Please try again in a moment.', variant: 'destructive' }))
       .finally(() => setLoading(false));
@@ -109,6 +114,43 @@ export default function Investments() {
     uncosted: Number(r.uncosted_proceeds) || 0,
     hasQty: true,
   })), [summary]);
+
+  // Realized P&L per year, split into the part that can be costed and the
+  // part that cannot. Charting them stacked would imply they are the same
+  // kind of number; they are not, so the chart draws profit and the caption
+  // carries the rest.
+  const pnlByYear = useMemo(() => pnlYears.map(r => {
+    const realized = Number(r.realized_pnl) || 0;
+    const uncosted = Number(r.uncosted_proceeds) || 0;
+    return {
+      year: r.yr,
+      costed: realized - uncosted,
+      uncosted,
+      proceeds: Number(r.proceeds) || 0,
+      cost: Number(r.cost_basis) || 0,
+      disposals: Number(r.disposals) || 0,
+    };
+  }), [pnlYears]);
+
+  const best = useMemo(() => {
+    if (!pnlByYear.length) return null;
+    const sorted = [...pnlByYear].sort((a, b) => b.costed - a.costed);
+    return { top: sorted[0], worst: sorted[sorted.length - 1] };
+  }, [pnlByYear]);
+
+  // FIFO decides which purchase a sale is matched against, so the order of
+  // trades within a day changes the answer. Rows imported before the trade
+  // time was stored fall back to an arbitrary within-day order. Measured on
+  // this account's own 2018-2023 exports, that was worth $26,085.82 and
+  // flipped the sign of the total, so the shortfall is stated rather than
+  // buried.
+  const timeGap = useMemo(() => {
+    if (!coverage) return null;
+    const total = Number(coverage.disposals) || 0;
+    const withTime = Number(coverage.disposals_with_time) || 0;
+    if (!total || withTime >= total) return null;
+    return { total, withTime, missing: total - withTime, pct: Math.round((withTime / total) * 100) };
+  }, [coverage]);
 
   const serverYearly = useMemo(() => yearlyRows.map(r => ({
     year: r.yr,
@@ -264,6 +306,87 @@ export default function Investments() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Gains and losses by year.
+          The bought/sold chart below shows volume, which says nothing about
+          whether a year went well — selling $400k after buying $400k is a
+          flat year. This shows, for each year, whether the coins sold went
+          out above or below what they cost. Bars are signed: above the zero
+          line is profit, below it is loss. */}
+      {pnlByYear.length > 0 && (
+        <div className="sky-card rounded-2xl p-4 lg:p-5 mb-5">
+          <div className="flex items-baseline justify-between mb-1">
+            <p className="font-bold text-sm">Gains and losses by year</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">FIFO · realized</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Profit on coins you actually sold, counted in the year you sold them.
+          </p>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={pnlByYear} margin={{ top: 4, right: 4, left: -4, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+              <XAxis dataKey="year" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={58} tickFormatter={v => fmtAxisCompact(v)} />
+              <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0]?.payload;
+                  if (!d) return null;
+                  return (
+                    <div className="sky-card rounded-xl px-3 py-2.5 shadow-lg border border-border">
+                      <p className="text-xs font-bold text-foreground mb-1.5">{label}</p>
+                      <p className={`text-xs font-bold tabular-nums ${d.costed >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {d.costed < 0 ? '−' : '+'}${fmtFull(Math.abs(d.costed))} realized
+                      </p>
+                      <p className="text-[11px] text-muted-foreground tabular-nums mt-1">
+                        Sold ${fmtFull(d.proceeds)} · cost ${fmtFull(d.cost)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground tabular-nums">
+                        {d.disposals.toLocaleString()} sale{d.disposals === 1 ? '' : 's'}
+                      </p>
+                      {d.uncosted > 0 && (
+                        <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 tabular-nums mt-1">
+                          + ${fmtFull(d.uncosted)} with no known cost, excluded
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
+              />
+              <Bar dataKey="costed" radius={[5, 5, 0, 0]} maxBarSize={38}>
+                {pnlByYear.map(d => (
+                  <Cell key={d.year} fill={d.costed >= 0 ? '#10B981' : '#EF4444'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          {best && best.top.costed !== best.worst.costed && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Best year <span className="font-bold text-emerald-600 dark:text-emerald-400">{best.top.year}</span> at{' '}
+              <span className="font-bold tabular-nums">{best.top.costed < 0 ? '−' : '+'}${fmtFull(Math.abs(best.top.costed))}</span>
+              {' · '}worst <span className="font-bold text-red-500">{best.worst.year}</span> at{' '}
+              <span className="font-bold tabular-nums">{best.worst.costed < 0 ? '−' : '+'}${fmtFull(Math.abs(best.worst.costed))}</span>
+            </p>
+          )}
+          {timeGap && (
+            <div className="mt-3 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-0.5">
+                {timeGap.pct}% of your sales have an exact trade time
+              </p>
+              <p className="text-[11px] leading-relaxed text-amber-700/80 dark:text-amber-400/80">
+                Matching a sale to the purchase it came from depends on the order
+                you traded within a day. {timeGap.missing.toLocaleString()} sale
+                {timeGap.missing === 1 ? '' : 's'} came from an import that kept the
+                date but not the time, so those are ordered arbitrarily and the
+                figures above are approximate. Re-importing those Coinbase exports
+                restores the exact times.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -290,18 +290,41 @@ class TransactionEntity extends Entity {
   // Per-asset analytics computed in Postgres: flows, position, and FIFO
   // realized P&L. Returns ~87 rows instead of the 17,274 the page would
   // otherwise pull to aggregate in the browser.
+  //
+  // These take NO arguments. The account is read from auth.uid() inside the
+  // function. An earlier version accepted p_user_id, which meant anyone
+  // holding the publishable key from the JS bundle could read any account's
+  // trading history by passing someone else's id. Identity is never a
+  // parameter. See 20260906140000_lock_down_rpc_surface.sql.
   async cryptoAssetSummary() {
-    const user_id = await getUserId();
-    const { data, error } = await supabase.rpc('crypto_asset_summary', { p_user_id: user_id });
+    const { data, error } = await supabase.rpc('crypto_asset_summary');
     if (error) throw new Error(error.message);
     return data || [];
   }
 
   async cryptoYearlySummary() {
-    const user_id = await getUserId();
-    const { data, error } = await supabase.rpc('crypto_yearly_summary', { p_user_id: user_id });
+    const { data, error } = await supabase.rpc('crypto_yearly_summary');
     if (error) throw new Error(error.message);
     return data || [];
+  }
+
+  // Realized P&L attributed to the year of the SALE, with cost basis carried
+  // across years by a single chronological FIFO walk. Money bought and money
+  // sold in a year say nothing about whether the year went well; this does.
+  async cryptoPnlByYear() {
+    const { data, error } = await supabase.rpc('crypto_pnl_by_year');
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  // How much of the history carries a real trade time. FIFO picks which lot a
+  // sale consumes, so without the time of day the lots for a given day are
+  // chosen arbitrarily. On this account that was worth $26,085.82 and a sign
+  // flip across 2018-2023, so the number is shown rather than assumed away.
+  async cryptoTimeCoverage() {
+    const { data, error } = await supabase.rpc('crypto_time_coverage');
+    if (error) throw new Error(error.message);
+    return (data && data[0]) || null;
   }
 
   // Everything, unfiltered — for tools that genuinely need the full ledger.
