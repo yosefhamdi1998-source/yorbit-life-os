@@ -71,8 +71,8 @@ not inferred from source:** `20260906180000` (profiles.onboarding_completed_at)
 and `20260907100000` (profiles.ai_consent_*, has_ai_consent). An earlier draft
 of this document listed 20260906135000 and 20260906160000 as well; both are in
 fact live — `transactions.occurred_at` and `crypto_time_coverage()` both
-resolve. Combined script: `C:\YORBIT\sql-apply-these-two.sql`.
-**Next action:** Run each in the Supabase SQL editor, oldest first.
+resolve. Combined script: `C:\YORBIT\sql\4-apply-these-two.sql`.
+**Next action:** Run that one file in the Supabase SQL editor. Every statement is idempotent, so a re-run is harmless.
 **Owner:** Owner (no DB credentials in this environment).
 **Verified by:** `has_ai_consent` returns; Coach shows the consent screen and
 `ai_consent_at` persists after tapping Allow.
