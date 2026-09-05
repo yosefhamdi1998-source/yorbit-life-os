@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
-import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel } from '@/lib/periods';
+import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
@@ -378,16 +378,20 @@ export default function Dashboard() {
               family as "Go Pro" above) so it visually reads as "a
               different kind of option," not just one more period. */}
           <div className="flex flex-wrap gap-1.5 mb-4">
+            {/* Labels from the shared vocabulary. These chips said Week/Month
+                while the Money page said Weekly/Monthly and the chart right
+                below said 1M - three spellings of the same two spans within
+                one thumb's reach. */}
             {(simpleMode
-              ? [{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }]
-              : [{ key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: '3month', label: '3M' }, { key: '6month', label: '6M' }]
+              ? [{ key: 'week' }, { key: 'month' }]
+              : [{ key: 'week' }, { key: 'month' }, { key: '3month' }, { key: '6month' }]
             ).map(p => (
               <button
                 key={p.key}
                 onClick={() => setCashFlowPeriod(p.key)}
                 className={`shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
               >
-                {p.label}
+                {rangeLabel(p.key)}
               </button>
             ))}
             <div className="relative shrink-0">
@@ -481,8 +485,11 @@ export default function Dashboard() {
               <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
             )}
           </div>
-          <p className={`font-numeric text-3xl lg:text-4xl font-black tabular-nums leading-none mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
-            ${fmt(worth.total)}
+          {/* Minus sign OUTSIDE the currency symbol. `$-36` is not how money
+              is written anywhere; a true minus glyph reads as a quantity
+              rather than a typo. */}
+          <p className={`font-numeric text-[40px] lg:text-5xl font-black tabular-nums leading-none tracking-[-0.02em] mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+            {worth.total < 0 ? '−' : ''}${fmt(Math.abs(worth.total))}
           </p>
           {worth.cash.updatedAt && (
             <p className="text-[10px] text-muted-foreground mb-3">
@@ -495,26 +502,66 @@ export default function Dashboard() {
               Money → Net Worth to make this a real net worth.
             </p>
           )}
-          <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
-            <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+          {/* Assets / Liabilities read from MANUAL net-worth entries only.
+              With none added they were two tiles both reading $0 sitting
+              directly under a headline of −$36 - three numbers on one card
+              that cannot all be true, which is exactly how a finance app
+              loses someone's trust in the first five seconds. They now
+              appear only when there is something to put in them. */}
+          {worth.isCompleteNetWorth && (
+            <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
+              <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
+                  <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
-                <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
+              <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+                  <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
+                  <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
+                </div>
               </div>
             </div>
-            <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
-                <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+          )}
+
+          {/* What the two empty tiles used to occupy: the accounts this
+              figure is actually made of. Cash and debt are split because
+              they behave differently - a card balance is money owed, and
+              summing it with cash is the sign error that makes the whole
+              number meaningless. */}
+          {!worth.isCompleteNetWorth && worth.cash.liveCount > 0 && (
+            <div className="pt-3.5 border-t border-border/50 space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">In your accounts</span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {worth.cash.cash < 0 ? '−' : ''}${fmt(Math.abs(worth.cash.cash))}
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
-                <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
-              </div>
+              {worth.cash.debt > 0 && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Owed on cards &amp; loans</span>
+                  <span className="text-sm font-bold tabular-nums text-red-500">−${fmt(worth.cash.debt)}</span>
+                </div>
+              )}
+              {worth.cash.unknownCount > 0 && (
+                // Never counted as zero. An account whose balance did not
+                // come back is unknown, and a zero would quietly understate
+                // the total by whatever is actually in it.
+                <p className="text-[11px] text-muted-foreground leading-snug pt-1">
+                  {worth.cash.unknownCount} account{worth.cash.unknownCount === 1 ? '' : 's'} didn&rsquo;t report a balance
+                  {worth.cash.unknownNames?.length ? ` (${worth.cash.unknownNames.slice(0, 2).join(', ')}${worth.cash.unknownNames.length > 2 ? '…' : ''})` : ''}
+                  {' '}and {worth.cash.unknownCount === 1 ? 'is' : 'are'} not included above.
+                </p>
+              )}
             </div>
-          </div>
+          )}
         </div>
       )}
 

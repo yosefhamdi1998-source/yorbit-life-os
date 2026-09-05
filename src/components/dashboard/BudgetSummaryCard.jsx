@@ -103,7 +103,6 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
           <div className="flex items-center justify-between mt-1.5">
             <span className="text-xs text-muted-foreground">
               {budgetPct}% used
-              {unbudgetedSpent > 0 && ` · $${fmt(unbudgetedSpent)} unbudgeted`}
             </span>
             <div className="flex items-center gap-2">
               {overCount > 0 && (
@@ -116,13 +115,36 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
                   <Clock className="w-2.5 h-2.5" /> {closeCount} near limit
                 </span>
               )}
-              {overCount === 0 && closeCount === 0 && (
+              {/* "All on track" must not fire when real money was spent in
+                  categories that simply have no limit. This card read
+                  "$0 / $3,200 - 0% used - All on track" on a month with
+                  $121.30 of actual spending, with the only mention of it in
+                  11px grey. Nothing was on track; the spending was
+                  untracked, which is a different and more useful thing to
+                  say. */}
+              {overCount === 0 && closeCount === 0 && unbudgetedSpent === 0 && (
                 <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5">
                   <CheckCircle className="w-2.5 h-2.5" /> All on track
                 </span>
               )}
             </div>
           </div>
+
+          {unbudgetedSpent > 0 && (
+            <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
+                  Not covered by any budget
+                </p>
+                <p className="text-[10px] text-amber-700/75 dark:text-amber-400/75 leading-tight mt-0.5">
+                  Spent in categories with no limit set
+                </p>
+              </div>
+              <span className="text-sm font-black tabular-nums text-amber-700 dark:text-amber-400 shrink-0">
+                ${fmt(unbudgetedSpent)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

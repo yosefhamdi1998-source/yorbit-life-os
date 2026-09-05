@@ -177,3 +177,47 @@ export function savingsRate(income, expenses) {
 export function savingsRateLabel(rate) {
   return rate === null ? '—' : `${rate}%`;
 }
+
+// ONE vocabulary for time ranges, app-wide.
+//
+// Before this, the same span was written three different ways in controls
+// sitting inches apart on the same screen:
+//
+//   Dashboard hero      Week · Month · 3M · 6M · Year · All
+//   Cash-flow chart     1M · 3M · 6M · 1Y · 2Y · 3Y · All
+//   Money page          Weekly · Bi-Weekly · Monthly · 3M · 6M
+//
+// "Month", "1M" and "Monthly" are the same thing. Three spellings of it on
+// one screen is the kind of detail that makes an app feel assembled rather
+// than designed, and it is invisible to whoever wrote each control on its
+// own. Centralised here so a fourth control cannot invent a fourth spelling.
+//
+// Trailing windows use the brokerage convention (1W/1M/3M/6M/1Y) because
+// that is what people already read on every finance product. CALENDAR
+// periods are spelled out - "This Year", "Last Year" - precisely because
+// they are NOT trailing windows and should not be mistaken for 1Y.
+export const RANGE_LABELS = {
+  week: '1W',
+  weekly: '1W',
+  biweekly: '2W',
+  month: '1M',
+  monthly: '1M',
+  '1m': '1M',
+  '3month': '3M',
+  '3m': '3M',
+  '6month': '6M',
+  '6m': '6M',
+  '1y': '1Y',
+  '2y': '2Y',
+  '3y': '3Y',
+  year: 'This Year',
+  lastyear: 'Last Year',
+  all: 'All',
+};
+
+// Falls back to the key itself so an unmapped period renders something
+// rather than "undefined" - a missing label should look wrong in review,
+// not blank in production.
+export function rangeLabel(key) {
+  return RANGE_LABELS[key] || String(key || '').toUpperCase();
+}

@@ -48,7 +48,12 @@ export default function QuickAddFAB() {
       </AnimatePresence>
 
       {/* Action items */}
-      <div className="fixed bottom-[84px] right-4 z-50 flex flex-col items-end gap-2.5 lg:hidden" style={{ pointerEvents: open ? 'auto' : 'none' }}>
+      {/* Lifted clear of the tab bar. At bottom-[84px] the button's lower edge
+          sat directly on the Coach tab, so the two read as one control and
+          the tap targets touched. ~1cm (38px) of separation on a 390px-wide
+          phone, and it also clears the home indicator on devices that have
+          one. */}
+      <div className="fixed bottom-[122px] right-4 z-50 flex flex-col items-end gap-2.5 lg:hidden" style={{ pointerEvents: open ? 'auto' : 'none' }}>
         <AnimatePresence>
           {/* Themed surfaces, not hardcoded white — these were bright white
               pills floating over a near-black app. Reversed stagger so the

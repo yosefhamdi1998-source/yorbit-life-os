@@ -22,7 +22,7 @@ import { toast } from '@/components/ui/use-toast';
 import useDeleteLock from '@/hooks/useDeleteLock';
 import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
-import { PERIODS, filterByPeriod, getLatestTransactionDate } from '@/lib/periods';
+import { PERIODS, filterByPeriod, getLatestTransactionDate, rangeLabel } from '@/lib/periods';
 import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
@@ -687,12 +687,15 @@ export default function Finance() {
   // definition on purpose (that's the one place "this month" should mean
   // the actual month); this row is a pure trailing-window comparison tool,
   // so every step should nest inside the next.
+  // Labels come from the shared vocabulary so this row cannot drift from the
+  // Dashboard's again - "Monthly" here versus "Month" there versus "1M" on
+  // the chart below it was three spellings of one span on adjacent screens.
   const PERIOD_OPTIONS = [
-    { key: 'weekly', label: 'Weekly' },
-    { key: 'biweekly', label: 'Bi-Weekly' },
-    { key: 'month', label: 'Monthly' },
-    { key: '3month', label: '3M' },
-    { key: '6month', label: '6M' },
+    { key: 'weekly', label: rangeLabel('weekly') },
+    { key: 'biweekly', label: rangeLabel('biweekly') },
+    { key: 'month', label: rangeLabel('month') },
+    { key: '3month', label: rangeLabel('3month') },
+    { key: '6month', label: rangeLabel('6month') },
   ];
   // Only years that actually contain transactions — the trailing-4-years
   // list always offered 2023/2024 even for an account whose real data only
