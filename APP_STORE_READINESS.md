@@ -59,10 +59,13 @@ on a Mac. Then walk the app on a physical iPhone.
 **Verified by:** A TestFlight build installed on a real iPhone that launches
 and completes the QA walk.
 
-### C2 — Six migrations written but not applied · SEVERITY: BLOCKER
-**Evidence:** `crypto_time_coverage`, `has_ai_consent`, and the
-`profiles.ai_consent_*` columns do not exist in production. The AI consent
-lookup currently fails and resolves to "unasked" (safe, by design).
+### C2 — Two migrations written but not applied · SEVERITY: BLOCKER
+**Evidence:** `has_ai_consent` and the `profiles.ai_consent_*` /
+`profiles.onboarding_completed_at` columns do not exist in production
+(probed live: `42703 column ... does not exist`). The AI consent lookup
+therefore fails and resolves to "unasked", which is safe by design — Coach
+shows the consent screen and no data can reach Anthropic — but Allow cannot
+persist until the columns exist.
 **Unapplied — verified empirically 2026-09-05 by probing the live schema,
 not inferred from source:** `20260906180000` (profiles.onboarding_completed_at)
 and `20260907100000` (profiles.ai_consent_*, has_ai_consent). An earlier draft
