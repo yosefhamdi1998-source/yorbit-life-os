@@ -1,5 +1,36 @@
 # Yorbit — Handoff
 
+## Read this first, in plain English
+
+**What Yorbit is.** A personal finance app. It connects to your bank through
+Plaid, imports your transactions, and shows you where your money goes —
+spending, budgets, bills, savings rate, and a detailed view of crypto trading
+with real profit-and-loss figures. There is an AI Coach that reads your
+records and gives advice.
+
+**What state it is in.** The web app works and is deployed. The money figures
+are accurate and have been checked against the raw data, not just the screen.
+The security holes found during the audit are closed and verified.
+
+**What it is not.** It has never been built or run on an iPhone. Not once.
+There is no Mac in the environment where this was developed, so every claim
+about the native app is based on reading the code, not on watching it run.
+Subscriptions cannot work yet because the RevenueCat key is an empty string.
+It is invite-only, and opening signup to strangers without abuse protection
+would let scripts run up your Plaid and Anthropic bills.
+
+**The single biggest thing standing in your way is not code.** Apple generally
+requires finance apps to be submitted by a registered company, not a person.
+That means forming a legal entity, getting a D-U-N-S number, and converting
+your Apple Developer account to an Organization. It takes weeks and nothing
+else can finish without it. Start it today.
+
+**Where to look next:** `APP_STORE_READINESS.md` has the full checklist, split
+into what is done, what I still owe you, and what only you can do.
+
+---
+
+
 **Written:** 2026-09-04
 **Repo:** `C:\Users\Yosef\projects\yorbit-life-os`
 **Owner:** Yosef Hamdi · yosefhamdi1998@gmail.com
