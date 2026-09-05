@@ -76,12 +76,28 @@ difference               $26,085.82
 The sign flips. 2022 alone reads +$10,478.50 instead of −$5,004.52.
 
 `transactions.occurred_at` and the FIFO sort key are in migration
-`20260906135000`. The importer now captures the time and has a `--times` mode
-that emits UPDATEs for rows already imported. **Only 2018–2023 exports were on
-disk**, so after that backfill roughly half the crypto history still has no
-time. `crypto_time_coverage()` reports the shortfall and the Investments page
-states it on screen. To close it fully, re-export 2024, 2025 and 2026 from both
-Coinbase accounts and re-run `--times`.
+`20260906135000`. The importer now captures the time going forward.
+
+**The backfill is solved, and not the way it first appeared.** Coinbase
+transaction ids are MongoDB ObjectIds — the first 4 bytes are a big-endian
+Unix timestamp — so the exact trade time was never lost. It was sitting in
+`provider_transaction_id` the whole time. Migration `20260906160000`
+recovers it with a single UPDATE.
+
+Verified against the 7,751 rows where both the id and the real `Timestamp`
+column are available: 7,751/7,751 ids are ObjectId-shaped, and 7,750 match to
+the second (one off by <60s). FIFO realized P&L ordered by ObjectId time
+versus by true timestamp is **identical to the cent in every year**
+(−$13,181.05 either way for 2018–2023).
+
+This matters beyond elegance: only the 2018–2023 exports were still on disk,
+so the VALUES-list backfill it replaced could never have covered 2024–2026.
+Deriving from a column every imported row already has covers the full
+history, and **no Coinbase re-export is needed**.
+
+`crypto_time_coverage()` reports the remaining shortfall and the Investments
+page states it on screen; once `20260906160000` is applied it should read
+100% and the on-screen caveat disappears on its own.
 
 **B1. Plaid access tokens are stored in plaintext.**
 `connected_accounts.access_token_ref` is a plain `text` column (verified
