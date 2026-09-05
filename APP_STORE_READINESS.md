@@ -63,8 +63,12 @@ and completes the QA walk.
 **Evidence:** `crypto_time_coverage`, `has_ai_consent`, and the
 `profiles.ai_consent_*` columns do not exist in production. The AI consent
 lookup currently fails and resolves to "unasked" (safe, by design).
-**Unapplied:** `20260906135000`, `20260906160000`, `20260906180000`,
-`20260907100000` — check the rest against `supabase/migrations/`.
+**Unapplied — verified empirically 2026-09-05 by probing the live schema,
+not inferred from source:** `20260906180000` (profiles.onboarding_completed_at)
+and `20260907100000` (profiles.ai_consent_*, has_ai_consent). An earlier draft
+of this document listed 20260906135000 and 20260906160000 as well; both are in
+fact live — `transactions.occurred_at` and `crypto_time_coverage()` both
+resolve. Combined script: `C:\YORBIT\sql-apply-these-two.sql`.
 **Next action:** Run each in the Supabase SQL editor, oldest first.
 **Owner:** Owner (no DB credentials in this environment).
 **Verified by:** `has_ai_consent` returns; Coach shows the consent screen and
