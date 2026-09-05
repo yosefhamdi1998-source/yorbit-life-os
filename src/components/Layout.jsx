@@ -13,6 +13,7 @@ import { recordRoute } from '@/hooks/useGoBack';
 import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
 import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode } from '@/lib/simpleMode';
+import OnboardingProgress from '@/components/OnboardingProgress';
 
 const bottomNavItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -258,6 +259,10 @@ export default function Layout() {
       >
         {/* Reset top padding on desktop since there's no top bar */}
         <style>{`@media (min-width: 1024px) { main { padding-top: 0 !important; } }`}</style>
+        {/* Rides along on Bank Sync / CSV Import so a half-finished first run
+            is always visible and always one tap from resuming. Renders null
+            unless setup is genuinely mid-flight. */}
+        <OnboardingProgress />
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

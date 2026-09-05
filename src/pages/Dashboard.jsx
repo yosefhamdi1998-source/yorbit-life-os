@@ -124,17 +124,36 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!localStorage.getItem('onboarding_done')) {
-      loadData().then((result) => {
-        if (!result) return; // network error — don't mistake it for a brand-new user
-        const { tr, b, sg, bl } = result;
-        const hasData = tr.length > 0 || b.length > 0 || sg.length > 0 || bl.length > 0;
-        if (!hasData) navigate('/onboarding', { replace: true });
-      });
-    } else {
-      loadData();
-    }
-  }, [loadData]);
+    // Two gates, and they are not interchangeable. localStorage stops the
+    // redirect loop on THIS device even when offline; the profile column is
+    // what stops a user who finished on their phone from being walked through
+    // the whole tour again on their laptop. Either one counts as done.
+    if (localStorage.getItem('onboarding_done')) { loadData(); return; }
+
+    let cancelled = false;
+    (async () => {
+      let doneOnAccount = false;
+      try {
+        const me = await base44.auth.me();
+        doneOnAccount = Boolean(me?.onboarding_completed_at);
+      } catch {
+        // Auth hiccup — fall through to the data check rather than either
+        // trapping them in onboarding or skipping it outright.
+      }
+      if (cancelled) return;
+      if (doneOnAccount) {
+        try { localStorage.setItem('onboarding_done', '1'); } catch { /* private mode */ }
+        loadData();
+        return;
+      }
+      const result = await loadData();
+      if (cancelled || !result) return; // null = load failed, not a new user
+      const { tr, b, sg, bl } = result;
+      const hasData = tr.length > 0 || b.length > 0 || sg.length > 0 || bl.length > 0;
+      if (!hasData) navigate('/onboarding', { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [loadData, navigate]);
 
   const { pullY, refreshing, threshold } = usePullToRefresh(loadData);
 

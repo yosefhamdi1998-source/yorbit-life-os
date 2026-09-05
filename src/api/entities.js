@@ -327,6 +327,44 @@ class TransactionEntity extends Entity {
     return (data && data[0]) || null;
   }
 
+  // Exact total and true date range, without pulling a single row.
+  //
+  // The first-run screen previously derived both from a 500-row page and
+  // printed "Covering <first> to <last>", which was the range of that PAGE,
+  // not of the user's history. On an account with more than 500 transactions
+  // it silently understated how far back the data went - a confident sentence
+  // about a fact it did not have.
+  async summaryStats() {
+    // superseded_by_import must be filtered here exactly as it is on every
+    // other read path. Skipping it counted the 14,514 rows the old Coinbase
+    // import replaced, which turned an honest "18,751 transactions are in"
+    // into a meaningless 33,265.
+    const counted = (col) => supabase
+      .from(this.table)
+      .select(col, { count: 'exact', head: col === 'id' })
+      .eq('superseded_by_import', false);
+
+    // Two counts, because they answer different questions and conflating them
+    // is a lie in one direction or the other. `total` is everything that came
+    // in - the honest answer to "did my import work", including 17,000 crypto
+    // rows that are all excluded from budgeting. `budgeted` is what actually
+    // drives spending figures. Reporting only the second would tell someone
+    // who just imported an exchange history that nothing arrived.
+    const [totalRes, budgetRes, firstRes, lastRes] = await Promise.all([
+      counted('id'),
+      counted('id').eq('exclude_from_budget', false),
+      counted('date').eq('exclude_from_budget', false).order('date', { ascending: true }).limit(1),
+      counted('date').eq('exclude_from_budget', false).order('date', { ascending: false }).limit(1),
+    ]);
+
+    return {
+      total: totalRes.count ?? 0,
+      budgeted: budgetRes.count ?? 0,
+      first: firstRes.data?.[0]?.date || null,
+      last: lastRes.data?.[0]?.date || null,
+    };
+  }
+
   // Everything, unfiltered — for tools that genuinely need the full ledger.
   async listAll(sort, limit) {
     return super.list(sort, limit);

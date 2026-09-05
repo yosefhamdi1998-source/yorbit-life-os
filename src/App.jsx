@@ -116,6 +116,16 @@ const AuthenticatedApp = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/support" element={<Support />} />
+        {/* Design QA only. `import.meta.env.DEV` is statically false in a
+            production build, so Rollup drops this branch and the route does
+            not exist in the shipped bundle - verified by grepping dist/ for
+            "__preview". It renders the first-run flow without a session so
+            the zero-data state can actually be looked at; walking it through
+            a real signup requires creating an account, and screenshots of an
+            empty Home are otherwise impossible to obtain. */}
+        {import.meta.env.DEV && (
+          <Route path="/__preview/onboarding" element={<Onboarding />} />
+        )}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Suspense>

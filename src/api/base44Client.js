@@ -14,8 +14,8 @@ const FUNCTION_MAP = {
   plaidExchangeToken: 'plaid-exchange-token',
   plaidSyncTransactions: 'plaid-sync-transactions',
   plaidSyncHoldings: 'plaid-sync-holdings',
-  createCheckout: 'create-checkout',
-  deleteAccount: 'delete-account',
+  createCheckout: 'create-checkout',
+  deleteAccount: 'delete-account',
 };
 
 // Surface Edge Function errors to the UI without leaking raw provider
@@ -150,10 +150,18 @@ const auth = {
     // reads user.role the way it did from base44.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      // onboarding_completed_at rides along so first run follows the ACCOUNT
+      // rather than the browser. Kept in localStorage too, but that alone made
+      // a user who set up on their phone sit through the whole tour again on
+      // their laptop.
+      .select('role, onboarding_completed_at')
       .eq('id', data.user.id)
       .single();
-    return { ...data.user, role: profile?.role || 'user' };
+    return {
+      ...data.user,
+      role: profile?.role || 'user',
+      onboarding_completed_at: profile?.onboarding_completed_at || null,
+    };
   },
 
   // Confirmation and magic links arrive with the session in the URL hash,
