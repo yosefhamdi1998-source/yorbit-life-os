@@ -221,3 +221,45 @@ export const RANGE_LABELS = {
 export function rangeLabel(key) {
   return RANGE_LABELS[key] || String(key || '').toUpperCase();
 }
+
+// The true calendar bounds of a period, independent of which rows exist.
+//
+// This has to be derived from the period DEFINITION, never from the rows
+// that fell inside it. Deriving it from the filtered set makes a year
+// containing 29 December transactions report itself as a fully covered
+// two-week window - which is exactly the reasoning error this function was
+// written to stop, in the coverage check that exists to catch it.
+//
+// Mirrors filterByPeriod exactly, including its anchoring to the latest
+// transaction rather than literal today. If one changes, change both.
+export function getPeriodBounds(period, latestTxDate, transactions = []) {
+  const anchor = latestTxDate || getLatestTransactionDate(transactions);
+  const anchorYear = anchor.getFullYear();
+  const iso = (d) => format(d, 'yyyy-MM-dd');
+  const endOfAnchorDay = iso(anchor);
+
+  if (period === 'all') {
+    const dates = transactions.map(t => t.date).filter(Boolean).sort();
+    return { start: dates[0] || endOfAnchorDay, end: dates[dates.length - 1] || endOfAnchorDay };
+  }
+  if (period === 'week') {
+    return { start: iso(startOfDay(subDays(anchor, 6))), end: endOfAnchorDay };
+  }
+  if (period === '3month' || period === '6month') {
+    return { start: iso(monthsBackStart(anchor, period === '3month' ? 3 : 6)), end: endOfAnchorDay };
+  }
+  if (isSpecificYearPeriod(period)) {
+    const y = period.slice(5);
+    // A past year runs to 31 Dec; the anchor's own year stops at the anchor,
+    // because the rest of it has not happened yet and counting it as
+    // uncovered would flag every current year as incomplete.
+    return { start: `${y}-01-01`, end: Number(y) >= anchorYear ? endOfAnchorDay : `${y}-12-31` };
+  }
+  if (period === 'year') {
+    return { start: `${anchorYear}-01-01`, end: endOfAnchorDay };
+  }
+  if (period === 'lastyear') {
+    return { start: `${anchorYear - 1}-01-01`, end: `${anchorYear - 1}-12-31` };
+  }
+  return { start: iso(startOfDay(subDays(anchor, 29))), end: endOfAnchorDay };
+}

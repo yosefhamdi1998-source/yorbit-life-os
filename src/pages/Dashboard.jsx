@@ -5,7 +5,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
-import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel } from '@/lib/periods';
+import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
@@ -16,6 +16,7 @@ import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, 
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import Sparkline from '@/components/Sparkline';
+import CoverageNotice from '@/components/CoverageNotice';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -187,6 +188,12 @@ export default function Dashboard() {
   const heroSavingsRate = computeSavingsRate(heroIncome, heroExpenses);
   const heroPeriodLabel = getPeriodLabel(cashFlowPeriod, latestTxDate);
   const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod, latestTxDate);
+  // TRUE calendar bounds of the selected window, from the period definition
+  // and not from the rows that landed in it. Deriving these from heroTx made
+  // a year holding 29 December transactions look like a fully covered
+  // two-week window - defeating the coverage check entirely.
+  const { start: heroPeriodStart, end: heroPeriodEnd } =
+    getPeriodBounds(cashFlowPeriod, latestTxDate, transactions);
   const isYearPeriod = cashFlowPeriod.startsWith('year-');
   // Same trailing-4-years list as the Yearly picker on Money, so the two
   // don't quietly offer a different range of history.
@@ -460,6 +467,18 @@ export default function Dashboard() {
               <p className="text-white font-black text-lg leading-tight tabular-nums">{savingsRateLabel(heroSavingsRate)}</p>
             </div>
           </div>
+
+          {/* Says when the four numbers above are built from too little
+              history to mean anything. "$215 spent in 2025" was the sum of
+              29 transactions - the entire non-crypto record for that year -
+              printed with the same confidence as a real annual total. */}
+          <CoverageNotice
+            transactions={heroTx}
+            periodStart={heroPeriodStart}
+            periodEnd={heroPeriodEnd}
+            periodLabel={heroPeriodPhrase}
+            className="mt-3.5 bg-black/25 border-white/15 [&_p]:text-white/85 [&_a]:text-white [&_svg]:text-white/70"
+          />
         </div>
       </div>
 

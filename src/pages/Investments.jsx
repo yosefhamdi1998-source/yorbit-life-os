@@ -358,12 +358,28 @@ export default function Investments() {
           <p className="text-xs text-muted-foreground mb-3">
             Profit on coins you actually sold, counted in the year you sold them.
           </p>
-          <ResponsiveContainer width="100%" height={210}>
-            <BarChart data={pnlByYear} margin={{ top: 4, right: 4, left: -4, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+          <ResponsiveContainer width="100%" height={248}>
+            {/* Extra top margin so the value label above a gain is not
+                clipped by the plot edge. */}
+            <BarChart data={pnlByYear} margin={{ top: 8, right: 4, left: -4, bottom: 4 }}>
+              <defs>
+                {/* Vertical fade rather than flat fill. Seven solid
+                    fire-engine bars read as an alarm; the same data in a
+                    graded, desaturated rose reads as a chart. The figures
+                    are unchanged - only the alarm is removed. */}
+                <linearGradient id="gainFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34D399" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#059669" stopOpacity={0.75} />
+                </linearGradient>
+                <linearGradient id="lossFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F87171" stopOpacity={0.78} />
+                  <stop offset="100%" stopColor="#DC2626" stopOpacity={0.92} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 6" vertical={false} stroke="hsl(var(--border))" opacity={0.35} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={58} tickFormatter={v => fmtAxisCompact(v)} />
-              <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1.5} />
+              <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.55} strokeWidth={1} />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }}
                 content={({ active, payload, label }) => {
@@ -391,15 +407,41 @@ export default function Investments() {
                   );
                 }}
               />
-              <Bar dataKey="costed" radius={[5, 5, 0, 0]} maxBarSize={38}>
+              <Bar dataKey="costed" maxBarSize={34}>
+                {/* Corner rounding follows the direction of the bar: a loss
+                    grows downward, so its rounded end is the BOTTOM. A fixed
+                    [5,5,0,0] rounded the flat end that meets the zero line
+                    and left the growing end square - upside down on six of
+                    seven years here. */}
                 {pnlByYear.map(d => (
-                  <Cell key={d.year} fill={d.costed >= 0 ? '#10B981' : '#EF4444'} />
+                  <Cell
+                    key={d.year}
+                    fill={d.costed >= 0 ? 'url(#gainFill)' : 'url(#lossFill)'}
+                    radius={d.costed >= 0 ? [6, 6, 0, 0] : [0, 0, 6, 6]}
+                  />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          {/* Every year's figure in text, under the chart. Recharts would
+              not render in-bar labels reliably, and at 390px wide they were
+              never going to be legible anyway - seven numbers across a
+              phone screen is a strip, not annotations. This also means the
+              exact values are readable without hovering, which on a
+              touchscreen nobody can do. */}
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-x-2 gap-y-2 mt-3 pt-3 border-t border-border/50">
+            {pnlByYear.map(d => (
+              <div key={d.year} className="text-center min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground leading-none mb-1">{d.year}</p>
+                <p className={`text-[12px] font-black tabular-nums leading-none truncate ${d.costed >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                  {d.costed < 0 ? '−' : '+'}{fmtAxisCompact(Math.abs(d.costed))}
+                </p>
+              </div>
+            ))}
+          </div>
+
           {best && best.top.costed !== best.worst.costed && (
-            <p className="text-xs text-muted-foreground mt-2 text-center">
+            <p className="text-xs text-muted-foreground mt-3 text-center">
               Best year <span className="font-bold text-emerald-600 dark:text-emerald-400">{best.top.year}</span> at{' '}
               <span className="font-bold tabular-nums">{best.top.costed < 0 ? '−' : '+'}${fmtFull(Math.abs(best.top.costed))}</span>
               {' · '}worst <span className="font-bold text-red-500">{best.worst.year}</span> at{' '}
