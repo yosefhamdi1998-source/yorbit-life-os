@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { getAiConsent, grantAiConsent, withdrawAiConsent, AI_STATES } from '@/lib/aiConsent';
 import { Settings as SettingsIcon, Trash2, LogOut, AlertTriangle, Shield, Download, Lock, FileText, Mail, ChevronRight, Sparkles, Zap, CheckCircle2, Star, Heart } from 'lucide-react';
 import { isNativeIOS } from '@/lib/platform';
 import { restorePurchases as rcRestorePurchases } from '@/lib/revenuecat';
@@ -37,6 +38,25 @@ export default function Settings() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteResult, setDeleteResult] = useState(''); // 'success' | 'manual' | ''
   const [deleteDataOpen, setDeleteDataOpen] = useState(false);
+  // Mirrors profiles.ai_consent_at. The edge functions enforce the real
+  // rule; this only decides what the row says and which way the button goes.
+  const [aiConsent, setAiConsent] = useState({ state: AI_STATES.UNKNOWN });
+  const [aiBusy, setAiBusy] = useState(false);
+  const refreshAiConsent = useCallback(() => { getAiConsent().then(setAiConsent); }, []);
+  useEffect(() => { refreshAiConsent(); }, [refreshAiConsent]);
+  const toggleAiConsent = async () => {
+    if (aiBusy) return;
+    setAiBusy(true);
+    try {
+      await (aiConsent.state === AI_STATES.GRANTED ? withdrawAiConsent() : grantAiConsent());
+      await refreshAiConsent();
+    } catch (err) {
+      toast({ title: "Couldn't update AI settings", description: err.message || 'Please try again.', variant: 'destructive' });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -405,9 +425,38 @@ export default function Settings() {
               <span className="text-sm">Data used for</span>
               <span className="text-xs font-medium text-foreground">Your insights only</span>
             </div>
+            {/* This said "Your amounts & categories", which was not true.
+                ai-coach also sends the transaction TITLE - the merchant or
+                the person you paid - and bill names. Understating what
+                leaves the app, in the section headed Trust & Privacy, is
+                worse than not having the row at all. */}
             <div className="flex items-center justify-between py-1">
               <span className="text-sm">AI sees</span>
-              <span className="text-xs font-medium text-foreground">Your amounts & categories</span>
+              <span className="text-xs font-medium text-foreground">
+                {aiConsent.state === 'granted' ? 'Amounts, categories & descriptions' : 'Nothing'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-1 gap-3">
+              <div className="min-w-0">
+                <span className="text-sm">AI analysis of my data</span>
+                <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                  {aiConsent.state === 'granted'
+                    ? 'Transactions, budgets and bills are sent to Anthropic to generate advice.'
+                    : 'Nothing is sent for AI analysis. Everything else in Yorbit works normally.'}
+                </p>
+              </div>
+              <button
+                onClick={toggleAiConsent}
+                disabled={aiBusy || aiConsent.state === 'unknown'}
+                aria-pressed={aiConsent.state === 'granted'}
+                className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                  aiConsent.state === 'granted'
+                    ? 'bg-secondary text-foreground hover:bg-secondary/80'
+                    : 'bg-primary text-white'
+                }`}
+              >
+                {aiBusy ? '…' : aiConsent.state === 'granted' ? 'Turn off' : 'Turn on'}
+              </button>
             </div>
             <div className="flex items-center justify-between py-1">
               <span className="text-sm">Bank credentials</span>

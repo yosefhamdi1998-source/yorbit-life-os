@@ -4,7 +4,7 @@ import { serviceClient, requireSystemCaller } from '../_shared/supabase.ts';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-5';
 
-const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for MoneyGlow users. Each week you review the user's custom form records and turn them into clear, actionable financial guidance.
+const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for Yorbit users. Each week you review the user's custom form records and turn them into clear, actionable financial guidance.
 
 Method:
 1. Understand what each custom form tracks from its name, description, and field definitions.
@@ -56,6 +56,42 @@ Deno.serve(async (req) => {
       const list = byUser.get(r.user_id) || [];
       list.push(r);
       byUser.set(r.user_id, list);
+    }
+
+    // CONSENT GATE, per user.
+    //
+    // This runs on a schedule across EVERY account, which makes it the more
+    // dangerous of the two AI paths: nobody is sitting in front of the app to
+    // be asked, and a user who declined in the UI would still have had their
+    // records posted to Anthropic by this cron. Consent is checked per user
+    // and non-consenting accounts are dropped from the batch entirely.
+    //
+    // Note this is an ALLOW-list built from an explicit grant, not a
+    // deny-list: a user missing from `profiles`, or a row that errors, is
+    // simply not included. Failing closed is the only safe direction when
+    // the question is "may I send this person's data to a third party".
+    const candidateIds = [...byUser.keys()];
+    const { data: consented, error: consentErr } = await admin
+      .from('profiles')
+      .select('id')
+      .in('id', candidateIds)
+      .not('ai_consent_at', 'is', null);
+
+    if (consentErr) {
+      console.error('consent lookup failed, skipping run:', consentErr.message);
+      return jsonResponse({ error: 'Could not verify AI consent; no data was sent.' }, 503, {}, req);
+    }
+
+    const allowed = new Set((consented || []).map((p) => p.id));
+    let skippedNoConsent = 0;
+    for (const id of candidateIds) {
+      if (!allowed.has(id)) { byUser.delete(id); skippedNoConsent++; }
+    }
+    if (skippedNoConsent) {
+      console.log(`Skipped ${skippedNoConsent} user(s) without AI consent.`);
+    }
+    if (byUser.size === 0) {
+      return jsonResponse({ message: 'No consenting users to analyze.', analyzed: 0, skippedNoConsent }, 200, {}, req);
     }
 
     let analyzed = 0;

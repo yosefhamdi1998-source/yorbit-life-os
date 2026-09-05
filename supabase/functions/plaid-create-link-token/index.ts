@@ -29,7 +29,12 @@ Deno.serve(async (req) => {
 
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: user.id },
-      client_name: 'MoneyGlow',
+      // Shown to the user inside Plaid's own consent dialog while they type
+// their bank password. It said MoneyGlow - the pre-rename name - so the
+// app asking for access and the name on the consent screen disagreed at
+// the single moment trust matters most. Plaid also expects client_name
+// to match the registered application.
+      client_name: 'Yorbit',
       // Transactions covers every bank/Venmo-style institution already
       // working; Investments is what makes Coinbase (and any brokerage)
       // show up as a selectable institution at all — without it Plaid

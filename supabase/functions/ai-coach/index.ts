@@ -1,6 +1,14 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
+
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
+
+// Bump when the consent wording materially changes. Consent to the old text
+// is not consent to new processing, so raising this re-asks everyone rather
+// than silently carrying a stale agreement forward. Must match
+// AI_CONSENT_VERSION in src/lib/aiConsent.js.
+const AI_CONSENT_VERSION = 1;
+
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-5'; // update as newer models become available
@@ -197,7 +205,7 @@ async function logUsage(
   }
 }
 
-const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for MoneyGlow users. Your job is to review the user's budget limits and actual spending, their upcoming bills, AND their custom form records, then offer clear, actionable advice.
+const ADVISOR_INSTRUCTIONS = `You are a friendly, knowledgeable personal finance advisor for Yorbit users. Your job is to review the user's budget limits and actual spending, their upcoming bills, AND their custom form records, then offer clear, actionable advice.
 
 1. Read their Budget data to understand monthly spending limits per category.
 2. Read their Transaction data to see actual spending this month.
@@ -436,6 +444,33 @@ Deno.serve(async (req) => {
     // running out of credits looked before this existed).
     const blockedReason = await checkSpendLimits(admin, user.id);
     if (blockedReason) return jsonResponse({ error: blockedReason }, 429, {}, req);
+
+    // CONSENT GATE. This function builds its prompt from the user's real
+    // records - individual transactions including the merchant or payee in
+    // the title, budgets, bills - and posts them to Anthropic. That must not
+    // happen until the account holder has been told and has agreed.
+    //
+    // The check lives here rather than in the UI on purpose. A screen in the
+    // browser is a suggestion; anything holding a session token can call this
+    // endpoint directly. The gate belongs on the same side of the wire as the
+    // data it protects.
+    //
+    // 403 with a machine-readable code, not a generic error: the client needs
+    // to tell "you haven't agreed yet" apart from "something broke" so it can
+    // show the consent screen instead of an error toast.
+    const { data: consentOk, error: consentErr } = await admin
+      .rpc('has_ai_consent', { p_user_id: user.id, p_min_version: AI_CONSENT_VERSION });
+    if (consentErr) {
+      // Fail CLOSED. If we cannot confirm consent we do not send the data.
+      console.error('consent check failed', consentErr.message);
+      return jsonResponse({ error: 'Could not verify your AI settings. Please try again.', code: 'consent_check_failed' }, 503, {}, req);
+    }
+    if (!consentOk) {
+      return jsonResponse({
+        error: 'AI features need your permission before Yorbit can send your financial data to be analysed.',
+        code: 'ai_consent_required',
+      }, 403, {}, req);
+    }
 
     const body = await req.json();
     const mode = body.mode || 'invoke';

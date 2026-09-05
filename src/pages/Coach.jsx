@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHeader from '@/components/PageHeader';
 import AdvisorChat from '@/components/finance/AdvisorChat';
 import { format } from 'date-fns';
+import AiConsentGate from '@/components/AiConsentGate';
 // Both of these were USED in this file and imported in none of it. The page
 // threw ReferenceError on render and every user who opened the AI Coach - the
 // feature the Go Pro button sells - got the error boundary instead. `npm run
@@ -191,6 +192,11 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
         gradient="gradient-primary"
       />
 
+      {/* Nothing below this line may reach Anthropic until the account
+          holder has been told what is sent and has agreed. The edge function
+          enforces the same rule server-side; this is the part that explains
+          it and offers the choice. */}
+      <AiConsentGate featureName="AI Coach">
       <Tabs defaultValue="advisor">
         <TabsList className="w-full grid grid-cols-2 mb-4">
           <TabsTrigger value="advisor" className="gap-1.5">
@@ -390,6 +396,7 @@ Return exactly this JSON (each item max 18 words, reference real numbers):
           )}
         </TabsContent>
       </Tabs>
+      </AiConsentGate>
     </div>
   );
 }

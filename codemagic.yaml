@@ -1,5 +1,5 @@
 ##############################################################################
-# MoneyGlow — Codemagic CI/CD config
+# Yorbit — Codemagic CI/CD config
 #
 # WHY THIS EXISTS: submitting an iOS app requires Xcode, which only runs on
 # macOS. Nobody on this project has a Mac. Codemagic runs Xcode on its own
@@ -10,7 +10,7 @@
 # be done from a repo file — they're account signups and dashboard clicks):
 #   1. Create an account at codemagic.io and connect this GitHub repo.
 #   2. Apple Developer Program membership ($99/yr) — developer.apple.com.
-#   3. In App Store Connect, create the app listing (bundle ID: app.moneyglow).
+#   3. In App Store Connect, create the app listing (bundle ID: app.yorbit).
 #   4. Generate an App Store Connect API key (Users and Access > Keys) and
 #      add it in Codemagic's dashboard under this app's environment variables
 #      as a group named `app_store_credentials` containing:
@@ -23,7 +23,7 @@
 #      key, added in Codemagic as group `google_play_credentials` with
 #      GCLOUD_SERVICE_ACCOUNT_CREDENTIALS.
 #   6. Fill in the bundle identifiers below if they ever change from
-#      app.moneyglow (must match what's registered in App Store
+#      app.yorbit (must match what's registered in App Store
 #      Connect / Play Console exactly).
 #
 # Nothing above lives in this file or this repo — API keys and credentials
@@ -42,7 +42,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-        BUNDLE_ID: "app.moneyglow"
+        BUNDLE_ID: "app.yorbit"
       node: 20
       xcode: latest
       cocoapods: default

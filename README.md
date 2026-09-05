@@ -1,4 +1,4 @@
-# MoneyGlow — Personal Finance App
+# Yorbit — Personal Finance App
 
 A personal finance app (React + Vite + Tailwind + shadcn/ui) tracking transactions,
 budgets, bills, goals, net worth, and custom forms, with an AI coach, bank sync, and

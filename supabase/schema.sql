@@ -1,4 +1,4 @@
--- MoneyGlow: Base44 -> Supabase schema
+-- Yorbit: Base44 -> Supabase schema
 -- Run this whole file once in the Supabase SQL Editor (Project -> SQL Editor -> New query).
 -- Safe to re-run: uses IF NOT EXISTS / OR REPLACE everywhere.
 
