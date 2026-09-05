@@ -474,96 +474,6 @@ export default function Dashboard() {
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
           of one centered and one edge-pinned. */}
-      {(netWorthEntries.length > 0 || worth.cash.liveCount > 0) && (
-        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
-          <div className="flex items-center justify-between mb-1">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{worth.label}</p>
-              <p className="text-[10px] text-muted-foreground/80">{worth.sublabel}</p>
-            </div>
-            {netWorthTrend.length > 1 && (
-              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
-            )}
-          </div>
-          {/* Minus sign OUTSIDE the currency symbol. `$-36` is not how money
-              is written anywhere; a true minus glyph reads as a quantity
-              rather than a typo. */}
-          <p className={`font-numeric text-[40px] lg:text-5xl font-black tabular-nums leading-none tracking-[-0.02em] mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
-            {worth.total < 0 ? '−' : ''}${fmt(Math.abs(worth.total))}
-          </p>
-          {worth.cash.updatedAt && (
-            <p className="text-[10px] text-muted-foreground mb-3">
-              Bank balances updated {freshnessLabel(worth.cash.updatedAt)}
-            </p>
-          )}
-          {!worth.isCompleteNetWorth && (
-            <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
-              Money in your connected accounts. Add a car, crypto or a loan on
-              Money → Net Worth to make this a real net worth.
-            </p>
-          )}
-          {/* Assets / Liabilities read from MANUAL net-worth entries only.
-              With none added they were two tiles both reading $0 sitting
-              directly under a headline of −$36 - three numbers on one card
-              that cannot all be true, which is exactly how a finance app
-              loses someone's trust in the first five seconds. They now
-              appear only when there is something to put in them. */}
-          {worth.isCompleteNetWorth && (
-            <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
-              <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
-                  <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
-                </div>
-              </div>
-              <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
-                  <TrendingDown className="w-3.5 h-3.5 text-red-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
-                  <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* What the two empty tiles used to occupy: the accounts this
-              figure is actually made of. Cash and debt are split because
-              they behave differently - a card balance is money owed, and
-              summing it with cash is the sign error that makes the whole
-              number meaningless. */}
-          {!worth.isCompleteNetWorth && worth.cash.liveCount > 0 && (
-            <div className="pt-3.5 border-t border-border/50 space-y-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">In your accounts</span>
-                <span className="text-sm font-bold tabular-nums text-foreground">
-                  {worth.cash.cash < 0 ? '−' : ''}${fmt(Math.abs(worth.cash.cash))}
-                </span>
-              </div>
-              {worth.cash.debt > 0 && (
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Owed on cards &amp; loans</span>
-                  <span className="text-sm font-bold tabular-nums text-red-500">−${fmt(worth.cash.debt)}</span>
-                </div>
-              )}
-              {worth.cash.unknownCount > 0 && (
-                // Never counted as zero. An account whose balance did not
-                // come back is unknown, and a zero would quietly understate
-                // the total by whatever is actually in it.
-                <p className="text-[11px] text-muted-foreground leading-snug pt-1">
-                  {worth.cash.unknownCount} account{worth.cash.unknownCount === 1 ? '' : 's'} didn&rsquo;t report a balance
-                  {worth.cash.unknownNames?.length ? ` (${worth.cash.unknownNames.slice(0, 2).join(', ')}${worth.cash.unknownNames.length > 2 ? '…' : ''})` : ''}
-                  {' '}and {worth.cash.unknownCount === 1 ? 'is' : 'are'} not included above.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── Content sections ──────────────────────────────────────────
           One column on phone; two side-by-side columns from lg up, so
@@ -814,6 +724,105 @@ export default function Dashboard() {
           </div>
         </div>
 
+
+      {/* Cash on Hand lives at the BOTTOM of Home, deliberately.
+          It was the second thing on the screen, which meant the first
+          impression of the app - and anything visible over your shoulder
+          on a train - was a single small number that happens to be
+          negative right now. A bank balance is a fact you look up, not a
+          headline you are greeted with; the cash-flow trend above answers
+          "how am I doing" far better and does not put one figure on
+          display. Still one scroll away, still exact. */}
+      {(netWorthEntries.length > 0 || worth.cash.liveCount > 0) && (
+        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{worth.label}</p>
+              <p className="text-[10px] text-muted-foreground/80">{worth.sublabel}</p>
+            </div>
+            {netWorthTrend.length > 1 && (
+              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
+            )}
+          </div>
+          {/* Minus sign OUTSIDE the currency symbol. `$-36` is not how money
+              is written anywhere; a true minus glyph reads as a quantity
+              rather than a typo. */}
+          <p className={`font-numeric text-[40px] lg:text-5xl font-black tabular-nums leading-none tracking-[-0.02em] mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
+            {worth.total < 0 ? '−' : ''}${fmt(Math.abs(worth.total))}
+          </p>
+          {worth.cash.updatedAt && (
+            <p className="text-[10px] text-muted-foreground mb-3">
+              Bank balances updated {freshnessLabel(worth.cash.updatedAt)}
+            </p>
+          )}
+          {!worth.isCompleteNetWorth && (
+            <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+              Money in your connected accounts. Add a car, crypto or a loan on
+              Money → Net Worth to make this a real net worth.
+            </p>
+          )}
+          {/* Assets / Liabilities read from MANUAL net-worth entries only.
+              With none added they were two tiles both reading $0 sitting
+              directly under a headline of −$36 - three numbers on one card
+              that cannot all be true, which is exactly how a finance app
+              loses someone's trust in the first five seconds. They now
+              appear only when there is something to put in them. */}
+          {worth.isCompleteNetWorth && (
+            <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
+              <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
+                  <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
+                </div>
+              </div>
+              <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
+                  <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
+                  <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* What the two empty tiles used to occupy: the accounts this
+              figure is actually made of. Cash and debt are split because
+              they behave differently - a card balance is money owed, and
+              summing it with cash is the sign error that makes the whole
+              number meaningless. */}
+          {!worth.isCompleteNetWorth && worth.cash.liveCount > 0 && (
+            <div className="pt-3.5 border-t border-border/50 space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">In your accounts</span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {worth.cash.cash < 0 ? '−' : ''}${fmt(Math.abs(worth.cash.cash))}
+                </span>
+              </div>
+              {worth.cash.debt > 0 && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Owed on cards &amp; loans</span>
+                  <span className="text-sm font-bold tabular-nums text-red-500">−${fmt(worth.cash.debt)}</span>
+                </div>
+              )}
+              {worth.cash.unknownCount > 0 && (
+                // Never counted as zero. An account whose balance did not
+                // come back is unknown, and a zero would quietly understate
+                // the total by whatever is actually in it.
+                <p className="text-[11px] text-muted-foreground leading-snug pt-1">
+                  {worth.cash.unknownCount} account{worth.cash.unknownCount === 1 ? '' : 's'} didn&rsquo;t report a balance
+                  {worth.cash.unknownNames?.length ? ` (${worth.cash.unknownNames.slice(0, 2).join(', ')}${worth.cash.unknownNames.length > 2 ? '…' : ''})` : ''}
+                  {' '}and {worth.cash.unknownCount === 1 ? 'is' : 'are'} not included above.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

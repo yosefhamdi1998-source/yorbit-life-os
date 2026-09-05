@@ -13,6 +13,19 @@ const TONES = {
 
 // Tinted badge + faint card wash per tone, so a row of stats reads its
 // color story at a glance instead of every tile looking identical.
+// A faint tone-matched wash and hairline on the card itself. Four identical
+// grey rectangles in a row is what "plain and bland" looks like; the eye has
+// nothing to catch on and every figure reads with equal weight. The wash is
+// deliberately weak - it should register as considered, not as decoration
+// competing with the numeral.
+const CARD_WASH = {
+  default: '',
+  positive: 'bg-gradient-to-br from-emerald-500/[0.07] to-transparent border-emerald-500/15',
+  negative: 'bg-gradient-to-br from-red-500/[0.07] to-transparent border-red-500/15',
+  warning: 'bg-gradient-to-br from-amber-500/[0.07] to-transparent border-amber-500/15',
+  primary: 'bg-gradient-to-br from-primary/[0.07] to-transparent border-primary/15',
+};
+
 const BADGE_BG = {
   default: 'bg-secondary text-muted-foreground',
   positive: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
@@ -36,13 +49,20 @@ export default function StatCard({
   const negative = numeric && value < 0;
 
   return (
-    <div className="sky-card rounded-2xl px-4 py-4 lg:px-5 lg:py-5">
+    <div className={`sky-card rounded-2xl px-4 py-4 lg:px-5 lg:py-5 border ${CARD_WASH[tone] || 'border-transparent'}`}>
       {Icon && (
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${BADGE_BG[tone] || BADGE_BG.default}`}>
           <Icon className="w-4 h-4" strokeWidth={2.25} />
         </div>
       )}
-      <p className={`font-numeric text-2xl lg:text-[28px] font-black tracking-tight leading-none mb-1.5 tabular-nums ${TONES[tone] || TONES.default}`}>
+      {/* Label first. A figure means nothing until you know what it counts,
+          and reading "$2,301" then discovering it was SPENDING is a small
+          re-parse the reader should not have to do. Financial terminals and
+          annual reports both label above for this reason. */}
+      <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">
+        {label}
+      </p>
+      <p className={`font-numeric text-[30px] lg:text-[34px] font-black tracking-[-0.02em] leading-none tabular-nums ${TONES[tone] || TONES.default}`}>
         {numeric ? (
           <>
             {negative && '−'}
@@ -54,10 +74,7 @@ export default function StatCard({
           value
         )}
       </p>
-      <p className="text-[10px] lg:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-1 truncate">{sub}</p>}
+      {sub && <p className="text-[11px] text-muted-foreground mt-1.5 truncate">{sub}</p>}
     </div>
   );
 }
