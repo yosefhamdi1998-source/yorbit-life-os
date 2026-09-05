@@ -16,6 +16,73 @@ substantially done, 5 partially, 6–7 not started.
 
 ### BLOCKER
 
+**B0. Every RPC in the `public` schema answers the anon key. FIXED IN CODE,
+NOT YET APPLIED — the SQL must be run in the Supabase dashboard.**
+
+Postgres grants `EXECUTE` on a new function to `PUBLIC` automatically.
+Supabase's `anon` role inherits `PUBLIC`, and the anon key is not secret — it
+ships in the JS bundle served to every visitor. So every function created in
+this project has been callable by the entire internet since the moment it was
+created.
+
+The functions also took identity as a *parameter* and guarded it with:
+
+```sql
+if auth.uid() is not null and auth.uid() <> p_user_id then raise ...
+```
+
+`auth.uid()` is NULL for an anon-key caller, so `is not null` switched the
+guard **off for exactly the caller it existed to stop**. Signed-in users were
+blocked from each other's data; anonymous strangers were waved through.
+
+Verified against production with only the published key, probing with an
+all-zero uuid so no real row could be touched:
+
+| call | result | meaning |
+|---|---|---|
+| `mark_receipts_as_income` | `0` | the UPDATE ran — not an auth error |
+| `apply_income_sender` | `23503` | reached the INSERT |
+| `crypto_asset_summary` | rows | full trading history readable |
+| `title_matches_income_sender` | `false` | executed |
+
+With a real user id, `mark_receipts_as_income(id, '%')` rewrites every income
+classification in that account.
+
+Fix is in `supabase/migrations/20260906140000_lock_down_rpc_surface.sql`:
+revoke the default so the next function can't reopen it, revoke the existing
+surface, grant back only the two the client calls, and drop `p_user_id` from
+those two. A guard can be written wrong — it was. A parameter that doesn't
+exist can't be forged.
+
+`node scripts/test-rpc-authz.js` probes the live deployment and fails on any
+function answering anonymously. **It reports 8 failures until the SQL is
+applied.** Run it after applying; it must print zero.
+
+**B0b. Realized P&L is arbitrary to $26,085.82 until `occurred_at` is
+backfilled.** The importer sliced Coinbase's `Timestamp` to ten characters, so
+FIFO had no within-day order and walked lots by `date, id` where `id` is a
+random uuid. On an account trading 10–20 times a day, the lots a sale consumed
+were picked at random from that day's buys.
+
+Measured on the real 2018–2023 exports (`node scripts/test-crypto-pnl.js <dir>`),
+same data, same FIFO, changing only the within-day sequence:
+
+```
+true timestamp order    -$13,083.92
+date-only order         +$13,001.90
+difference               $26,085.82
+```
+
+The sign flips. 2022 alone reads +$10,478.50 instead of −$5,004.52.
+
+`transactions.occurred_at` and the FIFO sort key are in migration
+`20260906135000`. The importer now captures the time and has a `--times` mode
+that emits UPDATEs for rows already imported. **Only 2018–2023 exports were on
+disk**, so after that backfill roughly half the crypto history still has no
+time. `crypto_time_coverage()` reports the shortfall and the Investments page
+states it on screen. To close it fully, re-export 2024, 2025 and 2026 from both
+Coinbase accounts and re-run `--times`.
+
 **B1. Plaid access tokens are stored in plaintext.**
 `connected_accounts.access_token_ref` is a plain `text` column (verified
 against the live schema, not the snapshot file). Written at
