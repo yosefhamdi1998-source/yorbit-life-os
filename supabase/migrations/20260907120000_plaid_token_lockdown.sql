@@ -45,27 +45,34 @@
 
 -- ---------------------------------------------------------------------------
 -- 1. Take the column away from every browser-facing role.
--- ---------------------------------------------------------------------------
-revoke select (access_token_ref) on connected_accounts from anon;
-revoke select (access_token_ref) on connected_accounts from authenticated;
-
--- Writes too. A client has no business setting a bank credential; only the
--- token-exchange function, which runs as service_role, may write one.
-revoke insert (access_token_ref) on connected_accounts from anon;
-revoke insert (access_token_ref) on connected_accounts from authenticated;
-revoke update (access_token_ref) on connected_accounts from anon;
-revoke update (access_token_ref) on connected_accounts from authenticated;
-
--- Re-grant every OTHER column, generated from the catalogue rather than typed.
--- `revoke select (col)` on a role holding a whole-table grant collapses that
--- grant into a per-column list, so the remaining columns must be named or
--- ordinary reads break.
 --
--- Built dynamically on purpose: a hand-written list was wrong on the first
--- attempt (guessed `mask` and `item_id`; the table has `account_mask` and
--- `provider_item_id`) and would have failed on a column that does not exist.
--- It would also silently omit any column added later, quietly breaking reads
--- long after this migration was forgotten.
+-- TABLE-level revoke first, and this ordering is the whole trick. In Postgres
+-- a column-level REVOKE removes only column-level grants; a role holding
+-- SELECT on the WHOLE table keeps access to every column regardless. The
+-- first version of this migration revoked only the column and the assertion
+-- below caught it in production:
+--
+--     ERROR: P0001: access_token_ref is still SELECTable by authenticated
+--
+-- which is precisely why the assertion exists. Revoke the table, then grant
+-- back the columns that are allowed.
+--
+-- PUBLIC is included because both anon and authenticated inherit from it, so
+-- a PUBLIC grant would keep the token readable no matter what the named roles
+-- are denied.
+-- ---------------------------------------------------------------------------
+revoke select on connected_accounts from public;
+revoke select on connected_accounts from anon;
+revoke select on connected_accounts from authenticated;
+
+revoke insert, update on connected_accounts from public;
+revoke insert, update on connected_accounts from anon;
+revoke insert, update on connected_accounts from authenticated;
+
+-- Grant back every OTHER column, generated from the catalogue rather than
+-- typed. A hand-written list was wrong on the first attempt (guessed `mask`
+-- and `item_id`; the table has `account_mask` and `provider_item_id`) and
+-- would also silently omit any column added later.
 do $$
 declare
   cols text;
@@ -78,6 +85,7 @@ begin
     and column_name <> 'access_token_ref';
 
   execute format('grant select (%s) on connected_accounts to authenticated', cols);
+  execute format('grant insert (%s) on connected_accounts to authenticated', cols);
 end $$;
 
 -- Writes the app legitimately performs: presentation and sync bookkeeping.
