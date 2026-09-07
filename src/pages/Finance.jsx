@@ -116,9 +116,15 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
         </span>
         {!isTemp && !selectMode && (
           <>
+            {/* 44x44 minimum touch target, per Apple's HIG. These measured
+                30x30 and 32x32, and edit sits immediately beside delete - on
+                a phone that combination is not a small annoyance, it is a
+                deleted transaction. The icon keeps its size; only the tappable
+                box grows, and the negative margin absorbs the extra width so
+                the row does not reflow. */}
             <button
               onClick={() => startEditNote(tx)}
-              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0 p-2 rounded-lg"
+              className="text-muted-foreground/50 hover:text-primary transition-colors shrink-0 min-w-[44px] min-h-[44px] -my-1.5 flex items-center justify-center rounded-lg"
               title={tx.notes ? 'Edit note' : 'Add note'}
               aria-label={tx.notes ? 'Edit note' : 'Add note'}
             >
@@ -126,7 +132,7 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
             </button>
             <button
               onClick={() => setConfirmId(confirmId === tx.id ? null : tx.id)}
-              className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 p-2 -mr-2 rounded-lg"
+              className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 min-w-[44px] min-h-[44px] -my-1.5 -mr-3 flex items-center justify-center rounded-lg"
               title="Delete transaction"
               aria-label="Delete transaction"
             >
