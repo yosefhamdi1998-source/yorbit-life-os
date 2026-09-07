@@ -84,8 +84,16 @@ export const SUBSCRIPTION_PLANS = ['free', 'pro_monthly', 'pro_yearly'];
 export const SUBSCRIPTION_STATUSES = ['active', 'canceled', 'past_due', 'trialing', 'incomplete'];
 export const BANK_PROVIDERS = ['plaid', 'teller'];
 export const BANK_SYNC_STATUSES = ['success', 'partial', 'failed'];
+// reconnect_required is terminal until the user re-authenticates with their
+// bank (Plaid returned ITEM_LOGIN_REQUIRED or similar); no number of retries
+// fixes it. That is what distinguishes it from error, which is transient.
+//
+// This comment sits OUTSIDE the array on purpose. check-enums.cjs extracts
+// every quoted string from the array body, so a comment inside it mentioning
+// a value in quotes is parsed as a member - which is exactly how the first
+// version of this change reported drift against itself.
 export const CONNECTED_ACCOUNT_SYNC_STATUSES = [
-  'not_connected', 'connected', 'syncing', 'error', 'disconnected',
+  'not_connected', 'connected', 'syncing', 'error', 'reconnect_required', 'disconnected',
 ];
 export const AI_INSIGHT_TYPES = ['briefing', 'coach'];
 export const ADVISOR_MESSAGE_ROLES = ['user', 'assistant'];
