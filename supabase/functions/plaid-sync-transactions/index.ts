@@ -1,5 +1,6 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
+import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -195,7 +196,9 @@ Deno.serve(async (req) => {
       if (limited) return limited;
     }
 
-    const access_token = account.access_token_ref;
+    // From plaid_credentials (RLS on, no policies) with a transitional
+    // fallback to the legacy column. See _shared/plaidToken.ts.
+    const { token: access_token } = await getPlaidAccessToken(admin, connected_account_id);
     if (!access_token) return jsonResponse({ error: 'Your bank connection needs to be reconnected.' }, 400, {}, req);
 
     await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', connected_account_id);
