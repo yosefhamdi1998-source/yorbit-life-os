@@ -232,6 +232,7 @@ export default function CSVImport() {
   const [mapIndex, setMapIndex] = useState(0);
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
+  const [importedRange, setImportedRange] = useState(null);
   const [skippedCount, setSkippedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
@@ -446,16 +447,28 @@ export default function CSVImport() {
       toImport.push({ ...r, import_source: csvSource });
     }
 
+    // Only rows whose create() actually resolved. Building the range from
+    // `toImport` would report the span we ATTEMPTED, which is the number that
+    // already looks fine when an import is quietly failing.
+    const written = [];
     for (let i = 0; i < toImport.length; i++) {
       try {
         await base44.entities.Transaction.create(toImport[i]);
         imported++;
+        written.push(toImport[i]);
       } catch {
         failed++;
       }
       setImportProgress(Math.round(((i + 1) / toImport.length) * 100));
     }
 
+    // Range of what was actually WRITTEN, not what was in the file. These
+    // differ precisely when something went wrong, which is the case worth
+    // surfacing.
+    const writtenDates = written.map(r => r.date).filter(Boolean).sort();
+    setImportedRange(writtenDates.length
+      ? { first: writtenDates[0], last: writtenDates[writtenDates.length - 1] }
+      : null);
     setImportedCount(imported);
     setSkippedCount(skipped);
     setFailedCount(failed);
@@ -623,12 +636,50 @@ export default function CSVImport() {
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle className="w-10 h-10 text-emerald-500" />
           </div>
-          <p className="text-2xl font-black mb-2">Import Complete!</p>
+          <p className="text-2xl font-black mb-2">
+            {importedCount > 0 ? 'Import complete' : 'Nothing was imported'}
+          </p>
           <p className="text-base text-muted-foreground mb-1">
             Imported <span className="font-bold text-foreground">{importedCount}</span> transactions.
           </p>
           {skippedCount > 0 && <p className="text-sm text-muted-foreground">Skipped <span className="font-bold">{skippedCount}</span> duplicates.</p>}
           {failedCount > 0 && <p className="text-sm text-amber-600 mt-1">{failedCount} rows had errors and were skipped.</p>}
+
+          {/* THE DATE RANGE ACTUALLY WRITTEN.
+              A statement covering all of 2025 that lands as 29 December rows
+              looks identical to a clean import without this line - "Imported
+              412 transactions" tells you nothing about WHICH ones. That is
+              exactly how a year of Bank of America and Venmo history was
+              believed imported while the database's earliest non-crypto row
+              stayed 2025-12-17. A receipt naming the span is the difference
+              between noticing that immediately and finding it months later. */}
+          {importedRange && (
+            <div className="mt-4 inline-block text-left rounded-xl bg-secondary/60 px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">
+                Dates written
+              </p>
+              <p className="text-sm font-bold text-foreground tabular-nums">
+                {importedRange.first} &rarr; {importedRange.last}
+              </p>
+              <p className="text-[12px] text-muted-foreground mt-1.5 max-w-xs">
+                Check this matches the statement you uploaded. If it is shorter,
+                some rows were skipped as duplicates or could not be read.
+              </p>
+            </div>
+          )}
+
+          {importedCount === 0 && (
+            <div className="mt-4 mx-auto max-w-sm rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-left">
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-1">
+                No new transactions were added
+              </p>
+              <p className="text-[13px] text-amber-800/80 dark:text-amber-300/80 leading-snug">
+                Every row was either already in your account or could not be read.
+                Nothing changed. If you expected new data, check the file covers a
+                period you have not imported yet.
+              </p>
+            </div>
+          )}
           <div className="flex gap-3 justify-center mt-8">
             <Button variant="outline" onClick={reset}>
               Upload More
