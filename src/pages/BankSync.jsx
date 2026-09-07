@@ -12,6 +12,12 @@ const STATUS_CONFIG = {
   connected:     { icon: CheckCircle, color: 'text-emerald-500', label: 'Connected' },
   syncing:       { icon: RefreshCw,   color: 'text-blue-500',    label: 'Syncing…' },
   error:         { icon: AlertCircle, color: 'text-red-500',     label: 'Error' },
+  // Distinct from `error` on purpose. An error invites a retry; this one
+  // cannot be retried into working - Plaid returned ITEM_LOGIN_REQUIRED or
+  // similar and the bank wants the user to sign in again. Amber rather than
+  // red because nothing is broken and no data is lost; it is an expected
+  // part of the lifecycle of every bank connection.
+  reconnect_required: { icon: AlertCircle, color: 'text-amber-500', label: 'Sign in again' },
   disconnected:  { icon: AlertCircle, color: 'text-muted-foreground', label: 'Disconnected' },
   not_connected: { icon: Clock,       color: 'text-muted-foreground', label: 'Not connected' },
 };

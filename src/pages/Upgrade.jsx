@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
@@ -344,6 +344,33 @@ export default function Upgrade() {
           >
             Restore Purchases
           </button>
+        )}
+
+        {/* APPLE REQUIREMENT, and a standard rejection when absent.
+            Guideline 3.1.2 requires auto-renewal terms, and links to the
+            Terms of Use and Privacy Policy, to be visible ON the paywall -
+            not only in the App Store description. Audited before adding
+            this: Restore appeared 9 times in this file, renewal wording 0,
+            Terms 0, Privacy 0. Three guaranteed rejections. */}
+        {isNativeIOS() && (
+          <div className="mt-6 pt-5 border-t border-border/60">
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              Payment is charged to your Apple ID at confirmation of purchase.
+              Your subscription renews automatically for the same period and
+              price unless you turn off auto-renew at least 24 hours before
+              the current period ends. Your account is charged for renewal
+              within 24 hours before the period ends. Manage or cancel anytime
+              in Settings &rsaquo; Apple ID &rsaquo; Subscriptions.
+            </p>
+            <div className="flex items-center gap-4 mt-3">
+              <Link to="/terms-of-use" className="text-[11px] font-semibold text-primary hover:underline underline-offset-2">
+                Terms of Use
+              </Link>
+              <Link to="/privacy-policy" className="text-[11px] font-semibold text-primary hover:underline underline-offset-2">
+                Privacy Policy
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>

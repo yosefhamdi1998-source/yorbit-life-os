@@ -244,7 +244,21 @@ Deno.serve(async (req) => {
     // which is fine because every page reports the same current balance.
     let latestBalances: Record<string, unknown> | null = null;
     let offset = 0;
+    // Hard bounds on the loop. The break conditions below handle every
+    // response Plaid is documented to return, but `while (true)` against a
+    // remote API has no floor under it: a page that reports more
+    // total_transactions than it will ever hand back, or a stalled offset,
+    // spins until the function is killed - burning Plaid quota on every
+    // iteration and leaving sync_status stuck at 'syncing', which
+    // sync-all-accounts then skips forever.
+    const MAX_PAGES = 40;              // 40 x 500 = 20,000 transactions
+    let pages = 0;
+    let lastOffset = -1;
     while (true) {
+      if (++pages > MAX_PAGES) {
+        console.warn(`plaid-sync-transactions: hit MAX_PAGES for account ${connected_account_id}; stopping with ${plaidTxs.length} transactions`);
+        break;
+      }
       const txRes = await plaidClient.transactionsGet({
         access_token,
         start_date: startDate,
@@ -282,6 +296,13 @@ Deno.serve(async (req) => {
 
       offset += txRes.data.transactions.length;
       if (offset >= txRes.data.total_transactions || txRes.data.transactions.length === 0) break;
+      // Offset must strictly advance. If it ever does not, the next request
+      // is byte-for-byte the one just made and the loop cannot terminate.
+      if (offset === lastOffset) {
+        console.warn(`plaid-sync-transactions: offset stalled at ${offset} for account ${connected_account_id}; stopping`);
+        break;
+      }
+      lastOffset = offset;
     }
 
     // Build the duplicate-check set from what's ALREADY stored for this
@@ -461,9 +482,25 @@ Deno.serve(async (req) => {
         const admin2 = serviceClient();
         const { data: acct } = await admin2
           .from('connected_accounts').select('user_id').eq('id', id).single();
+        // Plaid's error_code says whether this is fixable by retrying or
+        // needs the user to re-authenticate. "Please try again" on an
+        // ITEM_LOGIN_REQUIRED is advice that can never work: the item stays
+        // broken however many times they tap it.
+        const plaidCode = error.response?.data?.error_code || '';
+        const needsReconnect = [
+          'ITEM_LOGIN_REQUIRED',
+          'ITEM_LOCKED',
+          'PENDING_EXPIRATION',
+          'ACCESS_NOT_GRANTED',
+          'INVALID_ACCESS_TOKEN',
+          'ITEM_NOT_SUPPORTED',
+        ].includes(plaidCode);
+
         await admin2.from('connected_accounts').update({
-          sync_status: 'error',
-          error_message: "We couldn't sync this account. Please try again.",
+          sync_status: needsReconnect ? 'reconnect_required' : 'error',
+          error_message: needsReconnect
+            ? 'Your bank needs you to sign in again to keep sharing transactions. Reconnect it from Bank Sync.'
+            : "We couldn't sync this account. Please try again in a few minutes.",
         }).eq('id', id);
         if (acct?.user_id) {
           await admin2.from('bank_sync_logs').insert({
@@ -476,7 +513,7 @@ Deno.serve(async (req) => {
             imported_count: 0,
             skipped_duplicate_count: 0,
             error_count: 1,
-            message: 'Sync failed',
+            message: plaidCode ? `Sync failed (${plaidCode})` : 'Sync failed',
           });
         }
       }
