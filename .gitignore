@@ -33,3 +33,4 @@ base44/.app.jsonc
 
 # GitHub Pages build output (deployed to the gh-pages branch, not tracked here)
 dist-pages
+__pycache__/
