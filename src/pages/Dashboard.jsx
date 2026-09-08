@@ -249,7 +249,7 @@ export default function Dashboard() {
         const key = format(d, 'yyyy-MM-dd');
         const tx = transactions.filter(t => t.date === key);
         const { income, expenses } = sumByType(tx);
-        buckets.push({ month: format(d, 'd'), income, expense: expenses, net: income - expenses });
+        buckets.push({ month: format(d, 'd'), label: format(d, 'MMM d, yyyy'), start: key, end: key, transactions: tx, income, expense: expenses, net: income - expenses });
       }
       return buckets;
     }
@@ -259,7 +259,7 @@ export default function Dashboard() {
       return years.map(y => {
         const tx = transactions.filter(t => t.date?.startsWith(y));
         const { income, expenses } = sumByType(tx);
-        return { month: y, income, expense: expenses, net: income - expenses };
+        return { month: y, label: y, start: `${y}-01-01`, end: `${y}-12-31`, transactions: tx, income, expense: expenses, net: income - expenses };
       });
     }
     const monthsBack = { '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36 }[trendPeriod] || 6;
@@ -270,7 +270,7 @@ export default function Dashboard() {
       const tx = transactions.filter(t => t.date?.startsWith(key));
       const { income, expenses } = sumByType(tx);
       const label = monthsBack > 12 ? format(m, 'MMM yy') : format(m, 'MMM');
-      buckets.push({ month: label, income, expense: expenses, net: income - expenses });
+      buckets.push({ month: label, label: format(m, 'MMMM yyyy'), start: `${key}-01`, end: format(new Date(m.getFullYear(), m.getMonth() + 1, 0), 'yyyy-MM-dd'), transactions: tx, income, expense: expenses, net: income - expenses });
     }
     return buckets;
   })();

@@ -1,3 +1,4 @@
+import CashFlowDetail from './CashFlowDetail';
 import { useState } from 'react';
 import { ComposedChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BarChart3, ChartLine, ChartPie } from 'lucide-react';
@@ -19,7 +20,7 @@ export const CASH_FLOW_PERIODS = [
   // `window` is the time phrase alone, reused by the pie caption below so
   // it isn't parsed back out of `subtitle` (that produced "...income vs.
   // expenses, last 6 months, income vs. expenses" — the phrase duplicated).
-  { key: '1m', label: '1M', subtitle: 'Income vs. expenses, this month', window: 'this month' },
+  { key: '1m', label: '1M', subtitle: 'Daily income and spending · last 30 days', window: 'the last 30 days' },
   { key: '3m', label: '3M', subtitle: 'Income vs. expenses, last 3 months', window: 'the last 3 months' },
   { key: '6m', label: '6M', subtitle: 'Income vs. expenses, last 6 months', window: 'the last 6 months' },
   { key: '1y', label: '1Y', subtitle: 'Income vs. expenses, last year', window: 'the last year' },
@@ -60,6 +61,11 @@ const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36,
 
 export default function CashFlowTrendChart({ data, period, onPeriodChange, simple, historyMonths }) {
   const [chartType, setChartType] = useState('bar');
+  const [selected, setSelected] = useState(null);
+  const selectBucket = event => {
+    const bucket = event?.activePayload?.[0]?.payload;
+    if (bucket?.start) setSelected(bucket);
+  };
 
   // Simple Mode: just "this month" and "this year" — the full 6-option
   // spread is exactly the kind of choice-overload a first-time/younger
@@ -111,7 +117,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
             <BarChart3 className="w-4 h-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-sm leading-tight">Cash Flow Trend</p>
+            <p className="font-bold text-sm leading-tight">Income & spending</p>
             <p className="text-xs text-muted-foreground truncate">{activePeriod.subtitle}</p>
           </div>
         </div>
@@ -126,11 +132,12 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
                   key={ct.key}
                   onClick={() => setChartType(ct.key)}
                   aria-label={ct.label}
+                  aria-pressed={chartType === ct.key}
                   title={ct.label}
                   // Was w-6 h-6 (24x24px) — well under the ~44px tap-target
                   // guideline, three of them side by side. Bumped as far as
                   // this compact pill can go without changing the design.
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${chartType === ct.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${chartType === ct.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <ct.icon className="w-4 h-4" strokeWidth={2.25} />
                 </button>
@@ -144,14 +151,19 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
         {periodOptions.map(p => (
           <button
             key={p.key}
-            onClick={() => onPeriodChange(p.key)}
-            className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${p.key === activePeriod.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
+            onClick={() => { setSelected(null); onPeriodChange(p.key); }}
+            aria-pressed={p.key === activePeriod.key}
+            className={`shrink-0 min-h-[44px] text-xs font-semibold px-3 py-1 rounded-full border transition-all ${p.key === activePeriod.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
           >
             {p.label}
           </button>
         ))}
       </div>
 
+      <div className="grid grid-cols-2 gap-4 pb-4 mb-2 border-b border-border/60">
+        <div><p className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-600" />Income</p><p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums mt-1">${fmtFull(totalIncome)}</p></div>
+        <div><p className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Spending</p><p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums mt-1">${fmtFull(totalExpense)}</p></div>
+      </div>
       {!hasAnyData ? (
         <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">
           {totalIncome === 0 && totalExpense === 0 && data.length === 0
@@ -160,7 +172,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
         </div>
       ) : chartType === 'pie' ? (
         <>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Tooltip
                 content={({ active, payload }) => {
@@ -190,7 +202,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
         <>
           <ResponsiveContainer width="100%" height={220}>
             {chartType === 'line' ? (
-              <LineChart data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }}>
+              <LineChart onClick={selectBucket} accessibilityLayer data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} axisLine={false} tickLine={false} interval={tickInterval} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={56} tickFormatter={v => fmtAxisCompact(v)} />
@@ -199,7 +211,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
                 <Line type="monotone" dataKey="expense" stroke="#DD8163" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
               </LineChart>
             ) : (
-              <ComposedChart data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }} barGap={dense ? 1 : 4}>
+              <ComposedChart onClick={selectBucket} accessibilityLayer data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }} barGap={dense ? 1 : 4}>
                 <defs>
                   <linearGradient id="incomeBarGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#2F9273" stopOpacity={1} />
@@ -234,10 +246,18 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#DD8163' }} /> Expenses</span>
           </div>
           <p className="text-[11px] text-muted-foreground text-center mt-1.5">
-            {chartType === 'line' ? "Tap a point for that period's exact numbers." : "Tap any bar for that period's exact numbers."}
+            Select a period to explore its categories and transactions.
           </p>
         </>
       )}
+      {hasAnyData && <label className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-border/60 text-xs text-muted-foreground">
+        Explore a period
+        <select aria-label="Explore chart period" value="" onChange={e => { const bucket = data[Number(e.target.value)]; if (bucket?.start) setSelected(bucket); }} className="min-h-[44px] max-w-[65%] rounded-lg border border-border bg-card text-foreground px-3 text-sm">
+          <option value="" disabled>Choose month or date</option>
+          {data.map((bucket, i) => <option key={bucket.start || i} value={i}>{bucket.label || bucket.month}</option>)}
+        </select>
+      </label>}
+      <CashFlowDetail bucket={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
