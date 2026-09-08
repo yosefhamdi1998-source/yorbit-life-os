@@ -9,6 +9,8 @@ import { MobileSelect } from '@/components/ui/mobile-select';
 import { toast } from '@/components/ui/use-toast';
 import useDeleteLock from '@/hooks/useDeleteLock';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
+import { useProStatus } from '@/hooks/useProStatus';
+import { FREE_GOAL_LIMIT } from '@/lib/planLimits';
 
 // Category presets — same idea as categoryVisuals.jsx (icon + color per
 // key), but this is a distinct set of goal *types*, not spending categories.
@@ -50,6 +52,7 @@ const MAX_CONTRIBUTION = 10000000;
 
 export default function Goals() {
   const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { isPro } = useProStatus();
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -90,6 +93,17 @@ export default function Goals() {
     // Synchronous re-entry guard — see Bills.saveBill for why the
     // `disabled={saving}` state alone doesn't stop a fast double-tap.
     if (savingRef.current) return;
+    // Advertised on the paywall as "2 goals" free — this is the one place
+    // that claim is actually enforced. Editing an existing goal is never
+    // blocked, only creating a NEW one past the cap.
+    if (!editingId && !isPro && goals.length >= FREE_GOAL_LIMIT) {
+      toast({
+        title: `Free plan is limited to ${FREE_GOAL_LIMIT} savings goals`,
+        description: 'Upgrade to Pro for unlimited goals.',
+        variant: 'destructive',
+      });
+      return;
+    }
     savingRef.current = true;
     setSaving(true);
     const preset = GOAL_PRESETS[form.preset];

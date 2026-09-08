@@ -1,0 +1,16 @@
+-- Reopen signup to everyone, at Yosef's explicit request (2026-09-07).
+--
+-- This disables the invite-only trigger added 2026-09-04. It does NOT drop
+-- the allowlist table or the trigger function — both stay in place, unused,
+-- so this is a 10-second reversal (just re-run the CREATE TRIGGER from
+-- 20260904010000_invite_only_signup.sql) if abuse ever becomes a problem.
+--
+-- What's still protecting the app with signup open:
+--   - Per-key rate limiting on every edge function (20260904150000).
+--   - Per-user AI spend ceilings, so no single account can run up an
+--     unbounded Anthropic bill.
+--   - RLS on every table — a new account can only ever see its own data.
+-- What ISN'T in place: a CAPTCHA on the signup form itself, so a scripted
+-- flood of signups (not runaway cost per account, but sheer account count)
+-- isn't blocked at the door. Worth adding later; not required for this.
+drop trigger if exists trg_enforce_email_allowlist on auth.users;

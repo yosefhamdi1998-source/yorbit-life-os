@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import PageHeader from '@/components/PageHeader';
 import AdvisorChat from '@/components/finance/AdvisorChat';
 import { format } from 'date-fns';
+import { getLatestTransactionDate } from '@/lib/periods';
 import AiConsentGate from '@/components/AiConsentGate';
 // Both of these were USED in this file and imported in none of it. The page
 // threw ReferenceError on render and every user who opened the AI Coach - the
@@ -34,11 +35,20 @@ export default function Coach() {
   const autoGenRef = useRef(false);
   const { isPro, loading: proStatusLoading } = useProStatus();
 
-  const thisMonth = format(new Date(), 'yyyy-MM');
+  // Anchored to the newest imported transaction, not literal today — same
+  // fix as Budget.jsx and the Dashboard/Money period pickers.
+  const thisMonth = format(getLatestTransactionDate(transactions), 'yyyy-MM');
 
   useEffect(() => {
     Promise.all([
-      base44.entities.Transaction.list('-date', 200),
+      // 50,000, matching Budget.jsx and Settings.jsx's export/delete —
+      // was capped at 200. monthIncome/monthExpenses/catData below are
+      // filtered from this list and go DIRECTLY into the prompt sent to the
+      // AI ("Total spending this month: $X") — on a high-volume account
+      // (17,000+ Coinbase transactions imported this project), 200 overall
+      // could be exhausted before reaching the start of the current month,
+      // silently undercounting the numbers the AI is told are the truth.
+      base44.entities.Transaction.list('-date', 50000),
       base44.entities.Budget.list(),
       base44.entities.SavingsGoal.list(),
       base44.entities.AIInsightCache.filter({ type: 'coach', date: TODAY }, '-created_date', 1),

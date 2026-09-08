@@ -38,6 +38,21 @@ export default function Settings() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteResult, setDeleteResult] = useState(''); // 'success' | 'manual' | ''
   const [deleteDataOpen, setDeleteDataOpen] = useState(false);
+  // "Delete My Data" only ever touches transactions/budgets/goals/bills/net
+  // worth — it deliberately doesn't disconnect a bank (that's not what the
+  // button says it does). But a connected bank staying live means the very
+  // next sync can quietly re-import the transactions just deleted, which
+  // makes "this cannot be undone" false for anyone with an active
+  // connection. Rather than silently disconnecting banks the user didn't
+  // ask to disconnect, or silently letting the promise be untrue, tell them
+  // before they click.
+  const [connectedAccountCount, setConnectedAccountCount] = useState(null);
+  const loadConnectedAccountCount = useCallback(() => {
+    const STILL_LIVE = ['connected', 'syncing', 'error', 'reconnect_required'];
+    base44.entities.ConnectedAccount.list()
+      .then(rows => setConnectedAccountCount(rows.filter(a => STILL_LIVE.includes(a.sync_status)).length))
+      .catch(() => setConnectedAccountCount(null));
+  }, []);
   // Mirrors profiles.ai_consent_at. The edge functions enforce the real
   // rule; this only decides what the row says and which way the button goes.
   const [aiConsent, setAiConsent] = useState({ state: AI_STATES.UNKNOWN });
@@ -106,33 +121,16 @@ export default function Settings() {
 
     setDeleting(true);
     try {
-      const [transactions, budgets, savingsGoals, goals, bills, netWorth, aiCache, investments] = await Promise.all([
-        // listAll, not list — the default excludes investment/transfer rows
-        // from budgeting screens, but "delete all my financial data" means
-        // all of it, crypto trading activity included.
-        base44.entities.Transaction.listAll('-date', 50000),
-        base44.entities.Budget.list(),
-        base44.entities.SavingsGoal.list(),
-        base44.entities.Goal.list(),
-        base44.entities.Bill.list(),
-        base44.entities.NetWorthEntry.list(),
-        base44.entities.AIInsightCache.list(),
-        base44.entities.InvestmentHolding.list(),
-      ]);
-      await Promise.all([
-        ...transactions.map(t => base44.entities.Transaction.delete(t.id)),
-        ...budgets.map(b => base44.entities.Budget.delete(b.id)),
-        ...savingsGoals.map(g => base44.entities.SavingsGoal.delete(g.id)),
-        ...goals.map(g => base44.entities.Goal.delete(g.id)),
-        ...bills.map(b => base44.entities.Bill.delete(b.id)),
-        ...netWorth.map(n => base44.entities.NetWorthEntry.delete(n.id)),
-        ...aiCache.map(c => base44.entities.AIInsightCache.delete(c.id)),
-        ...investments.map(i => base44.entities.InvestmentHolding.delete(i.id)),
-      ]);
+      // One request, one server-side transaction — either every table is
+      // cleared or none of them are. (Used to fire one DELETE per row across
+      // all tables inside a single Promise.all — for an account with real
+      // volume that was thousands of simultaneous requests, which fails fast
+      // on the first rejection and can leave a silently partial delete.)
+      await base44.deleteAllMyData();
       setDeleteDataOpen(false);
       toast({ title: 'Data deleted', description: 'All your financial data has been removed.' });
     } catch {
-      toast({ title: "Couldn't delete everything", description: 'Some items may remain. Please try again.', variant: 'destructive' });
+      toast({ title: "Couldn't delete your data", description: 'Nothing was deleted. Please try again.', variant: 'destructive' });
     }
     deletingRef.current = false;
     setDeleting(false);
@@ -545,7 +543,10 @@ export default function Settings() {
           </div>
 
           {/* Delete My Data only */}
-          <AlertDialog open={deleteDataOpen} onOpenChange={setDeleteDataOpen}>
+          <AlertDialog
+            open={deleteDataOpen}
+            onOpenChange={(open) => { setDeleteDataOpen(open); if (open) loadConnectedAccountCount(); }}
+          >
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-full min-h-[44px] gap-2 border-destructive/40 text-destructive hover:bg-destructive/5" disabled={deleting}>
                 <Trash2 className="w-4 h-4" /> Delete My Data
@@ -556,6 +557,13 @@ export default function Settings() {
                 <AlertDialogTitle>Delete all your financial data?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will permanently delete all your transactions, budgets, goals, bills, and net worth entries. Your account remains. This cannot be undone.
+                  {connectedAccountCount > 0 && (
+                    <span className="block mt-2 font-semibold text-destructive">
+                      You have {connectedAccountCount} bank{connectedAccountCount === 1 ? '' : 's'} still connected.
+                      This won't disconnect {connectedAccountCount === 1 ? 'it' : 'them'} — your next sync can bring
+                      the same transactions right back. Disconnect in Bank Sync first if you want this to stick.
+                    </span>
+                  )}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

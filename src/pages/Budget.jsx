@@ -11,6 +11,9 @@ import StatCard from '@/components/StatCard';
 import { toast } from '@/components/ui/use-toast';
 import useDeleteLock from '@/hooks/useDeleteLock';
 import { format } from 'date-fns';
+import { getLatestTransactionDate } from '@/lib/periods';
+import { useProStatus } from '@/hooks/useProStatus';
+import { FREE_BUDGET_LIMIT } from '@/lib/planLimits';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull, fmtAxisCompact } from '@/lib/format';
 import { BUDGET_CATEGORIES } from '@/lib/enums';
@@ -48,6 +51,7 @@ function BudgetChartTooltip({ active, payload, label }) {
 
 export default function Budget() {
   const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { isPro } = useProStatus();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +62,12 @@ export default function Budget() {
   const savingRef = useRef(false);
   const [saved, setSaved] = useState(false);
 
-  const thisMonth = format(new Date(), 'yyyy-MM');
+  // Anchored to the newest imported transaction, not literal today — same
+  // fix already shipped for the Dashboard/Money period pickers. Someone
+  // importing statements that end last month saw real transactions on Home
+  // but $0 here, because this page alone was still asking "what happened
+  // in the literal current calendar month," which had nothing in it.
+  const thisMonth = format(getLatestTransactionDate(transactions), 'yyyy-MM');
 
   useEffect(() => { loadData(); }, []);
 
@@ -88,6 +97,20 @@ export default function Budget() {
     setSaving(true);
     try {
       const existing = budgets.find(b => b.category === form.category && b.month === thisMonth);
+      // Advertised on the paywall as "3 categories" free — this is the one
+      // place that claim is actually enforced. Editing an existing budget's
+      // limit is never blocked, only creating a NEW category past the cap.
+      const monthCategoryCount = new Set(budgets.filter(b => b.month === thisMonth).map(b => b.category)).size;
+      if (!existing && !isPro && monthCategoryCount >= FREE_BUDGET_LIMIT) {
+        toast({
+          title: `Free plan is limited to ${FREE_BUDGET_LIMIT} budget categories`,
+          description: 'Upgrade to Pro for unlimited budget categories.',
+          variant: 'destructive',
+        });
+        savingRef.current = false;
+        setSaving(false);
+        return;
+      }
       if (existing) {
         await base44.entities.Budget.update(existing.id, { monthly_limit: parseFloat(form.monthly_limit) });
         toast({ title: 'Budget updated', description: form.category });

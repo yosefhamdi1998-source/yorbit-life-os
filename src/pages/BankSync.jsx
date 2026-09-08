@@ -105,6 +105,47 @@ export default function BankSync() {
     }
   };
 
+  // Re-authenticates an account stuck in `reconnect_required` — Plaid Link
+  // in "update mode" (see plaid-create-link-token). Previously the only
+  // controls on such an account were Sync (which just fails again with the
+  // same ITEM_LOGIN_REQUIRED error) and Disconnect (which throws the
+  // connection away instead of fixing it) — there was no way to actually
+  // recover.
+  const reconnectAccount = async (id) => {
+    setConnecting(true);
+    setError(null);
+    try {
+      await loadPlaidScript();
+      const res = await base44.functions.invoke('plaidCreateLinkToken', { connected_account_id: id });
+      const { link_token } = res;
+      if (!link_token) throw new Error('No link token returned');
+
+      const handler = window.Plaid.create({
+        token: link_token,
+        onSuccess: async () => {
+          // Update mode re-authenticates the SAME item — no new public_token
+          // exchange needed, just clear the stuck status and sync.
+          try {
+            await base44.entities.ConnectedAccount.update(id, { sync_status: 'connected', error_message: null });
+            await loadAccounts();
+            await syncAccount(id, accounts.find(a => a.id === id)?.account_type);
+          } catch {
+            setError("Reconnected, but the first sync failed. Try Sync again.");
+          }
+          setConnecting(false);
+        },
+        onExit: (err) => {
+          if (err) setError('Reconnect was cancelled.');
+          setConnecting(false);
+        },
+      });
+      handler.open();
+    } catch (e) {
+      setError(e.message || "We couldn't start reconnecting. Please try again.");
+      setConnecting(false);
+    }
+  };
+
   const syncAccount = async (id, accountType, full = false) => {
     setSyncingId(id);
     setSyncResult(null);
@@ -272,15 +313,30 @@ export default function BankSync() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="outline" size="sm"
-                            className="h-8 text-xs gap-1"
-                            onClick={() => syncAccount(acct.id, acct.account_type)}
-                            disabled={!!syncingId}
-                          >
-                            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                            {isSyncing ? 'Syncing' : 'Sync'}
-                          </Button>
+                          {acct.sync_status === 'reconnect_required' ? (
+                            // Sync can't fix this — Plaid needs a fresh sign-in,
+                            // not another sync attempt against the same expired
+                            // credentials.
+                            <Button
+                              variant="outline" size="sm"
+                              className="h-8 text-xs gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400"
+                              onClick={() => reconnectAccount(acct.id)}
+                              disabled={connecting}
+                            >
+                              <RefreshCw className={`w-3 h-3 ${connecting ? 'animate-spin' : ''}`} />
+                              Reconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline" size="sm"
+                              className="h-8 text-xs gap-1"
+                              onClick={() => syncAccount(acct.id, acct.account_type)}
+                              disabled={!!syncingId}
+                            >
+                              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                              {isSyncing ? 'Syncing' : 'Sync'}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"

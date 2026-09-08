@@ -126,6 +126,12 @@ export default function Investments() {
       // error that made a Coinbase tax report show $147,189 of "gains" on
       // top of a real loss.
       costed: realized - uncosted,
+      // Sold minus bought, across the WHOLE history. The hero used to show
+      // client-side `totals.net`, computed from only the 400 most recent
+      // rows — the exact same "totals look complete but aren't" failure
+      // mode this file already guards against for realized P&L, just
+      // regressed in a sibling number that got missed the first time.
+      net: sold - bought,
       winners, losers,
       assets: summary.length,
       txns: summary.reduce((s, r) => s + num(r.txns), 0),
@@ -247,9 +253,15 @@ export default function Investments() {
   }, [rows]);
 
   const visible = useMemo(() => {
+    // Match the SAME key derivation used to build the asset filter list
+    // itself (structured crypto_asset first, title-parsing only as a
+    // fallback for legacy rows) — filtering by title alone made a selected
+    // asset show empty activity even when the summary said it had holdings,
+    // because most rows carry crypto_asset and parseActivity() never runs
+    // on them, so its output doesn't match what's in the filter.
     const list = assetFilter === 'all'
       ? rows
-      : rows.filter(t => parseActivity(t.title).asset === assetFilter);
+      : rows.filter(t => (t.crypto_asset || parseActivity(t.title).asset) === assetFilter);
     return list.slice(0, 100);
   }, [rows, assetFilter]);
 
@@ -300,20 +312,34 @@ export default function Investments() {
       >
         <div className="relative px-5 py-5 lg:px-8 lg:py-7">
           <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest mb-2">Trading activity</p>
-          <p className="font-numeric text-white text-3xl lg:text-5xl font-black tracking-tight leading-none mb-1.5 tabular-nums">
-            {totals.net >= 0 ? '+' : '−'}${fmtFull(Math.abs(totals.net))}
-          </p>
+          {summaryLoading ? (
+            <div className="h-10 lg:h-14 w-40 bg-white/15 rounded-lg animate-pulse mb-1.5" />
+          ) : summaryFailed ? (
+            <p className="font-numeric text-white/70 text-2xl lg:text-4xl font-black tracking-tight leading-none mb-1.5">
+              Couldn&rsquo;t load
+            </p>
+          ) : (
+            <p className="font-numeric text-white text-3xl lg:text-5xl font-black tracking-tight leading-none mb-1.5 tabular-nums">
+              {pnl.net >= 0 ? '+' : '−'}${fmtFull(Math.abs(pnl.net))}
+            </p>
+          )}
           <p className="text-white/70 text-xs font-semibold mb-5">
-            Sold minus bought, across {rows.length.toLocaleString()} transactions
+            {summaryFailed
+              ? 'See the note below — no total shown rather than a partial one'
+              : `Sold minus bought, across ${pnl.txns.toLocaleString()} transactions, your whole history`}
           </p>
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5" title={`$${fmtFull(totals.bought)}`}>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5" title={summaryFailed ? undefined : `$${fmtFull(pnl.bought)}`}>
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Total bought</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">{fmtCompact(totals.bought)}</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">
+                {summaryLoading ? '···' : summaryFailed ? '—' : fmtCompact(pnl.bought)}
+              </p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5" title={`$${fmtFull(totals.sold)}`}>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5" title={summaryFailed ? undefined : `$${fmtFull(pnl.sold)}`}>
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Total sold</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">{fmtCompact(totals.sold)}</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums">
+                {summaryLoading ? '···' : summaryFailed ? '—' : fmtCompact(pnl.sold)}
+              </p>
             </div>
           </div>
         </div>
@@ -665,7 +691,10 @@ export default function Investments() {
       {/* Activity list */}
       <div ref={activityRef} className="flex items-center justify-between mb-2 px-1 scroll-mt-20">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Activity {assetFilter !== 'all' && `· ${assetFilter} (${(byAsset[assetFilter]?.count || 0).toLocaleString()})`}
+          {/* Count from `assets` (server-preferred), not the client-only
+              `byAsset` — byAsset is built from the 400-row cap and showed
+              "(0)" for assets that only appear beyond that cap. */}
+          Activity {assetFilter !== 'all' && `· ${assetFilter} (${(assets.find(a => a.asset === assetFilter)?.count || 0).toLocaleString()})`}
         </p>
         {assetFilter !== 'all' && (
           <button onClick={() => setAssetFilter('all')} className="text-xs font-semibold text-primary">Show all</button>

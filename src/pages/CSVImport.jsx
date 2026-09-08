@@ -290,6 +290,24 @@ export default function CSVImport() {
             amount: guess(['amount', 'debit', 'credit', 'value']),
           };
 
+          // Some bank exports split money out and money in into two SEPARATE
+          // columns (Debit / Credit or Withdrawal / Deposit) instead of one
+          // signed Amount column. The single `guess()` above only ever
+          // returns ONE column name, so a file shaped this way silently
+          // dropped every transaction whose value was in whichever column
+          // didn't get picked — e.g. every deposit vanished if "Debit" won.
+          const debitCol = guessExact(['debit', 'debit amount', 'withdrawal', 'withdrawals']);
+          const creditCol = guessExact(['credit', 'credit amount', 'deposit', 'deposits']);
+          const isDebitCreditSplit = !!(debitCol && creditCol && debitCol !== creditCol);
+          if (isDebitCreditSplit) {
+            mapping.debit = debitCol;
+            mapping.credit = creditCol;
+            // Kept truthy only so the "did we confidently map this file?"
+            // check below still passes — the actual value comes from
+            // combining debit/credit per row, not from this column alone.
+            mapping.amount = mapping.amount || debitCol;
+          }
+
           // A Venmo/Cash App style export: the counterparty lives in To or
           // From depending on which way the money went, so no single column
           // is right for every row. Resolved per-row below instead.
@@ -328,7 +346,15 @@ export default function CSVImport() {
               description: p2pFormat
                 ? resolveP2PTitle(row, mapping, row[mapping.amount])
                 : row[mapping.description],
-              amount: row[mapping.amount],
+              amount: isDebitCreditSplit
+                // A row has a value in exactly one of the two columns in a
+                // real debit/credit export. Debit -> money out -> expense
+                // (negative, matching guessType's sign convention); Credit
+                // -> money in -> income (left unsigned/positive).
+                ? (parseFloat(String(row[mapping.debit] || '').replace(/[^0-9.-]/g, '')) > 0
+                    ? `-${row[mapping.debit]}`
+                    : (row[mapping.credit] || '0'))
+                : row[mapping.amount],
               // Flagged from the FILE FORMAT, not from words in the title.
               // Every row in a Venmo/Cash App export is a person-to-person
               // payment by definition, whatever the note happens to say.

@@ -12,6 +12,7 @@ import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Rec
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+import { FREE_BUDGET_LIMIT, FREE_GOAL_LIMIT } from '@/lib/planLimits';
 
 const FEATURES_LIST = [
   { icon: Brain, label: 'AI Money Coach', desc: 'Daily personalized advice based on your real spending', pro: true },
@@ -24,8 +25,8 @@ const FEATURES_LIST = [
 
 const FREE_LIMITS = [
   { label: 'Transaction logging', free: '✓ Unlimited', pro: '✓ Unlimited' },
-  { label: 'Budgets', free: '3 categories', pro: '✓ All categories' },
-  { label: 'Savings goals', free: '2 goals', pro: '✓ Unlimited' },
+  { label: 'Budgets', free: `${FREE_BUDGET_LIMIT} categories`, pro: '✓ All categories' },
+  { label: 'Savings goals', free: `${FREE_GOAL_LIMIT} goals`, pro: '✓ Unlimited' },
   { label: 'AI Briefings', free: '✗', pro: '✓ Daily' },
   { label: 'AI Coach', free: '✗', pro: '✓ Always on' },
 ];
@@ -78,8 +79,14 @@ export default function Upgrade() {
   const handleCheckout = async () => {
     if (window.self !== window.top) { setIframeBlocked(true); return; }
     setLoading(true);
-    const successUrl = `${window.location.origin}/settings?success=1`;
-    const cancelUrl = `${window.location.origin}/upgrade`;
+    // Must include the app's subpath (empty at a root domain, '/yorbit-life-os'
+    // on GitHub Pages) — window.location.origin alone drops it, so a checkout
+    // from a subpath deploy came back to a 404 at the domain root instead of
+    // the app after a real payment. Same fix already used in base44Client.js
+    // (loginWithProvider) and Register.jsx (emailRedirectTo).
+    const appBase = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const successUrl = `${window.location.origin}${appBase}/settings?success=1`;
+    const cancelUrl = `${window.location.origin}${appBase}/upgrade`;
     try {
       // The create-checkout Edge Function returns { url, sessionId } directly
       const res = await base44.functions.invoke('createCheckout', { priceId: PRICES[plan].id, successUrl, cancelUrl });

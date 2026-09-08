@@ -137,6 +137,17 @@ const agents = {
   },
 };
 
+// Wipes every row of the caller's own financial data in one atomic
+// transaction (see supabase/migrations/20260907090000_delete_all_my_data_rpc.sql).
+// Replaces a client-side version that fired one DELETE request per row
+// inside a single Promise.all — thousands of simultaneous requests for an
+// account with real volume, which fails fast on the first rejection and
+// can leave a silently partial delete. One request, all-or-nothing.
+async function deleteAllMyData() {
+  const { error } = await supabase.rpc('delete_all_my_data');
+  if (error) throw new Error(error.message);
+}
+
 // --- auth --------------------------------------------------------------
 const auth = {
   async me() {
@@ -267,4 +278,5 @@ export const base44 = {
   functions: { invoke: invokeFunction },
   integrations: { Core: { InvokeLLM: invokeLLM } },
   agents,
+  deleteAllMyData,
 };
