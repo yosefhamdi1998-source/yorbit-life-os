@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { StickyNote, Plus, Pin, Trash2, X, Search } from 'lucide-react';
+import { StickyNote, Plus, Pin, Trash2, X, Search, Calendar } from 'lucide-react';
+import { format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,9 +10,34 @@ import { toast } from '@/components/ui/use-toast';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import useDeleteLock from '@/hooks/useDeleteLock';
+import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 const COLORS = ['#FDE68A', '#BFDBFE', '#BBF7D0', '#FBCFE8', '#DDD6FE', '#FECACA'];
-const DEFAULT_FORM = () => ({ title: '', content: '', color: COLORS[0] });
+// Defaults to today, because that's right nearly every time — but it's a
+// real editable field, so a note about last Tuesday's call can say so.
+const DEFAULT_FORM = () => ({
+  title: '',
+  content: '',
+  color: COLORS[0],
+  note_date: format(new Date(), 'yyyy-MM-dd'),
+});
+
+// "Today" / "Yesterday" / "Tue, Aug 25" — parseISO so a yyyy-MM-dd string
+// isn't read as UTC midnight and shown as the day before in any timezone
+// behind UTC. Same treatment the transaction list uses.
+function noteDateLabel(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    const diff = differenceInCalendarDays(today, startOfDay(d));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return format(d, d.getFullYear() === today.getFullYear() ? 'EEE, MMM d' : 'MMM d, yyyy');
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
@@ -40,9 +66,17 @@ export default function Notes() {
   const { pullY, refreshing, threshold } = usePullToRefresh(() => loadNotes(false));
 
   const openNew = () => { setEditingId(null); setForm(DEFAULT_FORM()); setShowForm(true); };
+  // Lands here from the quick-add button with the form already open, same
+  // as Transactions/Bills/Budget/Goals do.
+  useAutoOpenForm(openNew);
   const openEdit = (note) => {
     setEditingId(note.id);
-    setForm({ title: note.title, content: note.content || '', color: note.color || COLORS[0] });
+    setForm({
+      title: note.title,
+      content: note.content || '',
+      color: note.color || COLORS[0],
+      note_date: note.note_date || '',
+    });
     setShowForm(true);
   };
   const closeForm = () => { setShowForm(false); setEditingId(null); setForm(DEFAULT_FORM()); };
@@ -55,12 +89,16 @@ export default function Notes() {
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    // An empty date input gives '' — the column is a nullable date, and ''
+    // is not a valid date, so it has to go in as null rather than being
+    // passed through and rejected.
+    const payload = { ...form, note_date: form.note_date || null };
     try {
       if (editingId) {
-        await base44.entities.Note.update(editingId, form);
+        await base44.entities.Note.update(editingId, payload);
         toast({ title: 'Note updated' });
       } else {
-        await base44.entities.Note.create(form);
+        await base44.entities.Note.create(payload);
         toast({ title: 'Note added' });
       }
       closeForm();
@@ -97,11 +135,18 @@ export default function Notes() {
     }
   });
 
-  const filtered = notes.filter(n =>
-    !search.trim() ||
-    n.title?.toLowerCase().includes(search.toLowerCase()) ||
-    n.content?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Sorted by the note's OWN date when it has one, newest first, falling
+  // back to when it was written. Sorting purely by created_date put a note
+  // dated next Friday below one jotted five minutes earlier about
+  // yesterday, which is not how anyone reads a dated list.
+  const filtered = notes
+    .filter(n =>
+      !search.trim() ||
+      n.title?.toLowerCase().includes(search.toLowerCase()) ||
+      n.content?.toLowerCase().includes(search.toLowerCase())
+    )
+    .slice()
+    .sort((a, b) => (b.note_date || b.created_date || '').localeCompare(a.note_date || a.created_date || ''));
   const pinned = filtered.filter(n => n.is_pinned);
   const rest = filtered.filter(n => !n.is_pinned);
 
@@ -139,9 +184,29 @@ export default function Notes() {
               <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
-          <div className="space-y-2">
-            <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-            <Textarea placeholder="Write something…" rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
+          <div className="space-y-2.5">
+            <div>
+              <label htmlFor="note-subject" className="text-xs font-semibold text-muted-foreground mb-1.5 block">Subject</label>
+              <Input
+                id="note-subject"
+                placeholder="What's this about?"
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label htmlFor="note-date" className="text-xs font-semibold text-muted-foreground mb-1.5 block">Date</label>
+              <Input
+                id="note-date"
+                type="date"
+                value={form.note_date || ''}
+                onChange={e => setForm(f => ({ ...f, note_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label htmlFor="note-body" className="text-xs font-semibold text-muted-foreground mb-1.5 block">Note</label>
+              <Textarea id="note-body" placeholder="Write something…" rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
+            </div>
             <div className="flex gap-2 pt-1">
               {COLORS.map(c => (
                 <button
@@ -231,6 +296,12 @@ function NoteCard({ note, onEdit, onPin, onDelete, deleting }) {
           </button>
         </div>
       </div>
+      {note.note_date && (
+        <p className="flex items-center gap-1 text-[11px] font-semibold text-neutral-700/75 mb-1.5">
+          <Calendar className="w-3 h-3" />
+          {noteDateLabel(note.note_date)}
+        </p>
+      )}
       {note.content && <p className="text-xs text-neutral-800/80 leading-relaxed line-clamp-4 whitespace-pre-wrap break-words">{note.content}</p>}
     </div>
   );

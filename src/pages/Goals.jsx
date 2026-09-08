@@ -20,7 +20,7 @@ const GOAL_PRESETS = {
   vacation: { icon: '✈️', color: '#0EA5E9', label: 'Vacation' },
   debt: { icon: '💳', color: '#EF4444', label: 'Pay Off Debt' },
   emergency: { icon: '🛟', color: '#F59E0B', label: 'Emergency Fund' },
-  custom: { icon: '🎯', color: '#10B981', label: 'Custom Goal' },
+  custom: { icon: '🎯', color: '#2F9273', label: 'Custom Goal' },
 };
 const PRESET_OPTIONS = Object.entries(GOAL_PRESETS).map(([value, p]) => ({ value, label: `${p.icon} ${p.label}` }));
 
@@ -266,7 +266,7 @@ export default function Goals() {
         <div className="space-y-4">
           {goals.map(goal => {
             const p = computeProgress(goal);
-            const color = goal.color || '#10B981';
+            const color = goal.color || '#2F9273';
             return (
               <div key={goal.id} className="sky-card rounded-2xl p-4 lg:p-5">
                 <div className="flex items-center gap-3 mb-3">

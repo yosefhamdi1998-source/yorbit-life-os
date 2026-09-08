@@ -16,7 +16,7 @@ import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull } from '@/lib/format';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
-const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#F97316', other: '#94A3B8' };
+const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#DD8163', other: '#94A3B8' };
 
 const BILL_CAT_OPTIONS = Object.entries(CAT_ICONS).map(([key, icon]) => ({
   value: key,

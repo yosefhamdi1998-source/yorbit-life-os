@@ -120,7 +120,7 @@ export default function IncomeExpenseTrendChart({ transactions, simple }) {
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barGap={series.length > 12 ? 1 : 4}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval={tickInterval} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={52}
                 tickFormatter={v => `$${Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`} />
@@ -132,7 +132,7 @@ export default function IncomeExpenseTrendChart({ transactions, simple }) {
                 wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 8 }}
                 formatter={(v) => <span style={{ color: 'hsl(var(--muted-foreground))' }}>{v}</span>}
               />
-              <Bar dataKey="income" name="Income" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
+              <Bar dataKey="income" name="Income" fill="#2F9273" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
               <Bar dataKey="expense" name="Spending" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
             </BarChart>
           </ResponsiveContainer>

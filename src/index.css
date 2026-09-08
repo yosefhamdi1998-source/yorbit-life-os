@@ -6,30 +6,32 @@
 
 @layer base {
   :root {
-    /* A visibly blue-violet ground (not a flat gray) with pure-white cards
-       floating on it — enough hue to feel like a designed product rather
-       than a bare document, while staying calm enough that the hero
-       gradient still reads as the one bold color moment on the page. */
-    --background: 224 38% 95%;
-    --foreground: 222 47% 11%;
-    --card: 220 25% 99%;
-    --card-foreground: 222 47% 11%;
-    --popover: 220 25% 99%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 50%;
+    /* A near-neutral ground with the faintest cool bias, white cards on
+       top. This used to be 38% saturation — a genuine blue-violet wash —
+       which made every screen feel busy before a single number was drawn
+       on it. The hue is still there (a flat gray reads as an unstyled
+       document) but at a quarter of the strength, so the content is what
+       carries the color now, not the page under it. */
+    --background: 225 16% 96%;
+    --foreground: 222 44% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 44% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 44% 11%;
+    --primary: 217 88% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 222 30% 92%;
-    --secondary-foreground: 220 25% 28%;
-    --muted: 222 30% 92%;
-    --muted-foreground: 220 12% 42%;
-    --accent: 38 95% 56%;
+    --secondary: 222 18% 94%;
+    --secondary-foreground: 220 22% 30%;
+    --muted: 222 18% 94%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 38 90% 54%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
-    --border: 222 25% 88%;
-    --input: 222 25% 88%;
-    --ring: 217 91% 50%;
-    --radius: 0.875rem;
+    --border: 222 16% 90%;
+    --input: 222 16% 90%;
+    --ring: 217 88% 48%;
+    --radius: 1rem;
 
     /* Defaults for the user-selectable background themes (Ocean) — real
        values here, not just a runtime fallback, so first paint is never a
@@ -51,25 +53,25 @@
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 210 30% 92%;
-    --card: 220 22% 12%;
-    --card-foreground: 210 30% 92%;
-    --popover: 220 22% 12%;
-    --popover-foreground: 210 30% 92%;
-    --primary: 217 91% 50%;
+    --background: 222 20% 9%;
+    --foreground: 210 26% 93%;
+    --card: 222 17% 13%;
+    --card-foreground: 210 26% 93%;
+    --popover: 222 17% 13%;
+    --popover-foreground: 210 26% 93%;
+    --primary: 217 88% 56%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 20% 17%;
-    --secondary-foreground: 210 20% 75%;
-    --muted: 220 20% 17%;
-    --muted-foreground: 210 15% 59%;
-    --accent: 38 95% 58%;
+    --secondary: 222 15% 18%;
+    --secondary-foreground: 210 18% 78%;
+    --muted: 222 15% 18%;
+    --muted-foreground: 210 13% 62%;
+    --accent: 38 90% 58%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 52%;
+    --destructive: 0 62% 55%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 18% 20%;
-    --input: 220 18% 20%;
-    --ring: 217 91% 58%;
+    --border: 222 14% 21%;
+    --input: 222 14% 21%;
+    --ring: 217 88% 60%;
 
     --finance: 142 72% 48%;
     --health: 15 90% 60%;
@@ -145,7 +147,7 @@
     background: linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
   }
   .gradient-finance {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    background: linear-gradient(135deg, #2F9273 0%, #059669 100%);
   }
   .gradient-health {
     background: linear-gradient(135deg, hsl(15, 90%, 55%), hsl(0, 84%, 60%));
@@ -160,7 +162,7 @@
     background: linear-gradient(135deg, hsl(175, 70%, 41%), hsl(190, 65%, 38%));
   }
   .gradient-tasks {
-    background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+    background: linear-gradient(135deg, #F59E0B 0%, #DD8163 100%);
   }
   .gradient-journal {
     background: linear-gradient(135deg, hsl(330, 81%, 60%), hsl(310, 75%, 55%));
@@ -173,14 +175,16 @@
   .sky-card {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    /* A near-invisible shadow read as flat rather than clean against a
-       colored ground — real depth needs a real (if soft) shadow. */
-    box-shadow: 0 1px 2px rgba(30, 41, 82, 0.06), 0 6px 16px -4px rgba(30, 41, 82, 0.10);
+    /* Now that the ground behind these is nearly neutral, the card no
+       longer has to fight a saturated background to read as raised — so
+       the shadow drops to a hairline lift. Heavy shadows on every card is
+       what made a screen of six cards feel noisy. */
+    box-shadow: 0 1px 2px rgba(24, 32, 56, 0.04), 0 2px 8px -2px rgba(24, 32, 56, 0.06);
   }
   .dark .sky-card {
-    background: hsl(220, 22%, 13%);
-    border: 1px solid hsl(220, 18%, 20%);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+    background: hsl(222, 17%, 13%);
+    border: 1px solid hsl(222, 14%, 21%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
   }
 
   /* Hero/stat figures get a distinct display face instead of sharing
@@ -208,7 +212,7 @@
   .aurora-blob { position: absolute; border-radius: 9999px; filter: blur(36px); }
   .aurora-sky1 { width: 420px; height: 100px; background: radial-gradient(ellipse at center, #74B9FF 0%, #A29BFE 50%, transparent 80%); top: 40%; left: -60px; opacity: 0.9; animation: auroraMove1 10s ease-in-out infinite; }
   .aurora-sky2 { width: 300px; height: 80px; background: radial-gradient(ellipse at center, #E0C3FC 0%, #8EC5FC 50%, transparent 80%); top: 20%; left: 20%; opacity: 0.75; animation: auroraMove2 13s ease-in-out infinite; }
-  .aurora-sky3 { width: 340px; height: 90px; background: radial-gradient(ellipse at center, #FBBF24 0%, #F97316 50%, transparent 80%); bottom: 5%; right: -40px; opacity: 0.5; animation: auroraMove4 15s ease-in-out infinite; }
+  .aurora-sky3 { width: 340px; height: 90px; background: radial-gradient(ellipse at center, #FBBF24 0%, #DD8163 50%, transparent 80%); bottom: 5%; right: -40px; opacity: 0.5; animation: auroraMove4 15s ease-in-out infinite; }
 
   @keyframes auroraMove1 { 0%, 100% { transform: translate(0,0) scaleX(1); } 33% { transform: translate(50px,-18px) scaleX(1.12); } 66% { transform: translate(-20px,12px) scaleX(0.92); } }
   @keyframes auroraMove2 { 0%, 100% { transform: translate(0,0) scaleX(1); } 40% { transform: translate(-35px,22px) scaleX(1.18); } 70% { transform: translate(28px,-12px) scaleX(0.88); } }

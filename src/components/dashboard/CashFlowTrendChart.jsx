@@ -38,11 +38,11 @@ function CashFlowTooltip({ active, payload, label }) {
       <p className="text-xs font-bold text-foreground mb-2">{label}</p>
       <div className="space-y-1">
         <p className="flex items-center justify-between gap-4 text-xs">
-          <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-full bg-emerald-500" />Income</span>
+          <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-full" style={{ background: '#2F9273' }} />Income</span>
           <span className="font-bold tabular-nums text-foreground">${fmtFull(income)}</span>
         </p>
         <p className="flex items-center justify-between gap-4 text-xs">
-          <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-full bg-orange-500" />Expenses</span>
+          <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-full" style={{ background: '#DD8163' }} />Expenses</span>
           <span className="font-bold tabular-nums text-foreground">${fmtFull(expense)}</span>
         </p>
       </div>
@@ -99,8 +99,8 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
   const barMaxSize = data.length > 20 ? 8 : data.length > 12 ? 14 : 22;
 
   const pieData = [
-    { name: 'Income', value: totalIncome, fill: '#10B981' },
-    { name: 'Expenses', value: totalExpense, fill: '#F97316' },
+    { name: 'Income', value: totalIncome, fill: '#2F9273' },
+    { name: 'Expenses', value: totalExpense, fill: '#DD8163' },
   ].filter(d => d.value > 0);
 
   return (
@@ -196,8 +196,8 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
             </PieChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1 flex-wrap">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income · ${fmtFull(totalIncome)}</span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Expenses · ${fmtFull(totalExpense)}</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2F9273' }} /> Income · ${fmtFull(totalIncome)}</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#DD8163' }} /> Expenses · ${fmtFull(totalExpense)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground text-center mt-1.5">Income vs. expenses, {activePeriod.window}.</p>
         </>
@@ -206,26 +206,26 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
           <ResponsiveContainer width="100%" height={220}>
             {chartType === 'line' ? (
               <LineChart data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }} axisLine={false} tickLine={false} interval={tickInterval} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={56} tickFormatter={v => fmtAxisCompact(v)} />
                 <Tooltip content={<CashFlowTooltip />} cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }} />
-                <Line type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="expense" stroke="#F97316" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="income" stroke="#2F9273" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="expense" stroke="#DD8163" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
               </LineChart>
             ) : (
               <ComposedChart data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }} barGap={dense ? 1 : 4}>
                 <defs>
                   <linearGradient id="incomeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.55} />
+                    <stop offset="0%" stopColor="#2F9273" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#2F9273" stopOpacity={0.55} />
                   </linearGradient>
                   <linearGradient id="expenseBarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F97316" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#F97316" stopOpacity={0.55} />
+                    <stop offset="0%" stopColor="#DD8163" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#DD8163" stopOpacity={0.55} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
                 <XAxis
                   dataKey="month"
                   tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 600 }}
@@ -245,8 +245,8 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
             )}
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1 flex-wrap">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income</span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Expenses</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2F9273' }} /> Income</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#DD8163' }} /> Expenses</span>
           </div>
           <p className="text-[11px] text-muted-foreground text-center mt-1.5">
             {chartType === 'line' ? "Tap a point for that period's exact numbers." : "Tap any bar for that period's exact numbers."}

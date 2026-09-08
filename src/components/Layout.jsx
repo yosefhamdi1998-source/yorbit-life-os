@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, DollarSign, Target, Brain, PiggyBank,
-  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell, Grid2x2, Repeat, BarChart3, Send, TrendingUp
+  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell, Grid2x2, Repeat, BarChart3, Send, TrendingUp, StickyNote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
@@ -51,12 +51,17 @@ export const sidebarItems = [
   // or GitHub, so hiding this behind the power-user filter defeated its
   // own purpose. Also reachable straight from the gold "+" FAB now.
   { path: '/csv-import', icon: Upload, label: 'Upload Statement' },
+  // Back in the menu by request. Not a life-organizer leftover any more —
+  // it now takes a subject and a date, which is what makes it useful next
+  // to money: "called the bank about the $340 charge, they're refunding by
+  // the 14th" is a note about a transaction, not a to-do list.
+  { path: '/notes', icon: StickyNote, label: 'Notes' },
   { path: '/forms', icon: FileText, label: 'Forms', advanced: true },
-  // Notes/Tasks/Habits/Journal/Health Log are left over from this app's
-  // origin as a general life-organizer, before it became a focused money
-  // app. Routes/data/code untouched (nothing lost, easy to bring back) -
-  // just pulled from navigation so they stop competing for space in a
-  // money app's menu.
+  // Tasks/Habits/Journal/Health Log are left over from this app's origin as
+  // a general life-organizer, before it became a focused money app.
+  // Routes/data/code untouched (nothing lost, easy to bring back) - just
+  // pulled from navigation so they stop competing for space in a money
+  // app's menu.
 ];
 
 // Simple Mode hides the more niche/power-user pages (marked `advanced`

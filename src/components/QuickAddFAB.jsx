@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, DollarSign, Target, Receipt, PiggyBank, Upload } from 'lucide-react';
+import { Plus, DollarSign, Target, Receipt, PiggyBank, Upload, StickyNote } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,11 +10,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 // what it's for — "New Goal" alone doesn't tell a first-time user whether
 // that means a savings target or a to-do.
 const ACTIONS = [
-  { icon: DollarSign, label: 'Add Transaction', hint: 'Log money in or out', path: '/finance?add=1', color: '#10b981' },
+  { icon: DollarSign, label: 'Add Transaction', hint: 'Log money in or out', path: '/finance?add=1', color: '#2F9273' },
   { icon: Upload, label: 'Upload Statement', hint: 'Import a CSV or PDF', path: '/csv-import', color: '#0ea5e9' },
   { icon: Receipt, label: 'Add Bill', hint: 'Track something due', path: '/bills?add=1', color: '#f59e0b' },
   { icon: PiggyBank, label: 'Set Budget', hint: 'Cap a category', path: '/budget?add=1', color: '#3b82f6' },
   { icon: Target, label: 'New Goal', hint: 'Save toward something', path: '/goals?add=1', color: '#a855f7' },
+  { icon: StickyNote, label: 'Write a Note', hint: 'Jot it down before you forget', path: '/notes?add=1', color: '#0d9488' },
 ];
 
 // Pages where FAB should NOT appear

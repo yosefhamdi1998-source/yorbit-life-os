@@ -1,7 +1,7 @@
 import { HeartPulse } from 'lucide-react';
 
 const ringColor = (score) =>
-  score >= 80 ? '#10B981' : score >= 60 ? '#0EA5E9' : score >= 40 ? '#F59E0B' : '#EF4444';
+  score >= 80 ? '#2F9273' : score >= 60 ? '#0EA5E9' : score >= 40 ? '#F59E0B' : '#EF4444';
 
 // `bare` drops the card wrapper/heading so this can sit inside a shared
 // card with WhatsNextCard instead of stacking as its own full section —

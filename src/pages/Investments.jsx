@@ -498,7 +498,7 @@ export default function Investments() {
           <p className="font-bold text-sm mb-3">Bought vs. sold by year</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={yearly} margin={{ top: 4, right: 4, left: -4, bottom: 0 }} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+              <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={58} tickFormatter={v => fmtAxisCompact(v)} />
               <Tooltip
@@ -516,13 +516,13 @@ export default function Investments() {
                   );
                 }}
               />
-              <Bar dataKey="bought" fill="#F97316" radius={[5, 5, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="sold" fill="#10B981" radius={[5, 5, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="bought" fill="#DD8163" radius={[5, 5, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="sold" fill="#2F9273" radius={[5, 5, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Bought</span>
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Sold</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#DD8163' }} /> Bought</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2F9273' }} /> Sold</span>
           </div>
         </div>
       )}

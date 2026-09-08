@@ -67,8 +67,8 @@ export const BACKGROUND_THEMES = {
     secondary: '340 32% 93%',
     border: '340 26% 89%',
     primary: '336 70% 45%',
-    heroFrom: '#9d174d', heroVia: '#db2777', heroTo: '#f97316',
-    swatch: 'linear-gradient(135deg, #9d174d, #f97316)',
+    heroFrom: '#9d174d', heroVia: '#db2777', heroTo: '#DD8163',
+    swatch: 'linear-gradient(135deg, #9d174d, #DD8163)',
   },
   teal: {
     label: 'Teal',

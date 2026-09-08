@@ -41,11 +41,11 @@ export default function NetWorthHistoryChart({ entries }) {
           <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="netWorthFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                <stop offset="0%" stopColor="#2F9273" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#2F9273" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
             <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               tickLine={false} axisLine={false} minTickGap={28} />
             <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
@@ -56,18 +56,18 @@ export default function NetWorthHistoryChart({ entries }) {
               labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
               formatter={v => [`$${fmt(v)}`, 'Net worth']}
             />
-            <Area type="monotone" dataKey="net" stroke="#10B981" strokeWidth={2.5} fill="url(#netWorthFill)"
+            <Area type="monotone" dataKey="net" stroke="#2F9273" strokeWidth={2.5} fill="url(#netWorthFill)"
               dot={(props) => {
                 const isLast = props.index === series.length - 1;
                 if (!isLast) return <g key={props.index} />;
                 return (
                   <g key={props.index}>
-                    <circle cx={props.cx} cy={props.cy} r={7} fill="#10B981" fillOpacity={0.18} />
-                    <circle cx={props.cx} cy={props.cy} r={3.5} fill="#10B981" stroke="white" strokeWidth={1.5} />
+                    <circle cx={props.cx} cy={props.cy} r={7} fill="#2F9273" fillOpacity={0.18} />
+                    <circle cx={props.cx} cy={props.cy} r={3.5} fill="#2F9273" stroke="white" strokeWidth={1.5} />
                   </g>
                 );
               }}
-              activeDot={{ r: 4.5, fill: '#10B981', stroke: 'white', strokeWidth: 1.5 }} />
+              activeDot={{ r: 4.5, fill: '#2F9273', stroke: 'white', strokeWidth: 1.5 }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

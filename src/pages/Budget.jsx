@@ -235,13 +235,13 @@ export default function Budget() {
                   <Tooltip content={<BudgetChartTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
                   <Bar dataKey="limit" fill="hsl(var(--secondary))" radius={[4, 4, 4, 4]} maxBarSize={14} />
                   <Bar dataKey="spent" radius={[4, 4, 4, 4]} maxBarSize={14}>
-                    {budgetedRows.map(r => <Cell key={r.cat} fill={r.spent > r.budget.monthly_limit ? '#EF4444' : '#10B981'} />)}
+                    {budgetedRows.map(r => <Cell key={r.cat} fill={r.spent > r.budget.monthly_limit ? '#EF4444' : '#2F9273'} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
               <div className="flex items-center gap-4 justify-center mt-1">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-secondary border border-border" /> Limit</span>
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> On track</span>
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2F9273' }} /> On track</span>
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Over</span>
               </div>
             </div>

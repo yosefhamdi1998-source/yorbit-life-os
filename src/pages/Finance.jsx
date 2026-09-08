@@ -28,7 +28,7 @@ import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
-const CAT_COLORS = { housing: '#7C3AED', food: '#F97316', transport: '#3B82F6', entertainment: '#EC4899', health: '#EF4444', shopping: '#F59E0B', education: '#10B981', savings: '#059669', salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8' };
+const CAT_COLORS = { housing: '#7C3AED', food: '#DD8163', transport: '#3B82F6', entertainment: '#EC4899', health: '#EF4444', shopping: '#F59E0B', education: '#2F9273', savings: '#059669', salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8' };
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 
 const TX_TYPE_OPTIONS = [
@@ -937,7 +937,7 @@ export default function Finance() {
               <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#2F9273' }} />
                     From your banks
                   </span>
                   <span className="font-bold tabular-nums">${fmt(worth.cash.net)}</span>

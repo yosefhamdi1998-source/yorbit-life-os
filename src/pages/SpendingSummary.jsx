@@ -231,8 +231,8 @@ export default function SpendingSummary() {
 
     const nodes = [
       { name: 'Income', value: income, pct: 100, color: '#0EA5E9' },
-      { name: 'Spending', value: spent, pct: pct(spent), color: '#F97316' },
-      ...(leftOver > 0 ? [{ name: 'Left over', value: leftOver, pct: pct(leftOver), color: '#10B981' }] : []),
+      { name: 'Spending', value: spent, pct: pct(spent), color: '#DD8163' },
+      ...(leftOver > 0 ? [{ name: 'Left over', value: leftOver, pct: pct(leftOver), color: '#2F9273' }] : []),
       ...catData.map(c => ({
         name: `${CAT_ICONS[c.name] || ''} ${c.name}`,
         value: c.spent,
@@ -437,7 +437,7 @@ export default function SpendingSummary() {
             {period === 'yearly' ? (
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={trendData} margin={{ top: 5, right: 5, left: -4, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
+                  <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                   <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} width={56} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} />
@@ -453,7 +453,7 @@ export default function SpendingSummary() {
                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
+                  <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                   <XAxis dataKey="key" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} interval={period === 'monthly' ? 3 : 1} />
                   <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => fmtAxisCompact(v)} width={56} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', fontSize: 12 }} formatter={(v) => [`$${fmt(v)}`, 'Spent']} labelFormatter={(d) => `${d}`} />

@@ -9,8 +9,8 @@ import { Home, Utensils, Car, Clapperboard, HeartPulse, ShoppingBag, GraduationC
 // every font/platform — an emoji here previously rendered as literal
 // garbled text on at least one device.
 export const CAT_COLORS = {
-  housing: '#7C3AED', food: '#F97316', transport: '#3B82F6', entertainment: '#EC4899',
-  health: '#EF4444', shopping: '#F59E0B', education: '#10B981', savings: '#059669',
+  housing: '#7C3AED', food: '#DD8163', transport: '#3B82F6', entertainment: '#EC4899',
+  health: '#EF4444', shopping: '#F59E0B', education: '#2F9273', savings: '#059669',
   salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8',
 };
 

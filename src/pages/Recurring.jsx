@@ -9,7 +9,7 @@ import { detectRecurring } from '@/lib/detectRecurring';
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
 // Same palette as Bills, so a category reads as the same color everywhere
 // it appears rather than switching depending on which page you're on.
-const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#F97316', other: '#94A3B8' };
+const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#DD8163', other: '#94A3B8' };
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
 
