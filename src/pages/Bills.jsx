@@ -310,11 +310,11 @@ export default function Bills() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-[10px] text-muted-foreground font-medium mb-1">Due from</p>
-                  <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="text-sm" />
+                  <Input type="date" aria-label="Bills due from" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="text-sm" />
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground font-medium mb-1">Due to</p>
-                  <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="text-sm" />
+                  <Input type="date" aria-label="Bills due to" value={dateTo} onChange={e => setDateTo(e.target.value)} className="text-sm" />
                 </div>
               </div>
               {(searchQuery || dateFrom || dateTo) && (
@@ -354,15 +354,15 @@ export default function Bills() {
             <div className="sky-card rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-semibold text-sm">{editingBill ? 'Edit Bill' : 'Add Bill'}</p>
-                <button onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
+                <button aria-label="Close bill form" onClick={closeForm} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
               </div>
               <div className="space-y-2">
                 <Input placeholder="Bill name (e.g. Rent, Netflix)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="number" placeholder="Amount ($)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} min="0.01" max="10000000" />
-                  <Input type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                  <Input type="number" aria-label="Bill amount" placeholder="Amount ($)" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} min="0.01" max="10000000" />
+                  <Input type="date" aria-label="Bill due date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
                 </div>
-                <MobileSelect
+                <MobileSelect ariaLabel="Bill category"
                   value={form.category}
                   onValueChange={v => setForm(f => ({ ...f, category: v }))}
                   options={BILL_CAT_OPTIONS}

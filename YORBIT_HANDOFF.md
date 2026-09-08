@@ -77,3 +77,11 @@ Verified all nine themes through visible settings controls in both light and dar
 Fixed checkout return messaging to use verified subscription state, await AI-consent refresh, and avoid claiming nothing was deleted after an uncertain network result. Added accessible transaction amount/date/category and custom range labels, missing-date validation, and themed transaction button foreground.
 
 Appearance/Simple release e576993 verified Ready in Vercel deployment D14qk5FkV45T3oAtoUq6E5GVUGca. Broader full-flow banking, billing, export completeness and security checks remain outstanding.
+
+## Live database hardening and bill checks
+
+Applied and recorded migrations 20260908234125_pin_function_search_paths and 20260908234547_restrict_subscription_writes. Six mutable-search-path warnings cleared; pure classifier and timestamp trigger tests passed using a rolled-back temporary table. Found client-writable subscription entitlements: revoked client writes and removed insert/update/delete policies. Owner SELECT and service_role billing writes remain. Tested an UPDATE with WHERE false as authenticated: correctly denied, reads still work. No user financial rows changed.
+
+Read-only audit found RLS enabled on all 33 public tables. All 16 SECURITY DEFINER functions deny anonymous execution; five allow signed-in calls and their definitions contain owner filters. This is not a full adversarial RLS test. Remaining advisors: pg_net extension location, five deliberately exposed definer functions needing deeper review, leaked-password protection disabled. Remediation references: https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public and https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
+
+Sample bill paid/unpaid round-trip restored due totals and overdue counts correctly. Added bill form/range accessible labels. Vercel 9abfc66 contains settings and transaction corrections; verify final release before claiming current HEAD live.

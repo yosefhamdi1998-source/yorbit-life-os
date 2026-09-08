@@ -557,3 +557,11 @@ select cron.schedule(
 
 -- To disable a job later: select cron.unschedule('generate-subscription-reminders-daily');
 -- To see all jobs: select * from cron.job;
+
+-- Billing status is server-owned, even when this bootstrap is re-run.
+-- Matches migration 20260908234547_restrict_subscription_writes.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.subscriptions FROM PUBLIC, anon, authenticated;
+DROP POLICY IF EXISTS subscriptions_insert_own ON public.subscriptions;
+DROP POLICY IF EXISTS subscriptions_update_own ON public.subscriptions;
+DROP POLICY IF EXISTS subscriptions_delete_own ON public.subscriptions;
+ALTER FUNCTION public.touch_updated_date() SET search_path = '';

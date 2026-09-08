@@ -1,0 +1,1 @@
+select tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename in ('subscriptions','profiles','transactions','budgets','connected_accounts','advisor_messages') order by tablename,cmd;
