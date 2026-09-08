@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -123,66 +123,9 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex overflow-x-hidden w-full">
 
-      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
-      <aside className="hidden lg:flex flex-col w-56 border-r border-border/50 fixed inset-y-0 left-0 z-40 bg-card">
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border/50 shrink-0">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: '#0a0a0a', boxShadow: '0 0 0 1.5px #D4AF37' }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} strokeWidth={2.5} />
-          </div>
-          <span className="font-black text-[15px] tracking-tight text-foreground">Yorbit</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          {getVisibleSidebarItems().map(({ path, icon: Icon, label }) => (
-            <NavLink
-              key={label}
-              to={path}
-              end={path === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all min-h-[40px] ${
-                  isActive
-                    ? 'bg-primary text-white font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 font-medium'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-4 h-4 shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
-                  {label}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Footer */}
-        <div className="px-2 py-3 border-t border-border/50 space-y-0.5">
-          <button
-            onClick={() => setDark(!dark)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all w-full min-h-[40px]"
-          >
-            {dark ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
-            {dark ? 'Light Mode' : 'Dark Mode'}
-          </button>
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] w-full ${
-                isActive ? 'bg-primary text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-              }`
-            }
-          >
-            <Settings className="w-4 h-4 shrink-0" /> Settings
-          </NavLink>
-        </div>
-      </aside>
-
-      {/* ── Mobile top bar ───────────────────────────────────────────── */}
+      {/* ── Top bar (all widths — same shell as the iOS app) ──────────── */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 lg:hidden"
+        className="fixed top-0 left-0 right-0 z-50"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           background: dark ? 'rgba(20, 24, 38, 0.96)' : 'rgba(255,255,255,0.95)',
@@ -215,9 +158,9 @@ export default function Layout() {
         </div>
       </div>
 
-      {/* ── Bottom tab bar ───────────────────────────────────────────── */}
+      {/* ── Bottom tab bar (all widths — same shell as the iOS app) ───── */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+        className="fixed bottom-0 left-0 right-0 z-40"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
           background: dark ? 'rgba(20, 24, 38, 0.97)' : 'rgba(255,255,255,0.97)',
@@ -226,7 +169,10 @@ export default function Layout() {
           borderTop: '1px solid rgba(0,0,0,0.07)',
         }}
       >
-        <div className="flex items-center justify-around px-2 pt-1.5 pb-1">
+        {/* Capped and centered so 6 tabs stay a deliberate phone-width
+            cluster instead of stretching edge-to-edge across a wide
+            monitor — the background bar above still spans full width. */}
+        <div className="flex items-center justify-around px-2 pt-1.5 pb-1 max-w-md mx-auto">
           {bottomNavItems.map(({ path, icon: TabIcon, label }) => {
             const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
             return (
@@ -254,11 +200,9 @@ export default function Layout() {
 
       {/* ── Main content ─────────────────────────────────────────────── */}
       <main
-        className="flex-1 lg:ml-56 overflow-x-hidden overflow-y-auto w-full lg:w-auto"
+        className="flex-1 overflow-x-hidden overflow-y-auto w-full"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 56px)', minHeight: '100dvh' }}
       >
-        {/* Reset top padding on desktop since there's no top bar */}
-        <style>{`@media (min-width: 1024px) { main { padding-top: 0 !important; } }`}</style>
         {/* Rides along on Bank Sync / CSV Import so a half-finished first run
             is always visible and always one tap from resuming. Renders null
             unless setup is genuinely mid-flight. */}
@@ -271,7 +215,7 @@ export default function Layout() {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="pb-32 lg:pb-8"
+            className="pb-32"
           >
             {/* Single shared content container: every page inherits the same
                 width and edge padding, so navigating never resizes content.
