@@ -341,12 +341,20 @@ export default function Dashboard() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
 
+      {/* Hero and chart sit side by side from lg up (5/12 + 7/12), stacked
+          on phone. Full-width each, they were a phone layout stretched to
+          1152px: the hero became a short wide band with the number marooned
+          in empty gradient, and the chart a thin strip of skinny bars with
+          big gaps. Paired, both get their proportions back and the page
+          fills the screen instead of stopping halfway down it. */}
+      <div className="lg:grid lg:grid-cols-12 lg:gap-5 lg:items-stretch lg:mb-5">
+
       {/* ── Hero ──────────────────────────────────────────────────────
           A flat stat row read as sterile on its own — this is the one
           moment on the page that gets real color, everything below stays
           calm so the gradient has somewhere to land. */}
       <div
-        className="mt-5 mb-5 rounded-3xl overflow-hidden relative"
+        className="mt-5 mb-5 lg:mb-0 lg:col-span-6 lg:flex lg:flex-col lg:justify-center rounded-3xl overflow-hidden relative"
         style={{
           background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)',
           // Some themes' gradient runs bright at one end (gold, sand) — a
@@ -488,7 +496,14 @@ export default function Dashboard() {
           score that can read as a critique, and it's information the hero
           numbers above don't show: the shape of the last 6 months, not
           just one period's total. */}
-      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
+      {/* The chart card carries its own mb-5 for the stacked phone layout;
+          inside the grid row that fights h-full, so it's zeroed here and the
+          row's own lg:mb-5 provides the gap instead. */}
+      <div className="lg:col-span-6 [&>*]:lg:h-full [&>*]:lg:mb-0">
+        <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
+      </div>
+
+      </div>
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
