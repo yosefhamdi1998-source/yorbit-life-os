@@ -115,6 +115,10 @@ const AuthenticatedApp = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
+        {/* Short aliases — the App Store listing, RevenueCat's paywall config,
+            and links elsewhere tend to use the short form. */}
+        <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
+        <Route path="/terms" element={<Navigate to="/terms-of-use" replace />} />
         <Route path="/support" element={<Support />} />
         {/* Design QA only. `import.meta.env.DEV` is statically false in a
             production build, so Rollup drops this branch and the route does

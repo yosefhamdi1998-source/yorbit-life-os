@@ -13,7 +13,7 @@ export default function TermsOfUse() {
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
       <PageHeader
         title="Terms of Use"
-        subtitle="Last updated: June 2026"
+        subtitle="Last updated: September 2026"
         icon={FileText}
         gradient="gradient-primary"
       />

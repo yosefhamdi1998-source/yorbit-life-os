@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
       <PageHeader
         title="Privacy Policy"
-        subtitle="Last updated: June 2026"
+        subtitle="Last updated: September 2026"
         icon={Shield}
         gradient="gradient-primary"
       />
@@ -28,7 +28,7 @@ export default function PrivacyPolicy() {
           <p><strong className="text-foreground">Financial data you enter:</strong> Transactions, budgets, savings goals, and bills that you manually add or import.</p>
           <p><strong className="text-foreground">CSV import data:</strong> When you import a CSV file, we parse and store the transaction records locally in your account. We do not retain the original file.</p>
           <p><strong className="text-foreground">Account metadata:</strong> Your email address and display name, provided at registration. No financial credentials are collected.</p>
-          <p><strong className="text-foreground">Bank connection metadata (future feature):</strong> If bank sync is enabled, connection metadata such as institution name and account type may be stored. Your bank login credentials are never stored by Yorbit — they are handled directly by a third-party provider (e.g. Plaid or Teller).</p>
+          <p><strong className="text-foreground">Bank connection metadata:</strong> When you connect a bank account, we store connection metadata such as institution name and account type. Your bank login credentials are never stored by Yorbit — they are handled directly by our bank connection provider, Plaid.</p>
         </Section>
 
         <Section title="How We Use Your Data">
@@ -43,9 +43,9 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="AI Insights">
-          <p>Yorbit uses Anthropic's Claude AI models to power two kinds of AI features, which send different amounts of data:</p>
-          <p><strong className="text-foreground">Dashboard AI Briefing and the Coach page:</strong> Only aggregated numbers are sent — category totals, your savings rate, and budget status. No individual transaction records are included.</p>
-          <p><strong className="text-foreground">AI Advisor Chat:</strong> To hold a real conversation about your finances, this feature sends your budgets, bills, and recent transactions (including any titles or notes you've entered) to Anthropic. If you'd rather keep certain details out of what's sent to our AI provider, avoid including them in transaction titles, goal names, or chat messages.</p>
+          <p>Yorbit uses Anthropic's Claude AI models to power the two tabs on the Coach page, which send different amounts of data:</p>
+          <p><strong className="text-foreground">Coaching Plan tab:</strong> Only aggregated numbers are sent — category totals, your savings rate, and budget status. No individual transaction records are included.</p>
+          <p><strong className="text-foreground">Advisor Chat tab:</strong> To hold a real conversation about your finances, this tab sends your budgets, bills, and your most recent transactions (up to 40) — including each one's title, which is often a merchant or payee name — to Anthropic. If you'd rather keep certain details out of what's sent to our AI provider, avoid including them in transaction titles, goal names, or chat messages.</p>
           <p>Anthropic processes this data under its own privacy policy and API terms, which govern how they handle it on their end.</p>
           <p>AI-generated content is informational only. It is not financial, legal, tax, or investment advice.</p>
         </Section>
