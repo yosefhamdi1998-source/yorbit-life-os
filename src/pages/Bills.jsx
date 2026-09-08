@@ -42,7 +42,7 @@ export default function Bills() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateTo, setDateTo] = useState(() => new URLSearchParams(window.location.search).get('status') === 'overdue' ? format(new Date(Date.now() - 86400000), 'yyyy-MM-dd') : '');
   const [sortDir, setSortDir] = useState('asc'); // 'asc' = earliest first, 'desc' = latest first
   const initialLoadDone = useRef(false);
 

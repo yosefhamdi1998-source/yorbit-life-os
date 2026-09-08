@@ -1,21 +1,22 @@
+import DataLoadError from '@/components/DataLoadError';
+import { billsDueThisWeek } from '@/lib/billWindow';
+import { reportLink } from '@/lib/reportRange';
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
-import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
+import { composeNetWorth } from '@/lib/netWorth';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
-import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
 import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
-import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap, TrendingUp, TrendingDown, Sparkles, Repeat, BarChart3, Send } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
-import Sparkline from '@/components/Sparkline';
 import CoverageNotice from '@/components/CoverageNotice';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const [netWorthEntries, setNetWorthEntries] = useState([]);
   const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
   const simpleMode = getSimpleMode();
   // Separate from cashFlowPeriod above (that one drives the hero's own
@@ -105,18 +107,20 @@ export default function Dashboard() {
   const thisMonth = format(latestTxDate, 'yyyy-MM');
 
   const loadData = useCallback(async () => {
+    setLoadFailed(false);
     try {
       const [tr, b, sg, bl, nw, accts] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
-        base44.entities.Bill.list('due_date', 20),
+        base44.entities.Bill.list('due_date', 5000),
         base44.entities.NetWorthEntry.list(),
         base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
       setTransactions(tr); setBudgets(b); setSavingsGoals(sg); setBills(bl); setNetWorthEntries(nw); setConnectedAccounts(accts || []);
       return { tr, b, sg, bl, nw };
     } catch {
+      setLoadFailed(true);
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
       return null; // null = load failed (distinct from "user has no data")
     } finally {
@@ -281,7 +285,7 @@ export default function Dashboard() {
     }))
     .filter(r => r.limit > 0);
 
-  const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && new Date(b.due_date) < new Date()).length;
+  const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && b.due_date < format(new Date(), 'yyyy-MM-dd')).length;
 
   const healthScore = computeHealthScore({
     heroIncome, heroExpenses, prevIncome: prevSums.income, prevExpenses: prevSums.expenses, prevTxCount: prevTx.length, budgetedRows, bills,
@@ -317,14 +321,17 @@ export default function Dashboard() {
   // Local midnight, so "Due in Nd" counts calendar days (a bill due tomorrow
   // showed "Due in 0d" when compared against the current time of day).
   const today = startOfDay(new Date());
+  const weeklyBills = billsDueThisWeek(bills, today);
   const upcomingBills = bills
     .filter(b => !b.is_paid && b.due_date)
     .filter(b => {
-      try { const diff = differenceInDays(parseISO(b.due_date), today); return diff >= -1 && diff <= 14; }
+      try { const diff = differenceInDays(parseISO(b.due_date), today); return diff >= 0 && diff <= 6; }
       catch { return false; }
     })
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
     .slice(0, 3);
+
+  if (loadFailed) return <DataLoadError onRetry={() => loadData()} />;
 
   if (loading) {
     return (
@@ -338,6 +345,7 @@ export default function Dashboard() {
 
   return (
     <div className="pb-8 overflow-x-hidden">
+      <div className="pt-6"><p className="text-sm font-semibold text-primary">Your weekly money check-in</p><h1 className="text-2xl lg:text-3xl font-bold mt-1">Uneven income. A clearer plan.</h1><p className="text-sm text-muted-foreground mt-2">Review what came in, what is due, and your next step.</p><Link to="/finance?add=1" className="inline-flex items-center min-h-[44px] mt-2 text-sm font-semibold text-primary">+ Add a transaction</Link></div>
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
 
@@ -347,7 +355,7 @@ export default function Dashboard() {
           in empty gradient, and the chart a thin strip of skinny bars with
           big gaps. Paired, both get their proportions back and the page
           fills the screen instead of stopping halfway down it. */}
-      <div className="lg:grid lg:grid-cols-12 lg:gap-5 lg:items-stretch lg:mb-5">
+      <div className="lg:mb-5">
 
       {/* ── Hero ──────────────────────────────────────────────────────
           A flat stat row read as sterile on its own — this is the one
@@ -437,7 +445,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <p className="text-white/60 text-xs font-medium mb-1">Net saved {heroPeriodPhrase}</p>
+          <p className="text-white/60 text-xs font-medium mb-1">Income minus spending {heroPeriodPhrase}</p>
           <p className={`font-numeric text-white ${heroValueSizeClass(fmtFull(Math.abs(heroNetSaved)))} font-black tracking-tight leading-none mb-1.5 tabular-nums`}>
             {heroNetSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(heroNetSaved)} />
           </p>
@@ -448,7 +456,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-3 gap-2.5">
             <Link
-              to={isYearPeriod ? `/spending-summary?period=yearly&year=${cashFlowPeriod.replace('year-', '')}` : '/spending-summary'}
+              to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'income')}
               className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
               title={`$${fmtFull(heroIncome)}`}
             >
@@ -461,7 +469,7 @@ export default function Dashboard() {
                 category-by-category breakdown (Spending Summary) for the
                 same window instead of leaving "where did it go" unanswered. */}
             <Link
-              to={isYearPeriod ? `/spending-summary?period=yearly&year=${cashFlowPeriod.replace('year-', '')}` : '/spending-summary'}
+              to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'expense')}
               className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
               title={`$${fmtFull(heroExpenses)}`}
             >
@@ -499,11 +507,10 @@ export default function Dashboard() {
       {/* The chart card carries its own mb-5 for the stacked phone layout;
           inside the grid row that fights h-full, so it's zeroed here and the
           row's own lg:mb-5 provides the gap instead. */}
-      <div className="lg:col-span-6 [&>*]:lg:h-full [&>*]:lg:mb-0">
-        <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
-      </div>
 
       </div>
+
+
 
       {/* Net Worth — same left-aligned label-then-number pattern as the "Net
           saved" hero above it, so the two cards read as one family instead
@@ -512,7 +519,7 @@ export default function Dashboard() {
       {/* ── Content sections ──────────────────────────────────────────
           One column on phone; two side-by-side columns from lg up, so
           cards stay a readable width instead of stretching into bands. */}
-      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:auto-rows-fr [&>*]:lg:h-full">
+      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
 
         {/* Onboarding CTA */}
         {isNewUser && (
@@ -520,7 +527,7 @@ export default function Dashboard() {
             <p className="font-bold text-sm text-foreground mb-0.5">Build your money picture</p>
             <p className="text-xs text-muted-foreground mb-3">Add a transaction to unlock insights.</p>
             <div className="flex gap-2 flex-wrap">
-              <Link to="/finance" className="flex-1 min-w-0">
+              <Link to="/finance?add=1" className="flex-1 min-w-0">
                 <Button className="w-full bg-primary text-white gap-1 h-9 text-sm">
                   <Plus className="w-3.5 h-3.5" /> Add Transaction
                 </Button>
@@ -550,18 +557,20 @@ export default function Dashboard() {
         )}
 
         {/* Upcoming Bills */}
-        {upcomingBills.length > 0 && (
+        {(
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-muted-foreground" />
-                <p className="font-bold text-sm">Upcoming Bills</p>
+                <p className="font-bold text-sm">Bills before your next check-in</p>
               </div>
               <Link to="/bills" className="text-xs text-primary font-semibold flex items-center gap-0.5">
                 All <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
             <div className="px-4 pb-4 space-y-4">
+              <div><p className="text-2xl font-bold">${fmtFull(weeklyBills.total)}</p><p className="text-xs text-muted-foreground mt-1">{weeklyBills.count} recorded unpaid bill{weeklyBills.count === 1 ? '' : 's'} · {format(parseISO(weeklyBills.start), 'MMM d')}–{format(parseISO(weeklyBills.end), 'MMM d')}</p></div>
+              {bills.length === 0 && <Link to="/bills?add=1" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary">Add your first bill</Link>}
               {upcomingBills.map(bill => {
                 const daysUntil = differenceInDays(parseISO(bill.due_date), today);
                 const isOverdue = daysUntil < 0;
@@ -626,6 +635,7 @@ export default function Dashboard() {
           </div>
         )}
 
+      <details className="sky-card rounded-2xl p-4 mb-5"><summary className="cursor-pointer min-h-[44px] font-semibold">Explore income and spending trends</summary><CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} /></details>
         {/* Recent Transactions */}
         {transactions.length > 0 ? (
           <div className="sky-card rounded-2xl overflow-hidden">
@@ -675,188 +685,6 @@ export default function Dashboard() {
           )
         )}
 
-        {/* Health Score on its own now. It stays low on the page for the
-            same reason as before — leading with a score that can read
-            "Room to improve" feels like a critique rather than a welcome —
-            but the ACTION that used to be buried down here with it has
-            moved to the top, where something you're supposed to do
-            actually belongs. */}
-        {(heroTx.length > 0 || budgetedRows.length > 0) && (
-          <div className="sky-card rounded-2xl p-4 lg:p-5">
-            <FinancialHealthScore score={healthScore.score} label={healthScore.label} explanation={healthScore.explanation} bare />
-          </div>
-        )}
-
-        {/* Save More / Recurring / Totals — three loose bordered tiles read
-            as bolted-on next to the rest of the page's "one card, header,
-            row-per-item" language (Goal Progress, Upcoming Bills, Recent
-            Transactions all share that shape). One card with three rows
-            matches it instead. */}
-        <div className="sky-card rounded-2xl overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Explore</p>
-          </div>
-          <div className="divide-y divide-border/40">
-            {/* First in the list on purpose — this was the actual reported
-                problem: crypto activity is real and untouched (nothing was
-                deleted, only separated from spending so it stopped
-                inflating every budget number), but it had no link
-                anywhere on Home, so it was genuinely impossible to find
-                without already knowing the URL. "Crypto" spelled out in
-                the subtitle, not just "Investments", since that's the
-                word being searched for. */}
-            <Link to="/investments" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-[18px] h-[18px] text-violet-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Investments</p>
-                <p className="text-xs text-muted-foreground">Crypto trades &amp; holdings</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/save-more" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-[18px] h-[18px] text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Save More</p>
-                <p className="text-xs text-muted-foreground">Where to cut back</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/recurring" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <Repeat className="w-[18px] h-[18px] text-amber-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Recurring</p>
-                <p className="text-xs text-muted-foreground">Subscriptions & bills</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/totals" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-[18px] h-[18px] text-sky-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Totals</p>
-                <p className="text-xs text-muted-foreground">Every dollar, by year & month</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-            <Link to="/payments-sent" className="flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/40 active:bg-secondary/60 transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Send className="w-[18px] h-[18px] text-emerald-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground">Payments Sent</p>
-                <p className="text-xs text-muted-foreground">Zelle, Venmo, Cash App & transfers</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </Link>
-          </div>
-        </div>
-
-
-      {/* Cash on Hand lives at the BOTTOM of Home, deliberately.
-          It was the second thing on the screen, which meant the first
-          impression of the app - and anything visible over your shoulder
-          on a train - was a single small number that happens to be
-          negative right now. A bank balance is a fact you look up, not a
-          headline you are greeted with; the cash-flow trend above answers
-          "how am I doing" far better and does not put one figure on
-          display. Still one scroll away, still exact. */}
-      {(netWorthEntries.length > 0 || worth.cash.liveCount > 0) && (
-        <div className="mb-5 sky-card rounded-2xl p-4 lg:p-5">
-          <div className="flex items-center justify-between mb-1">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{worth.label}</p>
-              <p className="text-[10px] text-muted-foreground/80">{worth.sublabel}</p>
-            </div>
-            {netWorthTrend.length > 1 && (
-              <Sparkline values={netWorthTrend} tone={netWorth >= 0 ? 'positive' : 'negative'} width={72} height={26} />
-            )}
-          </div>
-          {/* Minus sign OUTSIDE the currency symbol. `$-36` is not how money
-              is written anywhere; a true minus glyph reads as a quantity
-              rather than a typo. */}
-          <p className={`font-numeric text-[40px] lg:text-5xl font-black tabular-nums leading-none tracking-[-0.02em] mb-1 ${worth.total >= 0 ? 'text-foreground' : 'text-red-500'}`}>
-            {worth.total < 0 ? '−' : ''}${fmt(Math.abs(worth.total))}
-          </p>
-          {worth.cash.updatedAt && (
-            <p className="text-[10px] text-muted-foreground mb-3">
-              Bank balances updated {freshnessLabel(worth.cash.updatedAt)}
-            </p>
-          )}
-          {!worth.isCompleteNetWorth && (
-            <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
-              Money in your connected accounts. Add a car, crypto or a loan on
-              Money → Net Worth to make this a real net worth.
-            </p>
-          )}
-          {/* Assets / Liabilities read from MANUAL net-worth entries only.
-              With none added they were two tiles both reading $0 sitting
-              directly under a headline of −$36 - three numbers on one card
-              that cannot all be true, which is exactly how a finance app
-              loses someone's trust in the first five seconds. They now
-              appear only when there is something to put in them. */}
-          {worth.isCompleteNetWorth && (
-            <div className="grid grid-cols-2 gap-2.5 pt-4 border-t border-border/50">
-              <div className="bg-emerald-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Assets</p>
-                  <p className="text-sm lg:text-base font-bold text-emerald-500 tabular-nums leading-none truncate">${fmt(totalAssets)}</p>
-                </div>
-              </div>
-              <div className="bg-red-500/10 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0">
-                  <TrendingDown className="w-3.5 h-3.5 text-red-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground leading-none mb-1">Liabilities</p>
-                  <p className="text-sm lg:text-base font-bold text-red-500 tabular-nums leading-none truncate">${fmt(totalLiabilities)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* What the two empty tiles used to occupy: the accounts this
-              figure is actually made of. Cash and debt are split because
-              they behave differently - a card balance is money owed, and
-              summing it with cash is the sign error that makes the whole
-              number meaningless. */}
-          {!worth.isCompleteNetWorth && worth.cash.liveCount > 0 && (
-            <div className="pt-3.5 border-t border-border/50 space-y-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">In your accounts</span>
-                <span className="text-sm font-bold tabular-nums text-foreground">
-                  {worth.cash.cash < 0 ? '−' : ''}${fmt(Math.abs(worth.cash.cash))}
-                </span>
-              </div>
-              {worth.cash.debt > 0 && (
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Owed on cards &amp; loans</span>
-                  <span className="text-sm font-bold tabular-nums text-red-500">−${fmt(worth.cash.debt)}</span>
-                </div>
-              )}
-              {worth.cash.unknownCount > 0 && (
-                // Never counted as zero. An account whose balance did not
-                // come back is unknown, and a zero would quietly understate
-                // the total by whatever is actually in it.
-                <p className="text-[11px] text-muted-foreground leading-snug pt-1">
-                  {worth.cash.unknownCount} account{worth.cash.unknownCount === 1 ? '' : 's'} didn&rsquo;t report a balance
-                  {worth.cash.unknownNames?.length ? ` (${worth.cash.unknownNames.slice(0, 2).join(', ')}${worth.cash.unknownNames.length > 2 ? '…' : ''})` : ''}
-                  {' '}and {worth.cash.unknownCount === 1 ? 'is' : 'are'} not included above.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
       </div>
     </div>
   );

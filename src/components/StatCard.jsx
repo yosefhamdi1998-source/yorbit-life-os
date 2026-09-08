@@ -49,9 +49,9 @@ export default function StatCard({
   const negative = numeric && value < 0;
 
   return (
-    <div className={`sky-card rounded-2xl px-4 py-4 lg:px-5 lg:py-5 border ${CARD_WASH[tone] || 'border-transparent'}`}>
+    <div className={`sky-card rounded-2xl px-3 py-3 lg:px-5 lg:py-4 border ${CARD_WASH[tone] || 'border-transparent'}`}>
       {Icon && (
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${BADGE_BG[tone] || BADGE_BG.default}`}>
+        <div className={`hidden lg:flex w-8 h-8 rounded-xl items-center justify-center mb-2 ${BADGE_BG[tone] || BADGE_BG.default}`}>
           <Icon className="w-4 h-4" strokeWidth={2.25} />
         </div>
       )}
@@ -59,10 +59,10 @@ export default function StatCard({
           and reading "$2,301" then discovering it was SPENDING is a small
           re-parse the reader should not have to do. Financial terminals and
           annual reports both label above for this reason. */}
-      <p className="text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">
+      <p className="text-xs font-bold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">
         {label}
       </p>
-      <p className={`font-numeric text-[30px] lg:text-[34px] font-black tracking-[-0.02em] leading-none tabular-nums ${TONES[tone] || TONES.default}`}>
+      <p className={`font-numeric text-2xl lg:text-3xl font-black tracking-[-0.02em] leading-none tabular-nums ${TONES[tone] || TONES.default}`}>
         {numeric ? (
           <>
             {negative && '−'}
@@ -74,7 +74,7 @@ export default function StatCard({
           value
         )}
       </p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-1.5 truncate">{sub}</p>}
+      {sub && <p className="text-[11px] text-muted-foreground mt-1.5">{sub}</p>}
     </div>
   );
 }

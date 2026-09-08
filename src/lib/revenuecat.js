@@ -2,13 +2,14 @@ import { Purchases } from '@revenuecat/purchases-capacitor';
 import { REVENUECAT_API_KEY, ENTITLEMENT, SUBSCRIPTION_PRODUCTS } from '@/lib/appStoreConfig';
 import { isNativeIOS } from '@/lib/platform';
 
-let initialized = false;
+let initialization;
 
 async function ensureInit() {
-  if (initialized || !isNativeIOS() || !REVENUECAT_API_KEY) return false;
-  await Purchases.configure({ apiKey: REVENUECAT_API_KEY });
-  initialized = true;
-  return true;
+  if (!isNativeIOS() || !REVENUECAT_API_KEY) return false;
+  initialization ||= Purchases.configure({ apiKey: REVENUECAT_API_KEY })
+    .then(() => true)
+    .catch(() => { initialization = undefined; return false; });
+  return initialization;
 }
 
 export async function getOfferings() {
@@ -36,8 +37,8 @@ export async function checkProEntitlement() {
 function detectPlanFromPurchases(customerInfo) {
   const subs = customerInfo.activeSubscriptions || [];
   for (const s of subs) {
-    if (s.productIdentifier === SUBSCRIPTION_PRODUCTS.yearly) return 'pro_yearly';
-    if (s.productIdentifier === SUBSCRIPTION_PRODUCTS.monthly) return 'pro_monthly';
+    if (s === SUBSCRIPTION_PRODUCTS.yearly) return 'pro_yearly';
+    if (s === SUBSCRIPTION_PRODUCTS.monthly) return 'pro_monthly';
   }
   return 'pro_monthly';
 }

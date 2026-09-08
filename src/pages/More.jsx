@@ -1,41 +1,13 @@
-import { NavLink } from 'react-router-dom';
-import { Grid2x2, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { getVisibleSidebarItems } from '@/components/Layout';
-
-// Everything already reachable from the bottom tab bar on mobile — no need to
-// duplicate it here.
-const BOTTOM_TAB_PATHS = new Set(['/', '/finance', '/budget', '/bills', '/coach']);
-
+const GROUPS = [
+  { title: 'Your money', items: [['/bank-sync','Connected accounts','Manage connections and refresh your accounts'],['/csv-import','Import a statement','Bring your existing history into Yorbit'],['/spending-summary','Reports','Explore spending over time'],['/payments-sent','Payments & transfers','Review money moved between people and accounts']] },
+  { title: 'Supporting tools', items: [['/notes','Notes','Keep track of money conversations and reminders'],['/forms','Custom records','Your existing forms and records'],['/notifications','Notifications','Updates that need your attention']] },
+  { title: 'Your account', items: [['/settings','Settings','Appearance, privacy, subscription, and account'],['/support','Help & support','Get help with Yorbit']] },
+];
 export default function More() {
-  const items = getVisibleSidebarItems().filter(i => !BOTTOM_TAB_PATHS.has(i.path));
-
-  return (
-    <div className="py-4">
-      <PageHeader title="More" subtitle="Everything else in Yorbit" icon={Grid2x2} gradient="gradient-primary" showBack />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-        {items.map(({ path, icon: Icon, label }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className="flex flex-col items-center justify-center gap-2 sky-card rounded-2xl py-6 px-3 text-center transition-transform active:scale-95"
-          >
-            <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center">
-              <Icon className="w-5 h-5 text-foreground" />
-            </div>
-            <span className="text-sm font-semibold">{label}</span>
-          </NavLink>
-        ))}
-        <NavLink
-          to="/settings"
-          className="flex flex-col items-center justify-center gap-2 sky-card rounded-2xl py-6 px-3 text-center transition-transform active:scale-95"
-        >
-          <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center">
-            <Settings className="w-5 h-5 text-foreground" />
-          </div>
-          <span className="text-sm font-semibold">Settings</span>
-        </NavLink>
-      </div>
-    </div>
-  );
+  return <div className="py-4"><PageHeader title="Menu" subtitle="Accounts, tools, and settings" showBack />
+    {GROUPS.map(group => <section key={group.title} className="mb-6"><h2 className="text-sm font-semibold mb-2">{group.title}</h2><div className="sky-card rounded-2xl divide-y divide-border">{group.items.map(([path,label,description]) => <Link key={path} to={path} className="flex items-center gap-3 p-4 hover:bg-secondary/50"><div className="min-w-0 flex-1"><p className="font-semibold text-sm">{label}</p><p className="text-sm text-muted-foreground mt-1">{description}</p></div><ChevronRight className="w-4 h-4 shrink-0" /></Link>)}</div></section>)}
+  </div>;
 }

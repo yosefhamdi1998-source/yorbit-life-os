@@ -49,8 +49,8 @@ export function filterByPeriod(transactions, period, latestTxDate) {
   // exactly the "week looks right, month looks wrong" bug.
   const anchorYear = anchor.getFullYear();
   if (period === 'all') return transactions;
-  if (period === 'week') {
-    const cutoff = startOfDay(subDays(anchor, 6));
+  if (period === 'week' || period === 'weekly' || period === 'biweekly') {
+    const cutoff = startOfDay(subDays(anchor, period === 'biweekly' ? 13 : 6));
     return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
   }
   if (period === '3month' || period === '6month') {
@@ -77,9 +77,9 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
   const anchor = latestTxDate || getLatestTransactionDate(transactions);
   const anchorYear = anchor.getFullYear();
   if (period === 'all') return []; // no "previous" window for all-time
-  if (period === 'week') {
-    const end = startOfDay(subDays(anchor, 7));
-    const start = startOfDay(subDays(anchor, 13));
+  if (period === 'week' || period === 'weekly' || period === 'biweekly') {
+    const end = startOfDay(subDays(anchor, period === 'biweekly' ? 14 : 7));
+    const start = startOfDay(subDays(anchor, period === 'biweekly' ? 27 : 13));
     return transactions.filter(t => {
       if (!t.date) return false;
       const d = parseISO(t.date);
@@ -113,7 +113,7 @@ export function filterByPreviousPeriod(transactions, period, latestTxDate) {
 export function getPeriodLabel(period, anchor = new Date()) {
   const anchorYear = anchor.getFullYear();
   if (period === 'all') return 'All Time';
-  if (period === 'week') return 'Last 7 Days';
+  if (period === 'week' || period === 'weekly' || period === 'biweekly') return period === 'biweekly' ? 'Last 14 Days' : 'Last 7 Days';
   if (period === '3month') return 'Last 3 Months';
   if (period === '6month') return 'Last 6 Months';
   if (isSpecificYearPeriod(period)) return period.slice(5);
@@ -125,7 +125,7 @@ export function getPeriodLabel(period, anchor = new Date()) {
 export function getPeriodPhrase(period, anchor = new Date()) {
   const anchorYear = anchor.getFullYear();
   if (period === 'all') return 'all time';
-  if (period === 'week') return 'this week';
+  if (period === 'week' || period === 'weekly' || period === 'biweekly') return period === 'biweekly' ? 'in the last 14 days' : 'in the last 7 days';
   if (period === '3month') return 'in the last 3 months';
   if (period === '6month') return 'in the last 6 months';
   if (isSpecificYearPeriod(period)) {
@@ -197,15 +197,15 @@ export function savingsRateLabel(rate) {
 // periods are spelled out - "This Year", "Last Year" - precisely because
 // they are NOT trailing windows and should not be mistaken for 1Y.
 export const RANGE_LABELS = {
-  week: '1W',
-  weekly: '1W',
-  biweekly: '2W',
-  month: '1M',
+  week: 'Last 7 days',
+  weekly: 'Last 7 days',
+  biweekly: 'Last 14 days',
+  month: 'Last 30 days',
   monthly: '1M',
   '1m': '1M',
-  '3month': '3M',
+  '3month': 'Last 3 months',
   '3m': '3M',
-  '6month': '6M',
+  '6month': 'Last 6 months',
   '6m': '6M',
   '1y': '1Y',
   '2y': '2Y',
@@ -242,8 +242,8 @@ export function getPeriodBounds(period, latestTxDate, transactions = []) {
     const dates = transactions.map(t => t.date).filter(Boolean).sort();
     return { start: dates[0] || endOfAnchorDay, end: dates[dates.length - 1] || endOfAnchorDay };
   }
-  if (period === 'week') {
-    return { start: iso(startOfDay(subDays(anchor, 6))), end: endOfAnchorDay };
+  if (period === 'week' || period === 'weekly' || period === 'biweekly') {
+    return { start: iso(startOfDay(subDays(anchor, period === 'biweekly' ? 13 : 6))), end: endOfAnchorDay };
   }
   if (period === '3month' || period === '6month') {
     return { start: iso(monthsBackStart(anchor, period === '3month' ? 3 : 6)), end: endOfAnchorDay };

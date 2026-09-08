@@ -218,3 +218,6 @@
   @keyframes auroraMove2 { 0%, 100% { transform: translate(0,0) scaleX(1); } 40% { transform: translate(-35px,22px) scaleX(1.18); } 70% { transform: translate(28px,-12px) scaleX(0.88); } }
   @keyframes auroraMove4 { 0%, 100% { transform: translate(0,0) scaleX(1); } 45% { transform: translate(-28px,-22px) scaleX(1.22); } 80% { transform: translate(18px,12px) scaleX(0.82); } }
 }
+/* Text links need a lighter tone on dark surfaces; filled buttons keep
+   the theme's primary color and its white foreground. */
+.dark .text-primary { color: hsl(217 92% 78%); }

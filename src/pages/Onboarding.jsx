@@ -123,10 +123,10 @@ function StepWelcome({ onNext, onSkip }) {
     >
       <div className="text-6xl mb-7">👋</div>
       <h1 className="text-[32px] leading-[1.15] font-black text-white mb-4 text-balance">
-        Let&rsquo;s see where your money actually goes
+        A money plan for income that changes
       </h1>
       <p className="text-base text-white/75 leading-relaxed">
-        Three steps, about a minute. You can skip any of them and come back later.
+        Bring in your transactions, review your spending, and start a budget. You can skip any step and come back later.
       </p>
     </Shell>
   );

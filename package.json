@@ -15,7 +15,7 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup",
+    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout",
     "test:lint-config": "node scripts/test-lint-config.js",
     "test:animated-number": "node scripts/test-animated-number.mjs",
     "test:ai-context": "node scripts/test-ai-context.js",
@@ -25,7 +25,12 @@
     "test:net-worth": "node scripts/test-net-worth.js",
     "test:dedup": "node scripts/test-dedup.js",
     "test:pfc": "npx supabase db query --linked -f scripts/test-pfc-registry.sql",
-    "import:coinbase": "node scripts/import-coinbase.js --dir C:/YORBIT/coinbase"
+    "import:coinbase": "node scripts/import-coinbase.js --dir C:/YORBIT/coinbase",
+    "dev:fixtures": "vite --config vite.fixture.config.js",
+    "dev:real": "vite",
+    "test:ranges": "node scripts/test-report-ranges.mjs",
+    "test:revenuecat": "node scripts/test-revenuecat.mjs",
+    "test:checkout": "node scripts/test-checkout.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

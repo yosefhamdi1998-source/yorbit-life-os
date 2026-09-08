@@ -128,6 +128,7 @@ export function applyBackgroundTheme(key, isDark) {
   root.setProperty('--hero-via', theme.heroVia);
   root.setProperty('--hero-to', theme.heroTo);
   root.setProperty('--primary', theme.primary);
+  root.setProperty('--primary-foreground', '0 0% 100%');
   root.setProperty('--ring', theme.primary);
   localStorage.setItem(STORAGE_KEY, key);
 }

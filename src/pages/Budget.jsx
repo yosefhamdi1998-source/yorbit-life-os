@@ -1,3 +1,4 @@
+import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { PiggyBank, Plus, X, CheckCircle, AlertTriangle, Clock, Wallet, CreditCard } from 'lucide-react';
@@ -55,6 +56,7 @@ export default function Budget() {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   useAutoOpenForm(() => setShowForm(true));
   const [form, setForm] = useState({ category: 'food', monthly_limit: '' });
@@ -72,6 +74,7 @@ export default function Budget() {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
+    setLoadFailed(false);
     try {
       const [tx, b] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
@@ -80,6 +83,7 @@ export default function Budget() {
       setTransactions(tx);
       setBudgets(b);
     } catch (error) {
+      setLoadFailed(true);
       toast({ title: "Couldn't load your budgets", description: "Please check your connection and try again.", variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -155,8 +159,11 @@ export default function Budget() {
   const budgetedRows = rows.filter(r => r.budget);
   const totalBudget = budgetedRows.reduce((s, r) => s + (r.budget?.monthly_limit || 0), 0);
   const totalSpent = budgetedRows.reduce((s, r) => s + r.spent, 0);
+  const unbudgetedSpent = monthTx.filter(t => t.type === 'expense' && !budgetedRows.some(r => r.cat === t.category)).reduce((sum,t) => sum + (t.amount || 0), 0);
   const budgetPct = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
   const overCount = rows.filter(r => r.budget && r.spent > r.budget.monthly_limit).length;
+
+  if (loadFailed) return <DataLoadError onRetry={() => loadData()} />;
 
   if (loading) {
     return (
@@ -174,7 +181,7 @@ export default function Budget() {
     <div className="py-4 pb-8">
       <PageHeader
         title="Budget"
-        subtitle="Track spending against your limits"
+        subtitle={`Category limits · ${format(new Date(`${thisMonth}-01T12:00:00`), 'MMMM yyyy')}`}
         icon={PiggyBank}
         gradient="gradient-primary"
         showBack
@@ -195,13 +202,15 @@ export default function Budget() {
         </div>
       )}
 
+      <p className="text-sm text-muted-foreground mb-4">Budget left is the unused part of your category limits, not your bank balance or money safe to spend.</p>
+      {unbudgetedSpent > 0 && <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4 text-sm"><strong>${fmt(unbudgetedSpent)} spent outside your budgets.</strong> Review categories without a limit below.</div>}
       {/* Budget Health Overview */}
       {totalBudget > 0 && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <StatCard label="Total budget" value={totalBudget} prefix="$" icon={Wallet} />
-            <StatCard label="Total spent" value={totalSpent} prefix="$" tone={totalSpent > totalBudget ? 'negative' : 'default'} icon={CreditCard} />
-            <StatCard label="Remaining" value={Math.abs(totalBudget - totalSpent)} prefix="$" tone={totalBudget - totalSpent < 0 ? 'negative' : 'positive'} icon={PiggyBank} />
+            <StatCard label="Spent in budgets" value={totalSpent} prefix="$" tone={totalSpent > totalBudget ? 'negative' : 'default'} icon={CreditCard} />
+            <StatCard label={totalSpent > totalBudget ? "Over budget" : "Budget left"} value={Math.abs(totalBudget - totalSpent)} prefix="$" tone={totalBudget - totalSpent < 0 ? 'negative' : 'positive'} icon={PiggyBank} />
             <StatCard label="Over limit" value={overCount} tone={overCount > 0 ? 'negative' : 'positive'} icon={AlertTriangle} />
           </div>
           <div className="sky-card rounded-2xl p-4 lg:p-5 mb-4">
@@ -211,7 +220,7 @@ export default function Budget() {
             </div>
             <div className="h-2.5 bg-secondary rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-700 ${budgetPct > 100 ? 'bg-red-500' : budgetPct > 85 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                className={`h-full rounded-full transition-all duration-700 ${totalSpent > totalBudget ? 'bg-red-500' : budgetPct > 85 ? 'bg-amber-500' : 'bg-emerald-500'}`}
                 style={{ width: `${budgetPct}%` }}
               />
             </div>

@@ -9,7 +9,7 @@ import useGoBack from '@/hooks/useGoBack';
 // glance without returning to the old oversized gradient tile.
 export default function PageHeader({ title, subtitle, icon: Icon, gradient, action, showBack }) {
   const location = useLocation();
-  const ROOT_PATHS = ['/', '/finance', '/budget', '/bills', '/coach'];
+  const ROOT_PATHS = ['/', '/finance', '/investments', '/budget', '/bills', '/recurring', '/goals', '/coach'];
   const isRoot = ROOT_PATHS.includes(location.pathname);
   const showBackBtn = showBack || !isRoot;
   const goBack = useGoBack('/');

@@ -1,13 +1,14 @@
+import { PRIMARY_NAV, PLAN_NAV, navIsActive } from '@/lib/navigation';
+import PlanNavigation from '@/components/PlanNavigation';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, DollarSign, Target, Brain, PiggyBank,
-  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, BarChart2, FileText, Bell, Grid2x2, Repeat, BarChart3, Send, TrendingUp, StickyNote
+  Sparkles, Sun, Moon, Settings, Receipt, Upload, Landmark, FileText, Bell, Grid2x2, Repeat, BarChart3, Send, TrendingUp, StickyNote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
-import QuickAddFAB from '@/components/QuickAddFAB';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { recordRoute } from '@/hooks/useGoBack';
 import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
@@ -15,16 +16,7 @@ import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode } from '@/lib/simpleMode';
 import OnboardingProgress from '@/components/OnboardingProgress';
 
-const bottomNavItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Home' },
-  { path: '/finance', icon: DollarSign, label: 'Money' },
-  // Right next to Money, per explicit request — this is the tab bar he's
-  // actually looking at on his phone, so this is what "next to Money" means.
-  { path: '/investments', icon: TrendingUp, label: 'Invest' },
-  { path: '/budget', icon: BarChart2, label: 'Budget' },
-  { path: '/bills', icon: Receipt, label: 'Bills' },
-  { path: '/coach', icon: Brain, label: 'Coach' },
-];
+const bottomNavItems = PRIMARY_NAV;
 
 export const sidebarItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -79,7 +71,7 @@ const pageVariants = {
 };
 
 // Track the last visited path per tab so tapping a tab re-navigates to where you left off
-const TAB_PATHS = ['/', '/finance', '/investments', '/budget', '/bills', '/coach'];
+const TAB_PATHS = PRIMARY_NAV.map(item => item.path);
 
 export default function Layout() {
   // Light is the product's default look; dark is opt-in via the toggle.
@@ -144,14 +136,14 @@ export default function Layout() {
 
         {/* Nav — bottomNavItems (6), plus More */}
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          {bottomNavItems.map(({ path, icon: Icon, label }) => (
+          {bottomNavItems.map(({ path, icon: Icon, label, routes }) => (
             <NavLink
               key={label}
               to={path}
               end={path === '/'}
-              className={({ isActive }) =>
+              className={() =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all min-h-[40px] ${
-                  isActive
+                  navIsActive({ routes }, location.pathname)
                     ? 'bg-primary text-white font-semibold shadow-sm'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 font-medium'
                 }`
@@ -221,17 +213,11 @@ export default function Layout() {
             <span className="font-black text-[15px] tracking-tight text-foreground">Yorbit</span>
           </div>
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-9 w-9 rounded-full" aria-label="More">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/more')} className="h-11 w-11 rounded-full" aria-label="More">
               <Grid2x2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} className="h-9 w-9 rounded-full" aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <Button variant="ghost" size="icon" onClick={() => setDark(!dark)} className="h-11 w-11 rounded-full" aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}>
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="h-9 w-9 rounded-full" aria-label="Notifications">
-              <Bell className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="h-9 w-9 rounded-full" aria-label="Settings">
-              <Settings className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -249,12 +235,13 @@ export default function Layout() {
         }}
       >
         <div className="flex items-center justify-around px-2 pt-1.5 pb-1">
-          {bottomNavItems.map(({ path, icon: TabIcon, label }) => {
-            const isActive = path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+          {bottomNavItems.map(({ path, icon: TabIcon, label, routes }) => {
+            const isActive = navIsActive({ routes }, location.pathname);
             return (
               <button
                 key={label}
                 onClick={() => handleTabPress(path)}
+                aria-current={isActive ? 'page' : undefined}
                 className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 min-h-[50px]"
                 style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
               >
@@ -272,7 +259,7 @@ export default function Layout() {
       </div>
 
       {/* ── Quick Add FAB ─────────────────────────────────────────────── */}
-      <QuickAddFAB />
+
 
       {/* ── Main content ─────────────────────────────────────────────── */}
       <main
@@ -301,6 +288,7 @@ export default function Layout() {
                 instead of stranding the content in a narrow column. */}
             <div className="w-full max-w-3xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <ErrorBoundary key={location.pathname}>
+                {PLAN_NAV.some(item => item.path === location.pathname) && <PlanNavigation />}
                 <Outlet />
               </ErrorBoundary>
             </div>

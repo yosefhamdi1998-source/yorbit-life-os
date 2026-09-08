@@ -1,28 +1,27 @@
+import DataLoadError from '@/components/DataLoadError';
+import { readReportRange } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { DollarSign, Plus, X, Trash2, Search, Upload, Receipt, Link2, BarChart3, TrendingUp, TrendingDown, PiggyBank, Percent, ChevronRight, ChevronDown, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
+import { DollarSign, Plus, X, Trash2, Search, TrendingUp, TrendingDown, PiggyBank, Percent, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
 import { prettyMerchant } from '@/lib/merchantName';
 // X kept for NW form close button
 import AddTransactionSheet from '@/components/finance/AddTransactionSheet';
-import { FEATURES } from '@/lib/features';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MobileSelect } from '@/components/ui/mobile-select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SpendingByCategoryChart from '@/components/finance/SpendingByCategoryChart';
-import IncomeExpenseTrendChart from '@/components/finance/IncomeExpenseTrendChart';
 import NetWorthHistoryChart from '@/components/finance/NetWorthHistoryChart';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import PageHeader from '@/components/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useNavigate, Link } from 'react-router-dom';
-import { subMonths, subDays, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
+import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import useDeleteLock from '@/hooks/useDeleteLock';
-import { getSimpleMode } from '@/lib/simpleMode';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
-import { PERIODS, filterByPeriod, getLatestTransactionDate, rangeLabel } from '@/lib/periods';
+import { filterByPeriod, getLatestTransactionDate, rangeLabel, savingsRate } from '@/lib/periods';
 import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
@@ -201,11 +200,11 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
 }
 
 // ─── Transaction List ─────────────────────────────────────────────────────────
-function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
+function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRange }) {
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(() => new URLSearchParams(window.location.search).get('type') === 'income' ? 'income' : 'all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [dateRange, setDateRange] = useState('all');
+
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
@@ -240,7 +239,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
     if (typeFilter === 'income') list = list.filter(t => t.type === 'income');
     else if (typeFilter === 'expense') list = list.filter(t => t.type === 'expense');
     if (categoryFilter !== 'all') list = list.filter(t => t.category === categoryFilter);
-    if (dateRange !== 'all') list = filterByPeriod(list, dateRange, latestTxDate);
+
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(t => t.title?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q));
@@ -387,7 +386,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
             className={`relative shrink-0 flex items-center gap-1.5 px-3 rounded-md border text-xs font-semibold transition-all ${showAdvanced || advancedFilterCount > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            Advanced
+            Filters
             {advancedFilterCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-white text-[9px] font-bold flex items-center justify-center">{advancedFilterCount}</span>
             )}
@@ -397,7 +396,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
         {showAdvanced && (
           <div className="sky-card rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Advanced Search</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</p>
               {advancedFilterCount > 0 && (
                 <button onClick={clearAdvanced} className="text-xs font-semibold text-primary hover:underline">Clear</button>
               )}
@@ -434,7 +433,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
           ))}
         </div>
 
-        {categoryOptions.length > 0 && (
+        {showAdvanced && categoryOptions.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCategoryFilter('all')}
@@ -454,25 +453,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote }) {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setDateRange('all')}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
-          >
-            All time
-          </button>
-          {PERIODS.map(p => (
-            <button
-              key={p.key}
-              onClick={() => setDateRange(p.key)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${dateRange === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2">
+        <div className={`${showAdvanced ? 'flex' : 'hidden'} items-center gap-2`}>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Sort</span>
           {[{ key: 'date', label: 'Date' }, { key: 'amount', label: 'Amount' }].map(s => (
             <button
@@ -540,10 +521,12 @@ export default function Finance() {
   const [netWorth, setNetWorth] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [showTxForm, setShowTxForm] = useState(false);
   useAutoOpenForm(() => setShowTxForm(true));
   const [showNWForm, setShowNWForm] = useState(false);
-  const [summaryPeriod, setSummaryPeriod] = useState('month'); // 'biweekly' | 'month' | 'year-YYYY'
+  const [explicitRange, setExplicitRange] = useState(() => readReportRange(window.location.search));
+  const [summaryPeriod, setSummaryPeriod] = useState(() => new URLSearchParams(window.location.search).get('period') || 'month'); // 'biweekly' | 'month' | 'year-YYYY'
 
   const [nwForm, setNwForm] = useState({ name: '', type: 'asset', value: '', category: 'cash' });
 
@@ -551,7 +534,7 @@ export default function Finance() {
   // pull-to-refresh update in place instead of flashing the full-page skeleton.
   const loadData = async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 5000);
+    setLoadFailed(false);
     try {
       const [tx, b, nw, accts] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
@@ -559,12 +542,11 @@ export default function Finance() {
         base44.entities.NetWorthEntry.list(),
         base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
-      clearTimeout(timeout);
       setTransactions(tx); setBudgets(b); setNetWorth(nw); setAccounts(accts || []);
     } catch (error) {
+      setLoadFailed(true);
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -720,31 +702,23 @@ export default function Finance() {
   const YEAR_OPTIONS = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))]
     .map(Number).sort((a, b) => b - a)
     .map(y => ({ value: `year-${y}`, label: `${y}` }));
-  const isYearPeriod = summaryPeriod.startsWith('year-');
-  const TRAILING_DAYS = { weekly: 6, biweekly: 13, month: 29, '3month': 89, '6month': 179 };
-  const summaryTx = useMemo(() => {
-    if (TRAILING_DAYS[summaryPeriod] != null) {
-      const cutoff = startOfDay(subDays(latestTxDate, TRAILING_DAYS[summaryPeriod]));
-      return transactions.filter(t => t.date && parseISO(t.date) >= cutoff);
-    }
-    if (summaryPeriod.startsWith('year-')) {
-      const y = summaryPeriod.slice(5);
-      return transactions.filter(t => t.date?.startsWith(y));
-    }
-    return monthTx;
-  }, [summaryPeriod, transactions, monthTx, latestTxDate]);
+
+
+  const summaryTx = useMemo(() => explicitRange ? transactions.filter(t => t.date && parseISO(t.date) >= explicitRange.start && parseISO(t.date) <= explicitRange.end) : filterByPeriod(transactions, summaryPeriod, latestTxDate), [transactions, summaryPeriod, latestTxDate, explicitRange]);
   const summaryIncome = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryExpenses = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryNetSaved = summaryIncome - summaryExpenses;
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
   // into a five-figure percentage.
-  const summarySavingsRate = summaryIncome >= 1 ? Math.round((summaryNetSaved / summaryIncome) * 100) : 0;
+  const summarySavingsRate = savingsRate(summaryIncome, summaryExpenses);
 
   const catData = EXPENSE_CATS.map(cat => ({
     name: cat,
-    spent: monthTx.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + (t.amount || 0), 0),
+    spent: summaryTx.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + (t.amount || 0), 0),
     budget: budgets.find(b => b.category === cat && b.month === thisMonth)?.monthly_limit || 0,
   })).filter(d => d.spent > 0);
+
+  if (loadFailed) return <DataLoadError onRetry={() => loadData()} />;
 
   if (loading) {
     return (
@@ -781,20 +755,7 @@ export default function Finance() {
         gradient="gradient-primary"
         action={
           <>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/spending-summary')} className="h-8 w-8 text-primary" title="Spending Summary" aria-label="Spending Summary">
-              <BarChart3 className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/bills')} className="h-8 w-8 text-muted-foreground" title="Bills" aria-label="Bills">
-              <Receipt className="w-4 h-4" />
-            </Button>
-            {FEATURES.bankSync && (
-              <Button variant="ghost" size="icon" onClick={() => navigate('/bank-sync')} className="h-8 w-8 text-blue-600" title="Connect Bank" aria-label="Connect Bank">
-                <Link2 className="w-4 h-4" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={() => navigate('/csv-import')} className="h-8 w-8 text-amber-600" title="Import CSV" aria-label="Import CSV">
-              <Upload className="w-4 h-4" />
-            </Button>
+            <details className="relative"><summary className="cursor-pointer min-h-[44px] flex items-center px-3 rounded-xl border text-sm">Accounts & reports</summary><div className="absolute left-0 top-full z-30 mt-2 w-56 rounded-xl border bg-card p-2 shadow-lg">{[['/bank-sync','Connected accounts'],['/csv-import','Import statement'],['/spending-summary','Spending report'],['/totals','History totals'],['/payments-sent','Payments & transfers']].map(([path,label]) => <Link key={path} to={path} className="block p-3 text-sm hover:bg-secondary rounded-lg">{label}</Link>)}</div></details>
             <Button onClick={() => setShowTxForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-1 shrink-0 h-8 px-3 text-sm rounded-xl">
               <Plus className="w-3.5 h-3.5" /> Add
             </Button>
@@ -803,46 +764,20 @@ export default function Finance() {
       />
 
       {/* Summary — 2-col on mobile, 4-col on sm+ */}
-      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
-        {PERIOD_OPTIONS.map(p => (
-          <button
-            key={p.key}
-            onClick={() => setSummaryPeriod(p.key)}
-            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${summaryPeriod === p.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
-          >
-            {p.label}
-          </button>
-        ))}
-        {/* "Yearly" sits inline with the other three, same pill styling —
-            it's a real <select> underneath (opens the native picker on
-            mobile), just skinned to match instead of looking like a
-            separate control shoved off to the side. */}
-        <div className="relative shrink-0">
-          <select
-            value={isYearPeriod ? summaryPeriod : ''}
-            onChange={e => setSummaryPeriod(e.target.value)}
-            className={`appearance-none text-xs font-semibold pl-3 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            {/* Explicit colors on the options themselves — the native dropdown
-                popup is opaque and browser-styled, so it ignores the <select>'s
-                own Tailwind text color and was rendering invisible white-on-white. */}
-            <option value="" disabled style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>Yearly</option>
-            {YEAR_OPTIONS.map(y => (
-              <option key={y.value} value={y.value} style={{ background: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}>{y.label}</option>
-            ))}
-          </select>
-          <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-        </div>
-        <Link to="/spending-summary" className="shrink-0 ml-1 text-xs text-primary font-semibold flex items-center gap-0.5">
-          Older <ChevronRight className="w-3 h-3" />
-        </Link>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <label className="text-sm font-medium" htmlFor="money-period">Show</label>
+        <select id="money-period" value={explicitRange ? "custom" : summaryPeriod} onChange={e => { setExplicitRange(null); setSummaryPeriod(e.target.value); }} className="rounded-xl border border-input bg-card text-foreground px-3 min-h-[44px] text-sm">
+          {explicitRange && <option value="custom">{explicitRange.label}</option>}<option value="all">All history</option>
+          {PERIOD_OPTIONS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+          {YEAR_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+        <span className="text-xs text-muted-foreground">Through {format(latestTxDate, 'MMM d, yyyy')}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <StatCard label="Income" value={summaryIncome} prefix="$" tone="positive" icon={TrendingUp} />
         <StatCard label="Spending" value={summaryExpenses} prefix="$" tone="negative" icon={TrendingDown} />
-        <StatCard label="Net saved" value={summaryNetSaved} prefix="$" tone={summaryNetSaved >= 0 ? 'default' : 'negative'} icon={PiggyBank} />
-        <StatCard label="Savings rate" value={summarySavingsRate} suffix="%" tone={summarySavingsRate >= 20 ? 'positive' : 'warning'} icon={Percent} />
+        <StatCard label="Income less spending" value={summaryNetSaved} prefix="$" tone={summaryNetSaved >= 0 ? 'default' : 'negative'} icon={PiggyBank} />
+        <StatCard label="Savings rate" value={summarySavingsRate === null ? "—" : summarySavingsRate} suffix="%" sub={summarySavingsRate === null ? "Not enough recorded income to calculate" : undefined} tone={summarySavingsRate >= 20 ? 'positive' : 'warning'} icon={Percent} />
       </div>
 
       {/* Add Transaction Bottom Sheet */}
@@ -861,44 +796,13 @@ export default function Finance() {
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions">
-          <TransactionList transactions={transactions} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
+          <TransactionList transactions={summaryTx} dateRange={summaryPeriod} setDateRange={setSummaryPeriod} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
         </TabsContent>
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
-          <IncomeExpenseTrendChart transactions={transactions} simple={getSimpleMode()} />
           {catData.length > 0 ? (
-            <>
-              <SpendingByCategoryChart catData={catData} totalExpenses={monthExpenses} />
-
-              {monthIncome > 0 && (
-                <div className="sky-card rounded-2xl p-4 mb-4">
-                  <p className="font-bold text-sm mb-3">Money Snapshot</p>
-                  <div className="space-y-2.5">
-                    {[
-                      { label: 'Income', value: monthIncome, color: 'bg-emerald-500', textColor: 'text-emerald-500', pct: 100 },
-                      { label: 'Spending', value: monthExpenses, color: 'bg-red-500', textColor: 'text-red-500', pct: Math.min(100, (monthExpenses / monthIncome) * 100) },
-                      ...(netSaved > 0 ? [{ label: 'Net Saved', value: netSaved, color: 'bg-blue-500', textColor: 'text-blue-500', pct: Math.min(100, (netSaved / monthIncome) * 100) }] : []),
-                    ].map(({ label, value, color, textColor, pct }) => (
-                      <div key={label} className="flex items-center gap-3">
-                        <span className={`text-xs font-medium w-20 shrink-0 ${textColor}`}>{label}</span>
-                        <div className="flex-1 h-2.5 bg-secondary rounded-full overflow-hidden">
-                          <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className={`text-xs font-bold w-16 text-right shrink-0 ${textColor}`}>${fmt(value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {lastMonthExpenses > 0 && (
-                    <p className={`text-xs mt-3 ${monthExpenses > lastMonthExpenses ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {monthExpenses > lastMonthExpenses
-                        ? `⚠️ Spending up ${Math.round(((monthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100)}% vs last month`
-                        : `✅ Spending down ${Math.round(((lastMonthExpenses - monthExpenses) / lastMonthExpenses) * 100)}% vs last month`}
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
+            <SpendingByCategoryChart catData={catData} totalExpenses={summaryExpenses} />
           ) : (
             <div className="sky-card border border-dashed border-blue-200 rounded-2xl p-8 text-center mb-4">
               <DollarSign className="w-10 h-10 text-primary/30 mx-auto mb-3" />

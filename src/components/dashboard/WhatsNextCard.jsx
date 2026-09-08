@@ -33,8 +33,8 @@ export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallback
 
   if (!checked) return null;
 
-  const tip = nextMove
-    || (overdueBillCount > 0 ? `You have ${overdueBillCount} overdue bill${overdueBillCount === 1 ? '' : 's'} — pay ${overdueBillCount === 1 ? 'it' : 'them'} first.` : null)
+  const tip = (overdueBillCount > 0 ? `You have ${overdueBillCount} overdue bill${overdueBillCount === 1 ? '' : 's'} — review ${overdueBillCount === 1 ? 'it' : 'them'} first.` : null)
+    || nextMove
     || (heroNetSaved < 0 ? "You spent more than you earned this period — Coach can help you build a plan." : null)
     || fallbackTip
     || "Add a few transactions and Coach will start giving you personalized moves.";
@@ -53,7 +53,7 @@ export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallback
   );
 
   return (
-    <Link to="/coach" className={bare ? 'block' : 'block mb-5'}>
+    <Link to={overdueBillCount > 0 ? '/bills?status=overdue' : nextMove || heroNetSaved < 0 ? '/coach' : '/save-more'} className={bare ? 'block' : 'block mb-5'}>
       {content}
     </Link>
   );

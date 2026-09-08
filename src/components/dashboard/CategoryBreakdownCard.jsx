@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, PieChart } from 'lucide-react';
 import { CAT_COLORS, CategoryBadge } from '@/lib/categoryVisuals';
+import { format, parseISO, endOfMonth } from 'date-fns';
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
@@ -24,9 +25,9 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <div className="flex items-center gap-2">
           <PieChart className="w-4 h-4 text-muted-foreground" />
-          <p className="font-bold text-sm">Where it went</p>
+          <p className="font-bold text-sm">Spending · {format(parseISO(`${thisMonth}-01`), 'MMM yyyy')}</p>
         </div>
-        <Link to="/spending-summary" className="text-xs text-primary font-semibold flex items-center gap-0.5">
+        <Link to={`/spending-summary?start=${thisMonth}-01&end=${format(endOfMonth(parseISO(`${thisMonth}-01`)), 'yyyy-MM-dd')}`} className="text-xs text-primary font-semibold flex items-center gap-0.5">
           Full breakdown <ChevronRight className="w-3 h-3" />
         </Link>
       </div>

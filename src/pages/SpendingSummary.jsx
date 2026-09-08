@@ -1,3 +1,4 @@
+import { readReportRange } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
@@ -131,10 +132,11 @@ export default function SpendingSummary() {
   const [{ period: initialPeriod, cursor: initialCursor }] = useState(initialStateFromQuery);
   const [period, setPeriod] = useState(initialPeriod);
   const [cursor, setCursor] = useState(initialCursor);
+  const [explicitRange, setExplicitRange] = useState(() => readReportRange(window.location.search));
   // Was this page opened from Home with a specific period in the URL? If so
   // don't override the user's choice with the newest-data month below.
   const [openedWithExplicitPeriod] = useState(
-    () => new URLSearchParams(window.location.search).has('period')
+    () => new URLSearchParams(window.location.search).has('period') || !!readReportRange(window.location.search)
   );
 
   useEffect(() => {
@@ -166,8 +168,9 @@ export default function SpendingSummary() {
 
   const expenses = useMemo(() => transactions.filter(t => t.type === 'expense'), [transactions]);
 
-  const { start, end, label } = getRange(period, cursor);
-  const prevRange = getPrevRange(period, cursor);
+  const { start, end, label } = explicitRange || getRange(period, cursor);
+  const span = differenceInCalendarDays(end, start) + 1;
+  const prevRange = explicitRange ? { start: subDays(start, span), end: subDays(start, 1) } : getPrevRange(period, cursor);
 
   const periodTx = useMemo(() => expenses.filter(t => inRange(t.date, start, end)), [expenses, start, end]);
 
@@ -254,10 +257,10 @@ export default function SpendingSummary() {
 
   // Trend buckets: daily for monthly/biweekly, monthly for yearly
   const trendData = useMemo(() => {
-    if (period === 'yearly') {
+    if (period === 'yearly' || (explicitRange && span > 90)) {
       return eachMonthOfInterval({ start, end }).map(m => {
         const key = format(m, 'yyyy-MM');
-        return { key: format(m, 'MMM'), spent: Math.round(expenses.filter(t => t.date?.startsWith(key)).reduce((s, t) => s + (t.amount || 0), 0)) };
+        return { key: format(m, 'MMM'), spent: Math.round(periodTx.filter(t => t.date?.startsWith(key)).reduce((s, t) => s + (t.amount || 0), 0)) };
       });
     }
     return eachDayOfInterval({ start, end }).map(d => {
@@ -266,9 +269,9 @@ export default function SpendingSummary() {
     });
   }, [period, start, end, expenses, periodTx]);
 
-  const bucketsCount = period === 'monthly' ? end.getDate() : period === 'biweekly' ? 14 : 12;
+  const bucketsCount = explicitRange ? (span > 90 ? eachMonthOfInterval({start,end}).length : span) : period === 'monthly' ? end.getDate() : period === 'biweekly' ? 14 : 12;
   const avgPerBucket = totalSpending / bucketsCount;
-  const avgLabel = period === 'yearly' ? 'Avg / Month' : 'Avg / Day';
+  const avgLabel = (period === 'yearly' || (explicitRange && span > 90)) ? 'Avg / Month' : 'Avg / Day';
 
   const now = new Date();
   const nextDisabled =
@@ -283,6 +286,7 @@ export default function SpendingSummary() {
   // data, not on literal today — otherwise flipping to Monthly at the start
   // of a month drops you on an empty view again.
   const switchPeriod = (p) => {
+    setExplicitRange(null);
     setPeriod(p);
     const latest = expenses.reduce((max, t) => (t.date && (!max || t.date > max) ? t.date : max), null);
     setCursor(latest ? parseISO(latest) : defaultCursor(p));
@@ -312,6 +316,7 @@ export default function SpendingSummary() {
         }
       />
 
+      {explicitRange && <p className="text-sm text-muted-foreground mb-3">Exact dates from your summary. Choose a calendar period below to explore other dates.</p>}
       {/* Hero — same gradient-card language as Home/Budget/Totals instead of
           a plain header + a separate toggle bar + a separate nav bar + a
           separate stat grid stacked four deep. One card carries the period
@@ -340,11 +345,11 @@ export default function SpendingSummary() {
           </div>
 
           <div className="flex items-center justify-between mb-4">
-            <button onClick={goPrev} aria-label="Previous period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
+            <button disabled={!!explicitRange} onClick={goPrev} aria-label="Previous period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
               <ChevronLeft className="w-4 h-4 text-white" />
             </button>
             <p className="text-white text-sm font-bold">{label}</p>
-            <button onClick={goNext} disabled={nextDisabled} aria-label="Next period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-30 shrink-0">
+            <button onClick={goNext} disabled={!!explicitRange || nextDisabled} aria-label="Next period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-30 shrink-0">
               <ChevronRight className="w-4 h-4 text-white" />
             </button>
           </div>

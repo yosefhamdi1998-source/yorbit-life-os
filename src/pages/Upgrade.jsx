@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
-import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Receipt, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Lock, Infinity as InfinityIcon } from 'lucide-react';
 // Aliased: importing lucide's `Infinity` under its own name shadows the
 // global numeric Infinity for this whole module. Nothing here divides by
 // zero today, but a plan comparison is exactly the file where an
@@ -19,8 +19,6 @@ const FEATURES_LIST = [
   { icon: Sparkles, label: 'AI Financial Briefings', desc: 'Smart daily summaries of your financial health', pro: true },
   { icon: TrendingUp, label: 'Unlimited Budgets', desc: 'Set limits for every spending category', pro: true },
   { icon: Target, label: 'Unlimited Goals', desc: 'Track as many savings goals as you want', pro: true },
-  { icon: Receipt, label: 'Unlimited Transactions', desc: 'Log everything with no monthly caps', pro: true },
-  { icon: Shield, label: 'Priority Support', desc: 'Fast-track responses from our team', pro: true },
 ];
 
 const FREE_LIMITS = [
@@ -28,7 +26,7 @@ const FREE_LIMITS = [
   { label: 'Budgets', free: `${FREE_BUDGET_LIMIT} categories`, pro: '✓ All categories' },
   { label: 'Savings goals', free: `${FREE_GOAL_LIMIT} goals`, pro: '✓ Unlimited' },
   { label: 'AI Briefings', free: '✗', pro: '✓ Daily' },
-  { label: 'AI Coach', free: '✗', pro: '✓ Always on' },
+  { label: 'AI Coach', free: '✗', pro: '✓ Included' },
 ];
 
 const PRICES = {
@@ -148,7 +146,7 @@ export default function Upgrade() {
         </Button>
         <div>
           <h1 className="text-xl font-black leading-none">Yorbit Pro</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Unlock your financial superpower</p>
+          <p className="text-xs text-muted-foreground mt-0.5">More guidance, budgets, and goals</p>
         </div>
       </div>
 
@@ -170,7 +168,7 @@ export default function Upgrade() {
               </div>
               <div className="flex-1">
                 <p className="text-white font-black text-lg leading-none">Go Pro Today</p>
-                <p className="text-white/70 text-xs mt-0.5">Your money, on autopilot</p>
+                <p className="text-white/70 text-xs mt-0.5">More support for your money plan</p>
               </div>
               <span className="bg-yellow-300 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
                 7-DAY FREE TRIAL

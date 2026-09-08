@@ -1,4 +1,5 @@
-import { jsonResponse } from '../_shared/cors.ts';
+import { jsonResponse, errorResponse } from '../_shared/cors.ts';
+import { PRICE_TO_PLAN } from '../_shared/billing.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
 
@@ -8,11 +9,6 @@ import Stripe from 'npm:stripe@14.21.0';
 // IMPORTANT: this endpoint must accept unauthenticated requests (Stripe can't send
 // your Supabase anon/service key) — deploy with `--no-verify-jwt`, see MIGRATION_STEPS.md.
 
-// Fill in your own Stripe Price IDs here once you've re-created products in Stripe.
-const PRICE_TO_PLAN: Record<string, string> = {
-  // 'price_XXXXXXXXXXXX': 'pro_monthly',
-  // 'price_YYYYYYYYYYYY': 'pro_yearly',
-};
 
 Deno.serve(async (req) => {
   try {
@@ -35,14 +31,17 @@ Deno.serve(async (req) => {
     const admin = serviceClient();
 
     async function upsertSubscription(customerId: string, fields: Record<string, unknown>, userId?: string) {
-      const { data: existing } = await admin
+      const { data: existing, error: readError } = await admin
         .from('subscriptions').select('id').eq('stripe_customer_id', customerId);
+      if (readError) throw readError;
       if (existing && existing.length > 0) {
-        await admin.from('subscriptions').update(fields).eq('id', existing[0].id);
+        const { error } = await admin.from('subscriptions').update(fields).eq('id', existing[0].id);
+        if (error) throw error;
       } else if (userId) {
-        await admin.from('subscriptions').insert({ ...fields, stripe_customer_id: customerId, user_id: userId });
+        const { error } = await admin.from('subscriptions').insert({ ...fields, stripe_customer_id: customerId, user_id: userId });
+        if (error) throw error;
       } else {
-        console.warn(`No local subscription row and no user_id for new Stripe customer ${customerId}; skipping.`);
+        throw new Error('Subscription owner is not available yet; retry this event.');
       }
     }
 
@@ -96,6 +95,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ received: true }, 200, {}, req);
   } catch (err) {
     console.error('stripe-webhook error:', err.message);
-    return errorResponse('Something went wrong processing the payment.', 500, { internal: error, fn: 'stripe-webhook', req });
+    return errorResponse('Something went wrong processing the payment.', 500, { internal: err, fn: 'stripe-webhook', req });
   }
 });

@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+let calls=0;
+const info={entitlements:{active:{pro:{}}},activeSubscriptions:['yearly']};
+globalThis.__revenuecatTest={configure:async()=>{calls++;},getOfferings:async()=>({all:{},current:{id:'test'}}),getCustomerInfo:async()=>({customerInfo:info}),restorePurchases:async()=>({customerInfo:info}),purchasePackage:async()=>({customerInfo:info})};
+const source=fs.readFileSync('src/lib/revenuecat.js','utf8').replace(/^import .*;\r?\n/gm,'');
+const prelude="const Purchases=globalThis.__revenuecatTest; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
+const api=await import('data:text/javascript;base64,'+Buffer.from(prelude+source).toString('base64'));
+await Promise.all([api.getOfferings(),api.getOfferings()]);
+assert.equal(calls,1,'Concurrent callers configure only once');
+assert.deepEqual(await api.checkProEntitlement(),{isPro:true,plan:'pro_yearly'});
+assert.equal((await api.restorePurchases()).isPro,true,'Restore remains available after initialization');
+assert.equal((await api.purchasePackage({})).plan,'pro_yearly');
+delete globalThis.__revenuecatTest;
+console.log('PASS: RevenueCat repeated calls, concurrent initialization, annual entitlement, and restore');
