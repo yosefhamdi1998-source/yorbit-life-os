@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
           <p>Your data is used only to power your own Yorbit experience:</p>
           <ul className="list-disc list-inside space-y-1 pl-2">
             <li>To display your transactions, budgets, and goals</li>
-            <li>To generate your AI Money Briefing and coaching suggestions</li>
+            <li>To generate your AI coaching suggestions, when you've turned AI features on</li>
             <li>To show budget health and spending trends</li>
             <li>To let you export or delete your data at any time</li>
           </ul>
@@ -47,6 +47,7 @@ export default function PrivacyPolicy() {
           <p><strong className="text-foreground">Coaching Plan tab:</strong> Only aggregated numbers are sent — category totals, your savings rate, and budget status. No individual transaction records are included.</p>
           <p><strong className="text-foreground">Advisor Chat tab:</strong> To hold a real conversation about your finances, this tab sends your budgets, bills, and your most recent transactions (up to 40) — including each one's title, which is often a merchant or payee name — to Anthropic. If you'd rather keep certain details out of what's sent to our AI provider, avoid including them in transaction titles, goal names, or chat messages.</p>
           <p>Anthropic processes this data under its own privacy policy and API terms, which govern how they handle it on their end.</p>
+          <p><strong className="text-foreground">Your consent is required first.</strong> Neither tab will send anything to Anthropic until you've explicitly agreed to AI processing. This isn't just a screen you can skip past — it's checked on our servers before every request, so it holds even if something bypasses the app's own interface.</p>
           <p>AI-generated content is informational only. It is not financial, legal, tax, or investment advice.</p>
         </Section>
 
