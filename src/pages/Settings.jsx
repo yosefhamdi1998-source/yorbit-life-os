@@ -316,14 +316,14 @@ export default function Settings() {
             </div>
             <div className="min-w-0">
               <p className="font-bold text-sm">Simple Mode</p>
-              <p className="text-xs text-muted-foreground">Just the basics — fewer options, easier for a first-time user (like a teenager). Turn off for the full Advanced experience.</p>
+              <p className="text-xs text-muted-foreground">Show fewer options and focus on everyday money tasks.</p>
             </div>
           </div>
           <Switch checked={simpleMode} onCheckedChange={chooseSimpleMode} />
         </div>
 
         {/* Rate the app */}
-        <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
+        {APP_STORE_URL && <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-yellow-400/10 rounded-xl flex items-center justify-center">
               <Star className="w-5 h-5 text-yellow-500" />
@@ -343,10 +343,10 @@ export default function Settings() {
           >
             ⭐ Rate
           </button>
-        </div>
+        </div>}
 
         {/* Restore Purchases — Apple requirement */}
-        <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
+        {isNativeIOS() && <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-primary" />
@@ -367,7 +367,7 @@ export default function Settings() {
           >
             {isNativeIOS() && restoring ? 'Restoring…' : 'Restore'}
           </button>
-        </div>
+        </div>}
 
         {/* Share / Refer */}
         <div className="sky-card rounded-2xl p-5 flex items-center justify-between">
@@ -381,7 +381,17 @@ export default function Settings() {
             </div>
           </div>
           <button
-            onClick={() => { if (navigator.share) { navigator.share({ title: 'Yorbit', text: 'I use Yorbit to track my finances — check it out!', url: 'https://yorbit-life-os.vercel.app' }); } }}
+            onClick={async () => {
+              try {
+                if (navigator.share) await navigator.share({ title: 'Yorbit', text: 'A money plan for income that changes.', url: 'https://yorbit-life-os.vercel.app' });
+                else {
+                  await navigator.clipboard.writeText('https://yorbit-life-os.vercel.app');
+                  toast({ title: 'Link copied', description: 'Paste it wherever you want to share Yorbit.' });
+                }
+              } catch (error) {
+                if (error.name !== 'AbortError') toast({ title: 'Could not share', description: 'You can copy the website address from your browser.', variant: 'destructive' });
+              }
+            }}
             className="flex items-center gap-1 bg-pink-400/10 hover:bg-pink-400/20 transition-colors text-pink-600 rounded-full px-3 py-1.5 text-xs font-bold"
           >
             Share
@@ -414,7 +424,7 @@ export default function Settings() {
             <div className="flex items-start gap-2">
               <Lock className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
               <p className="text-xs text-foreground/80 leading-relaxed">
-                Your financial data stays private and is used only to power your Yorbit insights. It is never shared or sold.
+                Yorbit uses service providers to store your data and connect your accounts. AI guidance shares the information described below only when you enable it. You can withdraw AI consent here.
               </p>
             </div>
           </div>

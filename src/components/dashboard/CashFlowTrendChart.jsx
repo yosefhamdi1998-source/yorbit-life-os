@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ComposedChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BarChart3, TrendingUp, TrendingDown, ChartLine, ChartPie } from 'lucide-react';
+import { BarChart3, ChartLine, ChartPie } from 'lucide-react';
 import { fmtAxisCompact, fmtFull } from '@/lib/format';
 
 // Three honestly-different readings of the same data, not the same chart
@@ -82,15 +82,6 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
   const totalIncome = data.reduce((s, d) => s + d.income, 0);
   const totalExpense = data.reduce((s, d) => s + d.expense, 0);
 
-  // First half vs. second half of the window, for a lightweight "is this
-  // getting better or worse" signal in the header — cheap to compute, no
-  // extra fetch, and it's the one thing a static bar chart can't say for
-  // itself at a glance.
-  const mid = Math.ceil(data.length / 2);
-  const firstHalfNet = data.slice(0, mid).reduce((s, d) => s + (d.income - d.expense), 0);
-  const secondHalfNet = data.slice(mid).reduce((s, d) => s + (d.income - d.expense), 0);
-  const improving = secondHalfNet > firstHalfNet;
-
   // A bar per day (1M) or per month across 2 years is a lot of ticks —
   // thin them out so labels never overlap, and drop the per-point dots/bar
   // radius that only read as "premium" when there's room to breathe.
@@ -121,16 +112,10 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
           </div>
           <div className="min-w-0">
             <p className="font-bold text-sm leading-tight">Cash Flow Trend</p>
-            <p className="text-xs text-muted-foreground truncate">Income vs. expenses</p>
+            <p className="text-xs text-muted-foreground truncate">{activePeriod.subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          {hasAnyData && data.length > 1 && (
-            <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${improving ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-              {improving ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {improving ? 'Improving' : 'Slipping'}
-            </div>
-          )}
           {/* Chart-type switcher, top-right corner — three genuinely
               different readings of the same numbers rather than the same
               chart drawn three ways. */}

@@ -345,7 +345,7 @@ export default function Dashboard() {
 
   return (
     <div className="pb-8 overflow-x-hidden">
-      <div className="pt-6"><p className="text-sm font-semibold text-primary">Your weekly money check-in</p><h1 className="text-2xl lg:text-3xl font-bold mt-1">Uneven income. A clearer plan.</h1><p className="text-sm text-muted-foreground mt-2">Review what came in, what is due, and your next step.</p><Link to="/finance?add=1" className="inline-flex items-center min-h-[44px] mt-2 text-sm font-semibold text-primary">+ Add a transaction</Link></div>
+      <header className="flex items-center justify-between gap-4 pt-6 pb-5"><div><h1 className="text-2xl font-bold tracking-tight">Overview</h1><p className="text-sm text-muted-foreground mt-1">Your accounts, spending, and upcoming bills</p></div><Link to="/finance?add=1" className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-3 rounded-xl border border-border bg-card text-sm font-semibold"><Plus className="w-4 h-4" /> Add</Link></header>
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
 
@@ -355,14 +355,14 @@ export default function Dashboard() {
           in empty gradient, and the chart a thin strip of skinny bars with
           big gaps. Paired, both get their proportions back and the page
           fills the screen instead of stopping halfway down it. */}
-      <div className="lg:mb-5">
+      <div className="grid lg:grid-cols-2 gap-5 mb-5 items-start">
 
       {/* ── Hero ──────────────────────────────────────────────────────
           A flat stat row read as sterile on its own — this is the one
           moment on the page that gets real color, everything below stays
           calm so the gradient has somewhere to land. */}
       <div
-        className="mt-5 mb-5 lg:mb-0 lg:col-span-6 lg:flex lg:flex-col lg:justify-center rounded-3xl overflow-hidden relative"
+        className=" rounded-3xl overflow-hidden relative"
         style={{
           background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)',
           // Some themes' gradient runs bright at one end (gold, sand) — a
@@ -498,6 +498,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
       {/* Cash Flow Trend — a real chart takes the first slot below the hero
           instead of the Health Score card. It's a friendlier, more
           "professional finance app" first impression than leading with a
@@ -562,7 +563,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-muted-foreground" />
-                <p className="font-bold text-sm">Bills before your next check-in</p>
+                <p className="font-bold text-sm">Upcoming bills</p>
               </div>
               <Link to="/bills" className="text-xs text-primary font-semibold flex items-center gap-0.5">
                 All <ChevronRight className="w-3 h-3" />
@@ -635,7 +636,6 @@ export default function Dashboard() {
           </div>
         )}
 
-      <details className="sky-card rounded-2xl p-4 mb-5"><summary className="cursor-pointer min-h-[44px] font-semibold">Explore income and spending trends</summary><CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} /></details>
         {/* Recent Transactions */}
         {transactions.length > 0 ? (
           <div className="sky-card rounded-2xl overflow-hidden">

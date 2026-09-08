@@ -1,3 +1,4 @@
+import { parseCSV, statementRowKey } from '@/lib/csv';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Upload, CheckCircle, AlertTriangle, ArrowLeft, Loader2, FileSpreadsheet } from 'lucide-react';
@@ -15,47 +16,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
 const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
 const ALL_CATS = [...new Set([...EXPENSE_CATS, ...INCOME_CATS])];
-
-// Real exports (Venmo's especially) don't start with the column header row —
-// Venmo's opens with a title line ("Account Statement - (@user)"), a
-// beginning-balance line, and blank lines before the actual
-// "ID,Datetime,Type,Status,Note,From,To,Amount (total),…" header. Blindly
-// treating line 1 as the header, like a plain bank CSV, turned that title
-// line into a single bogus column and broke everything downstream — so
-// scan for the first line that actually looks like a header row instead.
-const HEADER_HINTS = ['date', 'time', 'amount', 'desc', 'merchant', 'memo', 'payee', 'note', 'debit', 'credit', 'type', 'category'];
-function findHeaderRowIndex(lines) {
-  for (let i = 0; i < Math.min(lines.length, 20); i++) {
-    const cells = lines[i].split(',').map(c => c.replace(/['"]/g, '').trim().toLowerCase()).filter(Boolean);
-    if (cells.length >= 2 && HEADER_HINTS.some(h => cells.some(c => c.includes(h)))) return i;
-  }
-  return 0;
-}
-
-function parseCSV(text) {
-  const allLines = text.trim().split('\n').filter(l => l.trim());
-  const lines = allLines.slice(findHeaderRowIndex(allLines));
-  if (lines.length < 2) return { headers: [], rows: [] };
-  // Keep the raw (possibly-blank) header list for building each row object
-  // positionally — Venmo's export leads with one unlabeled column, and
-  // dropping it here would shift every later value one column to the left.
-  const rawHeaders = lines[0].split(',').map(h => h.replace(/['"]/g, '').trim());
-  const rows = lines.slice(1).map(line => {
-    const vals = [];
-    let cur = '', inQ = false;
-    for (const ch of line) {
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
-      else { cur += ch; }
-    }
-    vals.push(cur.trim());
-    // Blank-named columns just get skipped — nothing can ever reference them
-    // by name, and letting an empty string through as a header would later
-    // crash a <SelectItem>, which requires a non-empty value.
-    return rawHeaders.reduce((obj, h, i) => { if (h) obj[h] = (vals[i] || '').replace(/^"(.*)"$/, '$1').trim(); return obj; }, {});
-  });
-  return { headers: rawHeaders.filter(Boolean), rows };
-}
 
 // Second-pass fallback for when a column's own name doesn't say what it is
 // (a bank's own jargon, an unlabeled export, a language mismatch). Instead
@@ -446,24 +406,24 @@ export default function CSVImport() {
     // adds nothing (the database already holds as many as the file has),
     // while a file genuinely containing twenty identical trades imports all
     // twenty the first time.
-    const existing = await base44.entities.Transaction.listAll('-date', 50000);
+    let existing;
+    try {
+      existing = await base44.entities.Transaction.listAll('-date', 50000);
+    } catch {
+      setError('We could not check your existing transactions. Nothing was imported. Please try again.');
+      setImporting(false);
+      return;
+    }
     const existingCounts = new Map();
     for (const t of existing) {
-      const k = `${t.date}|${t.title}|${t.amount}`;
+      const k = statementRowKey(t);
       existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
-    }
-
-    // How many of each key this file contains.
-    const fileCounts = new Map();
-    for (const r of collected) {
-      const k = `${r.date}|${r.title}|${r.amount}`;
-      fileCounts.set(k, (fileCounts.get(k) || 0) + 1);
     }
 
     const takenSoFar = new Map();
     const toImport = [];
     for (const r of collected) {
-      const key = `${r.date}|${r.title}|${r.amount}`;
+      const key = statementRowKey(r);
       const already = existingCounts.get(key) || 0;
       const taken = takenSoFar.get(key) || 0;
       // Import this occurrence only if the file has more of this key than
