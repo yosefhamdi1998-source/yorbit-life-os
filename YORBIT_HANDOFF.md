@@ -89,3 +89,7 @@ Sample bill paid/unpaid round-trip restored due totals and overdue counts correc
 ## Export and next-action follow-up
 
 Removed the 50,000-row cap from Settings transaction export (existing adapter paginates all records). Actual adapter test with 51,025 sample records retained every ID; simulated failed page rejects the export instead of silently returning partial data. Added test:export-pagination to the regression suite. Home spending-above-income fallback now links directly to Budget rather than requiring Coach. Vercel 3493f6e verified Ready (9Txi6pgEz9Fq5mkV81dbUpf5CsFx); live Budget exposes planning-income control and existing limits remain unchanged.
+
+## Statement import end-to-end test
+
+Uploaded fixtures/sample-statement.csv through the actual file chooser in the synthetic app. Preview correctly showed $900 freelance income and $42.50/$12.75 food expenses, including a quoted description containing a comma. Import wrote three sample rows; reimport skipped three duplicates and wrote zero. Receipt opened Money and totals reflected the imported amounts. Fixed its View Transactions action to carry the statement date range; retest opened /finance?start=2026-09-01&end=2026-09-03 with that exact selected range. These tests use synthetic data; real PDFs and other providers still need broader coverage.

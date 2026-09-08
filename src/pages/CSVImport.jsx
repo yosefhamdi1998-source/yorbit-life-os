@@ -466,13 +466,17 @@ export default function CSVImport() {
     setStep('upload'); setCollected([]); setFileSummaries([]); setPendingMapFiles([]); setMapIndex(0); setError('');
   };
 
+  const reviewDates = collected.map(row => row.date).filter(Boolean).sort();
+  const reviewRange = importedRange || (reviewDates.length ? { first: reviewDates[0], last: reviewDates.at(-1) } : null);
+  const reviewUrl = reviewRange ? `/finance?start=${encodeURIComponent(reviewRange.first)}&end=${encodeURIComponent(reviewRange.last)}` : '/finance';
+
   const STEP_ORDER = ['upload', 'preview', 'done'];
   const stepIdx = STEP_ORDER.indexOf(step === 'processing' || step === 'mapping' ? 'upload' : step === 'importing' ? 'preview' : step);
 
   return (
     <div className="py-6 lg:py-10">
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/finance')} className="min-h-[44px] min-w-[44px]">
+        <Button aria-label="Back to transactions" variant="ghost" size="icon" onClick={() => navigate('/finance')} className="min-h-[44px] min-w-[44px]">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
@@ -670,7 +674,7 @@ export default function CSVImport() {
             <Button variant="outline" onClick={reset}>
               Upload More
             </Button>
-            <Button onClick={() => navigate('/finance')} className="gap-2">
+            <Button onClick={() => navigate(reviewUrl)} className="gap-2">
               View Transactions
             </Button>
           </div>
