@@ -10,15 +10,14 @@ import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } fr
 import { composeNetWorth } from '@/lib/netWorth';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
 import { computeHealthScore } from '@/lib/financialHealth';
-import { fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
+import { fmtFull } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
 import CashFlowTrendChart from '@/components/dashboard/CashFlowTrendChart';
-import { DollarSign, Plus, ChevronRight, ChevronDown, ArrowRight, Receipt, Zap } from 'lucide-react';
+import { DollarSign, Plus, ChevronRight, ArrowRight, Receipt } from 'lucide-react';
 import BudgetSummaryCard from '@/components/dashboard/BudgetSummaryCard';
 import CategoryBreakdownCard from '@/components/dashboard/CategoryBreakdownCard';
 import CoverageNotice from '@/components/CoverageNotice';
-import AnimatedNumber from '@/components/AnimatedNumber';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { prettyMerchant } from '@/lib/merchantName';
@@ -349,180 +348,23 @@ export default function Dashboard() {
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
 
-      {/* Hero and chart sit side by side from lg up (5/12 + 7/12), stacked
-          on phone. Full-width each, they were a phone layout stretched to
-          1152px: the hero became a short wide band with the number marooned
-          in empty gradient, and the chart a thin strip of skinny bars with
-          big gaps. Paired, both get their proportions back and the page
-          fills the screen instead of stopping halfway down it. */}
-      <div className="grid lg:grid-cols-2 gap-5 mb-5 items-start">
-
-      {/* ── Hero ──────────────────────────────────────────────────────
-          A flat stat row read as sterile on its own — this is the one
-          moment on the page that gets real color, everything below stays
-          calm so the gradient has somewhere to land. */}
-      <div
-        className=" rounded-3xl overflow-hidden relative"
-        style={{
-          background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-via) 55%, var(--hero-to) 100%)',
-          // Some themes' gradient runs bright at one end (gold, sand) — a
-          // flat white number stays crisp at the dark end but washes out
-          // against those. A soft dark shadow (inherited by every white
-          // text node below) keeps it legible across all 9 themes without
-          // trading away contrast on the dark end, the way switching to a
-          // fixed dark-gray would.
-          textShadow: '0 1px 10px rgba(0,0,0,0.35)',
-        }}
-      >
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="aurora-blob aurora-sky1" style={{ opacity: 0.45 }} />
-          <div className="aurora-blob aurora-sky2" style={{ opacity: 0.35 }} />
+      <section aria-label="Money overview" className="mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div><h2 className="text-sm font-semibold">Your money at a glance</h2><p className="text-xs text-muted-foreground mt-1">Recorded activity through {format(latestTxDate, 'MMM d, yyyy')}</p></div>
+          <select aria-label="Overview date range" value={cashFlowPeriod} onChange={e => setCashFlowPeriod(e.target.value)} className="min-h-[44px] rounded-xl border border-border bg-card px-3 text-sm font-medium">
+            <option value="week">Last 7 days</option><option value="month">Last 30 days</option><option value="3month">Last 3 months</option><option value="6month">Last 6 months</option>
+            {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}<option value="all">All time</option>
+          </select>
         </div>
-        <div className="relative px-5 pt-5 pb-5 lg:px-8 lg:pt-7 lg:pb-7">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-white/60 text-[11px] font-semibold uppercase tracking-widest">
-              {heroPeriodLabel}
-            </p>
-            <Link to="/upgrade">
-              <div className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors rounded-full px-3 py-1.5">
-                <Zap className="w-3.5 h-3.5 text-yellow-300" />
-                <span className="text-white text-xs font-bold">Go Pro</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Period switcher lives right in the hero — same idea as the
-              date-range switcher on Money, so the top of Home isn't just
-              a static snapshot with nowhere to go. Every period sits side
-              by side (space allows it — Week/Month/3M/6M/Year/All all
-              visible at once, no picking through a menu). Yearly stays a
-              dropdown so any past year is one tap away without needing 4
-              more chips. All gets a distinct gold treatment (same accent
-              family as "Go Pro" above) so it visually reads as "a
-              different kind of option," not just one more period. */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {/* Labels from the shared vocabulary. These chips said Week/Month
-                while the Money page said Weekly/Monthly and the chart right
-                below said 1M - three spellings of the same two spans within
-                one thumb's reach. */}
-            {(simpleMode
-              ? [{ key: 'week' }, { key: 'month' }]
-              : [{ key: 'week' }, { key: 'month' }, { key: '3month' }, { key: '6month' }]
-            ).map(p => (
-              <button
-                key={p.key}
-                onClick={() => setCashFlowPeriod(p.key)}
-                className={`shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
-              >
-                {rangeLabel(p.key)}
-              </button>
-            ))}
-            <div className="relative shrink-0">
-              <select
-                value={isYearPeriod ? cashFlowPeriod : ''}
-                onChange={e => setCashFlowPeriod(e.target.value)}
-                className={`appearance-none text-[11px] font-semibold pl-2.5 pr-6 py-1.5 rounded-full border transition-all cursor-pointer ${isYearPeriod ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70'}`}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              >
-                {/* Native <option> ignores the parent's Tailwind text color once the
-                    browser renders its own dropdown popup — that popup is opaque and
-                    OS-styled, so without an explicit background+color here the white
-                    hero text became invisible white-on-white the moment it opened. */}
-                <option value="" disabled style={{ background: '#1a1a2e', color: '#fff' }}>Year</option>
-                {YEAR_OPTIONS.map(y => (
-                  <option key={y} value={`year-${y}`} style={{ background: '#1a1a2e', color: '#fff' }}>{y}</option>
-                ))}
-              </select>
-              <ChevronDown className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none ${isYearPeriod ? 'text-primary' : 'text-white/70'}`} />
-            </div>
-            {!simpleMode && (
-              <button
-                onClick={() => setCashFlowPeriod('all')}
-                className={`shrink-0 text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition-all ${cashFlowPeriod === 'all' ? 'bg-amber-300 text-amber-950 border-amber-300' : 'bg-amber-400/15 border-amber-300/40 text-amber-200 hover:bg-amber-400/25'}`}
-              >
-                All
-              </button>
-            )}
-          </div>
-
-          <p className="text-white/60 text-xs font-medium mb-1">Income minus spending {heroPeriodPhrase}</p>
-          <p className={`font-numeric text-white ${heroValueSizeClass(fmtFull(Math.abs(heroNetSaved)))} font-black tracking-tight leading-none mb-1.5 tabular-nums`}>
-            {heroNetSaved >= 0 ? '+' : '−'}<AnimatedNumber prefix="$" value={Math.abs(heroNetSaved)} />
-          </p>
-          <p className="text-white/75 text-xs font-semibold mb-5 h-4">
-            {prevTx.length > 0 && Math.abs(heroNetSaved - prevSums.net) >= 1 &&
-              `${heroNetSaved - prevSums.net >= 0 ? '+' : '−'}$${fmtFull(Math.abs(heroNetSaved - prevSums.net))} vs. last period`}
-          </p>
-
-          <div className="grid grid-cols-3 gap-2.5">
-            <Link
-              to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'income')}
-              className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
-              title={`$${fmtFull(heroIncome)}`}
-            >
-              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Income</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">
-                <AnimatedNumber format={fmtCompact} value={heroIncome} />
-              </p>
-            </Link>
-            {/* Tapping this used to just sit there — now it opens the real,
-                category-by-category breakdown (Spending Summary) for the
-                same window instead of leaving "where did it go" unanswered. */}
-            <Link
-              to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'expense')}
-              className="bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors rounded-xl px-3 py-2.5 min-w-0 block"
-              title={`$${fmtFull(heroExpenses)}`}
-            >
-              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Expenses</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">
-                <AnimatedNumber format={fmtCompact} value={heroExpenses} />
-              </p>
-            </Link>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
-              <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Savings rate</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums">{savingsRateLabel(heroSavingsRate)}</p>
-            </div>
-          </div>
-
-          {/* Says when the four numbers above are built from too little
-              history to mean anything. "$215 spent in 2025" was the sum of
-              29 transactions - the entire non-crypto record for that year -
-              printed with the same confidence as a real annual total. */}
-          <CoverageNotice
-            transactions={heroTx}
-            periodStart={heroPeriodStart}
-            periodEnd={heroPeriodEnd}
-            periodLabel={heroPeriodPhrase}
-            className="mt-3.5 bg-black/25 border-white/15 [&_p]:text-white/85 [&_a]:text-white [&_svg]:text-white/70"
-          />
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'income')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Income ↗</p><p className="text-2xl font-bold tracking-tight tabular-nums text-emerald-600 dark:text-emerald-400">${fmtFull(heroIncome)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
+          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'expense')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Spending ↗</p><p className="text-2xl font-bold tracking-tight tabular-nums">${fmtFull(heroExpenses)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
+          <div className="rounded-2xl p-4 sm:p-5 bg-primary/10 border border-primary/20"><p className="text-xs text-muted-foreground mb-2">Income minus spending</p><p className="text-2xl font-bold tracking-tight tabular-nums">{heroNetSaved < 0 ? '−' : ''}${fmtFull(Math.abs(heroNetSaved))}</p><p className="text-xs text-muted-foreground mt-2">Not your available bank balance</p></div>
+          <div className="sky-card rounded-2xl p-4 sm:p-5"><p className="text-xs text-muted-foreground mb-2">Savings rate</p><p className="text-2xl font-bold tracking-tight tabular-nums">{savingsRateLabel(heroSavingsRate)}</p><p className="text-xs text-muted-foreground mt-2">Share of recorded income left</p></div>
         </div>
-      </div>
-
-      <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
-      {/* Cash Flow Trend — a real chart takes the first slot below the hero
-          instead of the Health Score card. It's a friendlier, more
-          "professional finance app" first impression than leading with a
-          score that can read as a critique, and it's information the hero
-          numbers above don't show: the shape of the last 6 months, not
-          just one period's total. */}
-      {/* The chart card carries its own mb-5 for the stacked phone layout;
-          inside the grid row that fights h-full, so it's zeroed here and the
-          row's own lg:mb-5 provides the gap instead. */}
-
-      </div>
-
-
-
-      {/* Net Worth — same left-aligned label-then-number pattern as the "Net
-          saved" hero above it, so the two cards read as one family instead
-          of one centered and one edge-pinned. */}
-
-      {/* ── Content sections ──────────────────────────────────────────
-          One column on phone; two side-by-side columns from lg up, so
-          cards stay a readable width instead of stretching into bands. */}
-      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
-
-        {/* Onboarding CTA */}
+        <CoverageNotice transactions={heroTx} periodStart={heroPeriodStart} periodEnd={heroPeriodEnd} periodLabel={heroPeriodPhrase} className="mt-3" />
+      </section>
+      <section aria-label="Next steps" className="space-y-3 mb-6">        {/* Onboarding CTA */}
         {isNewUser && (
           <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-card p-4">
             <p className="font-bold text-sm text-foreground mb-0.5">Build your money picture</p>
@@ -557,7 +399,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Upcoming Bills */}
+</section>
+      <section aria-label="Bills and budget" className="mb-8">
+        <h2 className="text-base font-semibold mb-3">Your plan</h2>
+        <div className="grid lg:grid-cols-2 gap-5 items-start">        {/* Upcoming Bills */}
         {(
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -595,48 +440,16 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Budget Summary */}
-        <BudgetSummaryCard transactions={transactions} budgets={budgets} thisMonth={thisMonth} />
-
-        {/* Category Breakdown — where the money actually went this month,
-            including categories (investment, savings) budgets don't track */}
-        <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
-
-        {/* Goal Progress */}
-        {savingsGoals.length > 0 && (
-          <div className="sky-card rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 pt-4 pb-3">
-              <p className="font-bold text-sm">Goal Progress</p>
-              <Link to="/goals" className="text-xs text-primary font-semibold flex items-center gap-0.5">
-                See All <ChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <div className="px-4 pb-4 space-y-4">
-              {savingsGoals.slice(0, 2).map(goal => {
-                const pct = goal.target_amount > 0
-                  ? Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
-                  : 0;
-                return (
-                  <div key={goal.id}>
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-sm font-semibold text-foreground">{goal.icon || '🎯'} {goal.name}</span>
-                      <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--hero-to))' }} />
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">${fmt(goal.current_amount || 0)} saved</span>
-                      <span className="text-xs text-muted-foreground">of ${fmt(goal.target_amount)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Transactions */}
+<BudgetSummaryCard compact transactions={transactions} budgets={budgets} thisMonth={thisMonth} /></div>
+      </section>
+      <section aria-label="Spending insights" className="mb-8">
+        <div className="mb-3"><h2 className="text-base font-semibold">Understand your spending</h2><p className="text-xs text-muted-foreground mt-1">Explore a month to see the details behind the numbers.</p></div>
+        <div className="grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-5 items-start">
+          <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
+          <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
+        </div>
+      </section>
+      <section aria-label="Activity and goals" className="grid lg:grid-cols-2 gap-5 items-start">        {/* Recent Transactions */}
         {transactions.length > 0 ? (
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -685,7 +498,41 @@ export default function Dashboard() {
           )
         )}
 
-      </div>
+        {/* Goal Progress */}
+        {savingsGoals.length > 0 && (
+          <div className="sky-card rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3">
+              <p className="font-bold text-sm">Goal Progress</p>
+              <Link to="/goals" className="text-xs text-primary font-semibold flex items-center gap-0.5">
+                See All <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="px-4 pb-4 space-y-4">
+              {savingsGoals.slice(0, 2).map(goal => {
+                const pct = goal.target_amount > 0
+                  ? Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
+                  : 0;
+                return (
+                  <div key={goal.id}>
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-foreground">{goal.icon || '🎯'} {goal.name}</span>
+                      <span className="text-sm font-bold text-muted-foreground">{pct}%</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--hero-from), var(--hero-to))' }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs text-muted-foreground">${fmt(goal.current_amount || 0)} saved</span>
+                      <span className="text-xs text-muted-foreground">of ${fmt(goal.target_amount)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+</section>
     </div>
   );
 }

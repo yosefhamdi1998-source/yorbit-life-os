@@ -5,7 +5,7 @@ const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainm
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
-export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) {
+export default function BudgetSummaryCard({ transactions, budgets, thisMonth, compact = false }) {
   const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
@@ -150,7 +150,7 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth }) 
 
       {/* Category rows */}
       <div className="divide-y divide-border/40">
-        {displayRows.map(({ cat, spent, budget }) => {
+        {(compact ? displayRows.slice(0, 1) : displayRows).map(({ cat, spent, budget }) => {
           const limit = budget?.monthly_limit || 0;
           const rawPct = limit > 0 ? (spent / limit) * 100 : 0;
           const pct = Math.min(100, rawPct);
