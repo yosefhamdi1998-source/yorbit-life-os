@@ -1,3 +1,4 @@
+import { useProStatus } from '@/hooks/useProStatus';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getAiConsent, grantAiConsent, withdrawAiConsent, AI_STATES } from '@/lib/aiConsent';
@@ -28,6 +29,7 @@ import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode, setSimpleMode } from '@/lib/simpleMode';
 
 export default function Settings() {
+  const { isPro, loading: checkingPlan } = useProStatus();
   const urlParams = new URLSearchParams(window.location.search);
   const purchaseSuccess = urlParams.get('success') === '1';
   const [deleting, setDeleting] = useState(false);
@@ -57,7 +59,7 @@ export default function Settings() {
   // rule; this only decides what the row says and which way the button goes.
   const [aiConsent, setAiConsent] = useState({ state: AI_STATES.UNKNOWN });
   const [aiBusy, setAiBusy] = useState(false);
-  const refreshAiConsent = useCallback(() => { getAiConsent().then(setAiConsent); }, []);
+  const refreshAiConsent = useCallback(() => getAiConsent().then(setAiConsent), []);
   useEffect(() => { refreshAiConsent(); }, [refreshAiConsent]);
   const toggleAiConsent = async () => {
     if (aiBusy) return;
@@ -130,7 +132,7 @@ export default function Settings() {
       setDeleteDataOpen(false);
       toast({ title: 'Data deleted', description: 'All your financial data has been removed.' });
     } catch {
-      toast({ title: "Couldn't delete your data", description: 'Nothing was deleted. Please try again.', variant: 'destructive' });
+      toast({ title: "Couldn't delete your data", description: 'We could not confirm the result. Refresh your data before trying again.', variant: 'destructive' });
     }
     deletingRef.current = false;
     setDeleting(false);
@@ -242,8 +244,8 @@ export default function Settings() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <p className="font-bold text-sm text-emerald-800">Welcome to Yorbit Pro! 🎉</p>
-              <p className="text-xs text-emerald-700 mt-0.5">Your subscription is active. Enjoy all Pro features.</p>
+              <p className="font-bold text-sm text-emerald-800">{isPro ? 'Yorbit Pro is active' : checkingPlan ? 'Checking your subscription…' : 'Waiting for subscription confirmation'}</p>
+              <p className="text-xs text-emerald-700 mt-0.5">{isPro ? 'Your subscription has been verified.' : 'Returning from checkout does not confirm payment. Refresh this page shortly; contact support if your purchase remains unavailable.'}</p>
             </div>
           </div>
         )}

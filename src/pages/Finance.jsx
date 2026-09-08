@@ -411,8 +411,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Exact date range</label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
-                <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+                <Input type="date" aria-label="From date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                <Input type="date" aria-label="To date" value={customTo} onChange={e => setCustomTo(e.target.value)} />
               </div>
             </div>
           </div>

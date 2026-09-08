@@ -23,13 +23,14 @@ function useIsMobile() {
  *
  * options: Array<{ value: string, label: string }>
  */
-export function MobileSelect({ value, onValueChange, options, placeholder, className }) {
+export function MobileSelect({ value, onValueChange, options, placeholder, className, ariaLabel }) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
       <div className={cn('relative', className)}>
         <select
+          aria-label={ariaLabel || placeholder}
           value={value}
           onChange={e => onValueChange(e.target.value)}
           className="h-9 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-8 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
@@ -53,7 +54,7 @@ export function MobileSelect({ value, onValueChange, options, placeholder, class
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className={className}>
+      <SelectTrigger aria-label={ariaLabel || placeholder} className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

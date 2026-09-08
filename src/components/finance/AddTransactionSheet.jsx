@@ -40,6 +40,7 @@ const MAX_AMOUNT = 10000000;
 const MAX_TITLE = 200;
 
 function validate(form) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date || "") || Number.isNaN(Date.parse(form.date))) return "Choose a valid transaction date.";
   const amount = parseFloat(form.amount);
   if (!form.amount || Number.isNaN(amount)) return 'Enter an amount.';
   if (amount <= 0) return 'Amount has to be more than $0.';
@@ -202,6 +203,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                 <Input
                   type="number"
                   placeholder="Amount ($)"
+                  aria-label="Transaction amount"
                   value={form.amount}
                   onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                   min="0.01"
@@ -210,12 +212,14 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                   className="h-12 text-base"
                 />
                 <MobileSelect
+                  ariaLabel="Transaction category"
                   value={form.category}
                   onValueChange={v => setForm(f => ({ ...f, category: v }))}
                   options={catOptions}
                 />
                 <Input
                   type="date"
+                  aria-label="Transaction date"
                   value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                   className="h-12"
@@ -255,10 +259,10 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
               <Button
                 onClick={handleSave}
                 disabled={!form.amount || saving}
-                className={`flex-1 h-12 text-white border-0 gap-1.5 ${
+                className={`flex-1 h-12 border-0 gap-1.5 ${
                   form.type === 'income'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-primary hover:bg-primary/90'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                 }`}
               >
                 {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Save Transaction</>}

@@ -69,3 +69,11 @@ Implemented stronger selected-hue surfaces in dark and light mode, theme-aware p
 Starter-budget planning income is editable without altering imported transactions. It is a temporary draft assumption, clearly disclosed, not saved income or a bank balance. The over-plan notice does not prevent saving.
 
 Verified synthetic planning-income warning update, Simple mode switch and persistence after navigation, expandable tools, restoration of full mode, Rose dark desktop at 1440px, phone at 390px, and Gold light phone. Lint, starter-budget checks and production build passed. This does not certify every app button, banking lifecycle or billing flow; those remain under review.
+
+## Settings and transaction checks
+
+Verified all nine themes through visible settings controls in both light and dark mode. Verified deletion dialogs open and Cancel works; account deletion requires typed confirmation. No deletion executed. Sample merchant search reduced the displayed rows correctly, and a $25 sample expense increased displayed spending by $25 (fixture only). Browser date clearing retained its date, so missing-date validation was separately verified against the actual validator function, alongside valid/negative/over-limit inputs.
+
+Fixed checkout return messaging to use verified subscription state, await AI-consent refresh, and avoid claiming nothing was deleted after an uncertain network result. Added accessible transaction amount/date/category and custom range labels, missing-date validation, and themed transaction button foreground.
+
+Appearance/Simple release e576993 verified Ready in Vercel deployment D14qk5FkV45T3oAtoUq6E5GVUGca. Broader full-flow banking, billing, export completeness and security checks remain outstanding.
