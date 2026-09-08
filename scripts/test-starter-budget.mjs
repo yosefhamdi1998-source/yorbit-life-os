@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { buildStarterBudget } from '../src/lib/starterBudget.js';
+const row = (date, type, amount, category = 'food', extra = {}) => ({ date, type, amount, category, ...extra });
+const rows = [row('2026-05-20', 'expense', 10), row('2026-06-15', 'income', 2000), row('2026-06-20', 'expense', 300), row('2026-07-15', 'income', 5000), row('2026-07-20', 'expense', 450), row('2026-08-20', 'expense', 150), row('2026-08-21', 'income', 9000, 'other', {exclude_from_budget: true}), row('2026-09-01', 'expense', 50000)];
+const plan = buildStarterBudget(rows, '2026-09');
+assert.deepEqual(plan.months, ['2026-06', '2026-07', '2026-08']);
+assert.equal(plan.incomeBaseline, 2000);
+assert.equal(plan.rows[0].monthly_limit, 300);
+assert.equal(buildStarterBudget([row('2026-09-01', 'expense', 100)], '2026-09'), null);
+assert.equal(buildStarterBudget(rows, '2026-13'), null);
+assert.equal(buildStarterBudget([], '2026-09'), null);
+const gap = buildStarterBudget([row('2026-05-20','expense',10), row('2026-06-20','expense',900),row('2026-06-20','income',1000)],'2026-09');
+assert.equal(gap.rows[0].monthly_limit, 300);
+assert.equal(gap.incomeBaseline, 0);
+console.log('Starter budget checks passed: complete-month windows, gaps, excluded transfers, partial history, and variable income.');

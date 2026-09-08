@@ -1,3 +1,4 @@
+import StarterBudget from '@/components/budget/StarterBudget';
 import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -194,6 +195,8 @@ export default function Budget() {
           </div>
         }
       />
+
+      <StarterBudget transactions={transactions} budgets={budgets} month={thisMonth} isPro={isPro} onSaved={loadData} />
 
       {saved && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">

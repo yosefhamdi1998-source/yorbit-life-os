@@ -95,6 +95,7 @@ const base = {
 
 export const SCENARIOS = {
   default: base,
+  starter: { ...base, budgets: [] },
   // No overdue bills, so Home's recommendation falls through to the
   // spending tip and its own destination.
   nooverdue: { ...base, bills: BILLS.map(b => ({ ...b, is_paid: true })) },
