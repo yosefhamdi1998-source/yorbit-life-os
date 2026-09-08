@@ -178,7 +178,7 @@ export default function Settings() {
         subscriptions, connected_accounts, investment_holdings,
         advisor_conversations, advisor_messages,
       ] = await Promise.all([
-        base44.entities.Transaction.listAll('-date', 50000),
+        base44.entities.Transaction.listAll('-date'),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Goal.list(),
@@ -518,7 +518,7 @@ export default function Settings() {
         {/* Export Data */}
         <div className="sky-card rounded-2xl p-5">
           <h3 className="font-bold text-sm mb-1">Export My Data</h3>
-          <p className="text-sm text-muted-foreground mb-4">Download all your transactions, budgets, goals, bills, and net worth entries as a JSON file.</p>
+          <p className="text-sm text-muted-foreground mb-4">Download your financial records, notes, and AI conversation history as a JSON file.</p>
           <Button
             variant="outline"
             onClick={handleExportData}

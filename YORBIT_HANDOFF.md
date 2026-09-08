@@ -85,3 +85,7 @@ Applied and recorded migrations 20260908234125_pin_function_search_paths and 202
 Read-only audit found RLS enabled on all 33 public tables. All 16 SECURITY DEFINER functions deny anonymous execution; five allow signed-in calls and their definitions contain owner filters. This is not a full adversarial RLS test. Remaining advisors: pg_net extension location, five deliberately exposed definer functions needing deeper review, leaked-password protection disabled. Remediation references: https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public and https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection .
 
 Sample bill paid/unpaid round-trip restored due totals and overdue counts correctly. Added bill form/range accessible labels. Vercel 9abfc66 contains settings and transaction corrections; verify final release before claiming current HEAD live.
+
+## Export and next-action follow-up
+
+Removed the 50,000-row cap from Settings transaction export (existing adapter paginates all records). Actual adapter test with 51,025 sample records retained every ID; simulated failed page rejects the export instead of silently returning partial data. Added test:export-pagination to the regression suite. Home spending-above-income fallback now links directly to Budget rather than requiring Coach. Vercel 3493f6e verified Ready (9Txi6pgEz9Fq5mkV81dbUpf5CsFx); live Budget exposes planning-income control and existing limits remain unchanged.

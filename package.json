@@ -15,7 +15,7 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget",
+    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination",
     "test:lint-config": "node scripts/test-lint-config.js",
     "test:animated-number": "node scripts/test-animated-number.mjs",
     "test:ai-context": "node scripts/test-ai-context.js",
@@ -32,7 +32,8 @@
     "test:revenuecat": "node scripts/test-revenuecat.mjs",
     "test:checkout": "node scripts/test-checkout.mjs",
     "test:csv": "node scripts/test-csv.mjs",
-    "test:starter-budget": "node scripts/test-starter-budget.mjs"
+    "test:starter-budget": "node scripts/test-starter-budget.mjs",
+    "test:export-pagination": "node scripts/test-export-pagination.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
