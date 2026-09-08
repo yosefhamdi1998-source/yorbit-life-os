@@ -442,14 +442,14 @@ export default function Dashboard() {
 
 <BudgetSummaryCard compact transactions={transactions} budgets={budgets} thisMonth={thisMonth} /></div>
       </section>
-      <section aria-label="Spending insights" className="mb-8">
+      {!simpleMode && <section aria-label="Spending insights" className="mb-8">
         <div className="mb-3"><h2 className="text-base font-semibold">Understand your spending</h2><p className="text-xs text-muted-foreground mt-1">Explore a month to see the details behind the numbers.</p></div>
         <div className="grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-5 items-start">
           <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
           <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
         </div>
-      </section>
-      <section aria-label="Activity and goals" className="grid lg:grid-cols-2 gap-5 items-start">        {/* Recent Transactions */}
+      </section>}
+      <section aria-label="Activity and goals" className={`grid ${simpleMode ? "" : "lg:grid-cols-2"} gap-5 items-start`}>        {/* Recent Transactions */}
         {transactions.length > 0 ? (
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -459,7 +459,7 @@ export default function Dashboard() {
               </Link>
             </div>
             <div className="divide-y divide-border/40">
-              {transactions.slice(0, 5).map(tx => (
+              {transactions.slice(0, simpleMode ? 3 : 5).map(tx => (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3.5">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${CAT_TINT[tx.category] || CAT_TINT.other}`}>
                     {CAT_ICONS[tx.category] || '💸'}
@@ -499,7 +499,7 @@ export default function Dashboard() {
         )}
 
         {/* Goal Progress */}
-        {savingsGoals.length > 0 && (
+        {!simpleMode && savingsGoals.length > 0 && (
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-3">
               <p className="font-bold text-sm">Goal Progress</p>

@@ -16,7 +16,7 @@ import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode } from '@/lib/simpleMode';
 import OnboardingProgress from '@/components/OnboardingProgress';
 
-const bottomNavItems = PRIMARY_NAV;
+
 
 export const sidebarItems = [
   { path: '/', icon: LayoutDashboard, label: 'Home' },
@@ -74,6 +74,7 @@ const pageVariants = {
 const TAB_PATHS = PRIMARY_NAV.map(item => item.path);
 
 export default function Layout() {
+  const bottomNavItems = getSimpleMode() ? PRIMARY_NAV.filter(item => ['/', '/finance', '/budget'].includes(item.path)) : PRIMARY_NAV;
   // Light is the product's default look; dark is opt-in via the toggle.
   // Anyone who has already picked a side (this device has a 'theme' key in
   // localStorage) keeps their own choice — this only changes what a brand
@@ -144,7 +145,7 @@ export default function Layout() {
               className={() =>
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all min-h-[40px] ${
                   navIsActive({ routes }, location.pathname)
-                    ? 'bg-primary text-white font-semibold shadow-sm'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 font-medium'
                 }`
               }
@@ -162,7 +163,7 @@ export default function Layout() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all min-h-[40px] ${
                 isActive
-                  ? 'bg-primary text-white font-semibold shadow-sm'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 font-medium'
               }`
             }
@@ -185,7 +186,7 @@ export default function Layout() {
             to="/settings"
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] w-full ${
-                isActive ? 'bg-primary text-white font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                isActive ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
               }`
             }
           >
@@ -199,7 +200,7 @@ export default function Layout() {
         className="fixed top-0 left-0 right-0 z-50 lg:hidden"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
-          background: dark ? 'rgba(20, 24, 38, 0.96)' : 'rgba(255,255,255,0.95)',
+          background: 'hsl(var(--card) / 0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(0,0,0,0.07)'
@@ -228,7 +229,7 @@ export default function Layout() {
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom)',
-          background: dark ? 'rgba(20, 24, 38, 0.97)' : 'rgba(255,255,255,0.97)',
+          background: 'hsl(var(--card) / 0.97)' ,
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(0,0,0,0.07)',

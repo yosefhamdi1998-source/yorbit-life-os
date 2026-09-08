@@ -49,3 +49,23 @@ The legacy backup script exports a Claude transcript and regenerates older PDF n
 Existing account acct_1HpTrMA4mvP1HWCK is now named Yorbit, with user-confirmed unchanged owner and payout bank. Public name and descriptor YORBIT, app website/support/privacy/terms links saved. Account status shows no active tasks after descriptor correction. Product prod_VDzGpfGv4YTK15 created: monthly price_1UDXISA4mvP1HWCKCxoL3PcL ($4.99 USD), annual price_1UDXJiA4mvP1HWCKDQ18B5bX ($29.99 USD). These NEW IDs are not yet wired into deployed checkout. Supabase has NO STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET. Restricted-key form is prepared but NOT created; explicit security-access confirmation is pending. No live charge or subscription created.
 
 Follow-up fixes: CSV preserves quoted commas, escaped quotes, multiline fields, BOM, and Venmo unnamed leading columns; rejects malformed quotes and duplicate headings. Import dedup includes income/expense type; existing-record load failure stops safely. Web hides unavailable App Store rating and Apple restore; sharing has clipboard fallback; privacy wording reflects provider use and AI consent. Removed cash-flow Improving/Slipping badge because partial/unequal windows made it unreliable. Targeted CSV tests and lint/build pass.
+
+## Latest verified release: ee95d83 (September 8, 2026)
+
+Production deployment 8Qme7s6jKCSUU4wQyspt4LfkQpVa is Ready. The real /budget page shows the new starter-budget draft; existing limits remain unchanged. No production budget was saved during verification.
+
+- be3999f: interactive chart period details with income/spending totals, categories, transactions, exact-range links, and accessible period selector. Desktop and phone fixture checks passed.
+- bf3d224: Home reorganized into Money overview, Next steps, Your plan, Spending insights, and Activity/goals. Compact budget preview and one overview date dropdown. Verified live.
+- ee95d83: reviewable starter budgets from prior recorded months, editable limits, existing-category preservation, free-plan cap, income-reference warning, duplicate-click guard and fresh budget check. Synthetic save verified. Starter-budget tests, lint, and production build passed.
+
+Starter-budget limits: this is a draft requiring review, not an automatically saved budget after bank connection. Missing imports can distort the income reference. It excludes the earliest recorded month and averages up to three subsequent previous calendar months, including empty gaps. Budget remains anchored to the newest transaction month. Banking lifecycle, billing lifecycle, and App Store release still require work.
+
+Billing remains disconnected. Automatic approval review rejected selecting the restricted Stripe permissions despite earlier conversational approval; a precise permission question is pending. No key was created, no secret stored, and no charge made in this step. Approved scope requested: Customers, Customer Portal and Checkout Sessions Write; Products, Prices and Subscriptions Read, stored only in Yorbit Supabase. Do not claim that frontend publication deploys Supabase functions.
+
+## Appearance and Simple mode follow-up
+
+Implemented stronger selected-hue surfaces in dark and light mode, theme-aware primary text, and themed mobile navigation surfaces. Simple mode now uses Home/Money/Plan, Budget/Bills subnavigation, a shorter Home with three recent transactions, and a collapsed More tools menu retaining access to investments, Coach, goals and other tools. Full mode keeps the detailed chart experience. Added explicit switch labels.
+
+Starter-budget planning income is editable without altering imported transactions. It is a temporary draft assumption, clearly disclosed, not saved income or a bank balance. The over-plan notice does not prevent saving.
+
+Verified synthetic planning-income warning update, Simple mode switch and persistence after navigation, expandable tools, restoration of full mode, Rose dark desktop at 1440px, phone at 390px, and Gold light phone. Lint, starter-budget checks and production build passed. This does not certify every app button, banking lifecycle or billing flow; those remain under review.

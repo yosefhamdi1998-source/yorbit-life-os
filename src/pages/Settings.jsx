@@ -305,7 +305,7 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">Bigger numbers and labels throughout the app.</p>
             </div>
           </div>
-          <Switch checked={largeText} onCheckedChange={chooseTextSize} />
+          <Switch aria-label="Larger Text" checked={largeText} onCheckedChange={chooseTextSize} />
         </div>
 
         {/* Simple mode */}
@@ -316,10 +316,10 @@ export default function Settings() {
             </div>
             <div className="min-w-0">
               <p className="font-bold text-sm">Simple Mode</p>
-              <p className="text-xs text-muted-foreground">Show fewer options and focus on everyday money tasks.</p>
+              <p className="text-xs text-muted-foreground">Home, Money, and Plan. A shorter Home page, with extra tools tucked into the menu.</p>
             </div>
           </div>
-          <Switch checked={simpleMode} onCheckedChange={chooseSimpleMode} />
+          <Switch aria-label="Simple Mode" checked={simpleMode} onCheckedChange={chooseSimpleMode} />
         </div>
 
         {/* Rate the app */}

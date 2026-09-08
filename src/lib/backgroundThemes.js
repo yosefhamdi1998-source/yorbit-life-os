@@ -98,37 +98,28 @@ export function getBackgroundTheme() {
   return BACKGROUND_THEMES[saved] ? saved : DEFAULT_THEME;
 }
 
-// isDark matters: an inline style on :root beats every class selector,
-// including `.dark`, so setting the light-mode colors unconditionally would
-// silently break dark mode the exact way a leftover inline style broke the
-// background earlier tonight. In dark mode we clear these instead, so the
-// stylesheet's `.dark` rule is what actually wins.
+// Theme surfaces follow the selected hue in both appearance modes.
 export function applyBackgroundTheme(key, isDark) {
-  const theme = BACKGROUND_THEMES[key] || BACKGROUND_THEMES[DEFAULT_THEME];
+  const selected = BACKGROUND_THEMES[key] ? key : DEFAULT_THEME;
+  const theme = BACKGROUND_THEMES[selected];
+  const hue = theme.primary.split(' ')[0];
   const root = document.documentElement.style;
-  if (isDark) {
-    root.removeProperty('--background');
-    root.removeProperty('--secondary');
-    root.removeProperty('--muted');
-    root.removeProperty('--border');
-    root.removeProperty('--input');
-  } else {
-    root.setProperty('--background', theme.background);
-    root.setProperty('--secondary', theme.secondary);
-    root.setProperty('--muted', theme.secondary);
-    root.setProperty('--border', theme.border);
-    root.setProperty('--input', theme.border);
-  }
-  // The hero gradient and primary accent look fine in both themes as-is, so
-  // they apply either way — previously only the hero followed the chosen
-  // theme, while --primary stayed a fixed blue everywhere else (every
-  // button, active nav tab, link, focus ring), so a "Black & Gold" pick
-  // recolored the top of Home and nothing else the user actually touches.
-  root.setProperty('--hero-from', theme.heroFrom);
-  root.setProperty('--hero-via', theme.heroVia);
-  root.setProperty('--hero-to', theme.heroTo);
-  root.setProperty('--primary', theme.primary);
-  root.setProperty('--primary-foreground', '0 0% 100%');
-  root.setProperty('--ring', theme.primary);
-  localStorage.setItem(STORAGE_KEY, key);
+  const values = {
+    '--background': isDark ? hue + ' 24% 9%' : theme.background,
+    '--card': isDark ? hue + ' 22% 13%' : hue + ' 35% 99%',
+    '--popover': isDark ? hue + ' 22% 13%' : '0 0% 100%',
+    '--secondary': isDark ? hue + ' 24% 19%' : theme.secondary,
+    '--muted': isDark ? hue + ' 24% 19%' : theme.secondary,
+    '--border': isDark ? hue + ' 24% 26%' : theme.border,
+    '--input': isDark ? hue + ' 24% 26%' : theme.border,
+    '--primary': theme.primary,
+    '--primary-text': hue + (isDark ? ' 80% 78%' : ' 70% 32%'),
+    '--primary-foreground': selected === 'gold' || selected === 'emerald' || selected === 'teal' ? '0 0% 5%' : '0 0% 100%',
+    '--ring': hue + (isDark ? ' 80% 70%' : ' 70% 40%'),
+    '--hero-from': theme.heroFrom,
+    '--hero-via': theme.heroVia,
+    '--hero-to': theme.heroTo,
+  };
+  for (const [name, value] of Object.entries(values)) root.setProperty(name, value);
+  localStorage.setItem(STORAGE_KEY, selected);
 }
