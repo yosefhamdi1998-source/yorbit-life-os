@@ -20,7 +20,23 @@ if (!jsonPath || !targetSchema) {
 }
 
 const backup = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-const root = backup.rows ? backup.rows[0].full_backup : backup; // handles both the raw db query CLI wrapper and a plain object
+
+// backup_query.sql is `select json_build_object(...) as full_backup` — ONE row,
+// ONE column — and `supabase db query --output-format json` emits rows as a
+// top-level ARRAY. So the file on disk is: [ { "full_backup": { ... } } ].
+//
+// The previous unwrap only handled `{rows:[{full_backup}]}` and a bare object.
+// Against the array the CLI actually writes, `backup.rows` is undefined, so
+// `root` stayed as the ARRAY — and `root['transactions']` on an array is
+// undefined, so every table restored 0 rows while still reporting success.
+// (verify-backup.sh already unwrapped this correctly; this file never caught up.)
+function unwrap(b) {
+  let r = Array.isArray(b) ? b[0] : b;
+  if (r && r.rows) r = Array.isArray(r.rows) ? r.rows[0] : r.rows;
+  if (r && r.full_backup) r = r.full_backup;
+  return r;
+}
+const root = unwrap(backup);
 
 // auth_users is intentionally excluded from automated restore — recreating
 // real login credentials is a deliberate, careful step (see README note
@@ -34,6 +50,19 @@ const TABLES = [
   'connected_accounts', 'investment_holdings', 'advisor_conversations',
   'advisor_messages', 'allowed_emails',
 ];
+
+// If the unwrap above ever stops matching the file's real shape again, fail
+// here — loudly, before writing anything — instead of "restoring" nothing.
+const foundTables = TABLES.filter((t) => Array.isArray(root && root[t]));
+if (foundTables.length === 0) {
+  console.error(
+    'ABORT: no known table found inside the backup file.\n' +
+    `  top level unwrapped to: ${Array.isArray(root) ? 'array' : typeof root}\n` +
+    `  keys seen: ${root && typeof root === 'object' ? Object.keys(root).slice(0, 8).join(', ') : '(none)'}\n` +
+    'Continuing would write zero rows and report success. Fix unwrap() first.'
+  );
+  process.exit(1);
+}
 
 const CHUNK_SIZE = 1500;
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yorbit-restore-'));
@@ -57,7 +86,10 @@ const results = [];
 for (const table of TABLES) {
   const rows = root[table] || [];
   if (rows.length === 0) {
-    results.push({ table, restored: 0 });
+    // `expected` must be set even at 0, or the mismatch filter below skips
+    // this row entirely — which is how a restore of nothing passed as "every
+    // table matches".
+    results.push({ table, restored: 0, expected: 0 });
     continue;
   }
   let restored = 0;
@@ -78,12 +110,21 @@ for (const table of TABLES) {
 fs.rmSync(tmpDir, { recursive: true, force: true });
 
 console.log('\nRestore complete.');
-const mismatches = results.filter(r => r.expected != null && r.restored !== r.expected);
+const mismatches = results.filter(r => r.restored !== r.expected);
 if (mismatches.length) {
   console.error('MISMATCHES (restored count != backup count):', JSON.stringify(mismatches, null, 2));
   process.exit(1);
 }
-console.log('Every table matches the backup row-for-row.');
+
+// A finance-app restore that writes zero rows is a failure no matter how
+// consistently it matches an empty backup.
+const totalRestored = results.reduce((n, r) => n + r.restored, 0);
+if (totalRestored === 0) {
+  console.error('FAILED: 0 rows restored across all tables. The backup parsed but held no data.');
+  process.exit(1);
+}
+
+console.log(`Every table matches the backup row-for-row (${totalRestored.toLocaleString()} rows).`);
 
 if (targetSchema !== 'public') {
   console.log('\nNote: auth_users was NOT restored (deliberately — see restore.sh).');

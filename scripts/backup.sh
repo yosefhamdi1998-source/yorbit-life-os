@@ -31,6 +31,20 @@ mkdir -p "$OUT_DIR"
 RAW="$OUT_DIR/yorbit-backup-$TIMESTAMP.json"
 ENCRYPTED="$RAW.enc"
 
+# The plaintext snapshot below holds every transaction plus bcrypt password
+# hashes. `set -e` means any failure after it is written — most likely openssl
+# exiting non-zero because the two password entries didn't match, or Ctrl-C at
+# that prompt — would skip the `rm -f "$RAW"` further down and leave that file
+# sitting readable on disk indefinitely. restore.sh and verify-backup.sh both
+# already trap for exactly this; the script that creates the LARGEST plaintext
+# file was the one missing it.
+cleanup() {
+  rm -f "$RAW"
+  [ -n "${ERRLOG:-}" ] && rm -f "$ERRLOG"
+  return 0
+}
+trap cleanup EXIT INT TERM
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_REF="pvjiialxboslqyiiybpe"
 LINK_FILE="$SCRIPT_DIR/../supabase/.temp/project-ref"

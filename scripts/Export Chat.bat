@@ -1,20 +1,35 @@
 @echo off
-REM Double-click to save this whole Claude session to iCloud.
-REM Produces a readable Markdown transcript plus a copy of the raw log.
+REM Double-click to refresh your saved conversation history.
+REM Finds the NEWEST Claude Code session automatically, writes a readable
+REM transcript, and drops an identical copy in both backup folders.
+REM
+REM Run this at the end of any working session and your Desktop + iCloud
+REM copies are current again.
 
-setlocal
+setlocal enabledelayedexpansion
 
-set "PROJECT=C:\Users\Yosef\projects\yorbit-life-os"
-set "SESSION=C:\Users\Yosef\.claude\projects\C--Users-Yosef\600c2490-ad58-4b20-a0da-157a5ae3e07f.jsonl"
-set "DEST=C:\Users\Yosef\iCloudDrive\Yorbit Session Logs"
+for %%I in ("%~dp0..") do set "PROJECT=%%~fI"
+if not exist "%PROJECT%\scripts\export-session.js" set "PROJECT=C:\Users\Yosef\projects\yorbit-life-os"
 
-set "BASH=C:\Program Files\Git\bin\bash.exe"
-if not exist "%BASH%" set "BASH=C:\Program Files (x86)\Git\bin\bash.exe"
+set "LOGDIR=C:\Users\Yosef\.claude\projects\C--Users-Yosef"
+set "ICLOUD=C:\Users\Yosef\iCloudDrive\YORBIT"
+set "DESKTOP=C:\Users\Yosef\OneDrive\Desktop\Yorbit Backup"
+set "OUTNAME=3 - Full Conversation History.md"
 
-if not exist "%SESSION%" (
+REM The old version hardcoded one session's UUID, so it kept re-exporting the
+REM same conversation no matter how much newer work had happened. Pick the
+REM most recently modified log instead.
+set "SESSION="
+for /f "delims=" %%F in ('dir /b /a-d /o-d "%LOGDIR%\*.jsonl" 2^>nul') do (
+  set "SESSION=%LOGDIR%\%%F"
+  goto :gotsession
+)
+:gotsession
+
+if not defined SESSION (
   echo.
-  echo Could not find the session log at:
-  echo   %SESSION%
+  echo Could not find any Claude Code session log in:
+  echo   %LOGDIR%
   echo.
   echo Tell Claude this message.
   echo.
@@ -22,35 +37,65 @@ if not exist "%SESSION%" (
   exit /b 1
 )
 
-if not exist "%DEST%" mkdir "%DEST%"
-
 echo.
 echo ============================================
-echo   Export chat to iCloud
+echo   Update conversation history
 echo ============================================
 echo.
-echo Reading the session log and writing a readable
-echo transcript. The raw log is about 100 MB, so this
-echo takes a few seconds.
+echo Newest session log:
+echo   %SESSION%
+echo.
+echo Reading it and writing a readable transcript.
+echo The raw log is large, so this takes a few seconds.
 echo.
 
 cd /d "%PROJECT%"
-node "scripts\export-session.js" "%SESSION%" "%DEST%\yorbit-session-2026-09-04.md"
-
-echo.
-echo Copying the raw log too (nothing summarized, in case
-echo you ever want the complete record)...
-copy /Y "%SESSION%" "%DEST%\yorbit-session-2026-09-04-raw.jsonl" >nul
 if errorlevel 1 (
-  echo   raw copy FAILED
-) else (
-  echo   raw copy done
+  echo Could not enter the project folder: %PROJECT%
+  pause
+  exit /b 1
+)
+
+if not exist "%ICLOUD%" mkdir "%ICLOUD%"
+if not exist "%DESKTOP%" mkdir "%DESKTOP%"
+
+node "scripts\export-session.js" "%SESSION%" "%ICLOUD%\%OUTNAME%"
+set "RC=%ERRORLEVEL%"
+
+if not "%RC%"=="0" (
+  echo.
+  echo ============================================
+  echo   EXPORT FAILED - exit code %RC%
+  echo ============================================
+  echo.
+  echo Your saved history was NOT updated. Read above for the reason.
+  echo.
+  pause
+  exit /b %RC%
 )
 
 echo.
+echo Copying the same file to your Desktop folder...
+copy /Y "%ICLOUD%\%OUTNAME%" "%DESKTOP%\%OUTNAME%" >nul
+if errorlevel 1 (
+  echo   Desktop copy FAILED - the iCloud copy is still good.
+) else (
+  echo   Desktop copy done.
+)
+
+REM Deliberately NOT copying the raw .jsonl any more. It is ~100 MB, it is
+REM UNREDACTED (the export is the redacted one), and a folder of these was
+REM already deleted once to reclaim iCloud space.
+
+echo.
 echo ============================================
-echo   Saved to:
-echo   %DEST%
+echo   Updated in both places:
+echo   %ICLOUD%
+echo   %DESKTOP%
 echo ============================================
+echo.
+echo Note: this refreshes the conversation history only.
+echo The two PDFs and the source-code zip are built by Claude
+echo on request - ask for those whenever you want them current.
 echo.
 pause

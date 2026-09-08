@@ -18,10 +18,37 @@
 
 set -e
 
-ENC_FILE="$1"
-MODE="${2:-test}"
-if [ -z "$ENC_FILE" ] || [ ! -f "$ENC_FILE" ]; then
-  echo "Usage: ./scripts/restore.sh <path-to-backup.json.enc> [--live]"
+BACKUP_DIR_DEFAULT="/c/Users/Yosef/iCloudDrive/Yorbit Backups"
+
+# `restore.sh --live` used to land "--live" in ENC_FILE and silently leave MODE
+# at "test" — the wrong direction to be wrong in during an actual disaster.
+if [ "$1" = "--live" ]; then
+  ENC_FILE=""
+  MODE="--live"
+else
+  ENC_FILE="$1"
+  MODE="${2:-test}"
+fi
+
+# Accept a specific .enc file, a folder of them, or nothing at all. Passing a
+# folder picks the newest backup in it — the same convenience verify-backup.sh
+# already has, and it keeps the .bat wrapper free of the nested quoting that
+# Windows shells mangle.
+[ -z "$ENC_FILE" ] && ENC_FILE="$BACKUP_DIR_DEFAULT"
+
+if [ -d "$ENC_FILE" ]; then
+  SEARCH_DIR="$ENC_FILE"
+  ENC_FILE=$(ls -1t "$SEARCH_DIR"/*.enc 2>/dev/null | head -1)
+  if [ -z "$ENC_FILE" ]; then
+    echo "No .enc backup found in: $SEARCH_DIR"
+    exit 1
+  fi
+  echo "Using newest backup: $(basename "$ENC_FILE")"
+fi
+
+if [ ! -f "$ENC_FILE" ]; then
+  echo "Usage: ./scripts/restore.sh [backup.json.enc | backups-folder] [--live]"
+  echo "Not found: $ENC_FILE"
   exit 1
 fi
 
