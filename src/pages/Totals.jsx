@@ -5,7 +5,6 @@ import { base44 } from '@/api/base44Client';
 import { BarChart3, ChevronDown, TrendingUp, TrendingDown, ListChecks } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/PageHeader';
-import { toast } from '@/components/ui/use-toast';
 import { fmtFull, fmtCompact, fmtAxisCompact } from '@/lib/format';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -30,14 +29,20 @@ export default function Totals() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [expandedYear, setExpandedYear] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     base44.entities.Transaction.list('-date', 50000)
-      .then(setTransactions)
-      .catch(() => toast({ title: "Couldn't load your totals", description: 'Please try again in a moment.', variant: 'destructive' }))
-      .finally(() => setLoading(false));
-  }, []);
+      .then(rows => { if (!cancelled) setTransactions(rows); })
+      .catch(() => { if (!cancelled) setLoadError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [loadAttempt]);
 
   const { allTime, byYear, years } = useMemo(() => {
     const yearMap = {};
@@ -86,13 +91,26 @@ export default function Totals() {
 
   if (loading) {
     return (
-      <div className="py-4 space-y-4">
+      <div role="status" aria-label="Loading your totals" className="py-4 space-y-4">
         <div className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-20 rounded-2xl bg-secondary/60 animate-pulse" />)}
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-2xl bg-secondary/60 animate-pulse" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="py-4 pb-8">
+        <PageHeader title="Totals" subtitle="Your money, by year and month" icon={BarChart3} gradient="gradient-primary" showBack />
+        <div role="alert" className="sky-card rounded-2xl p-6 text-center mt-4">
+          <h2 className="font-semibold">Couldn't load your totals</h2>
+          <p className="text-sm text-muted-foreground mt-2">Your transactions couldn't be retrieved. Try again to see your totals.</p>
+          <button onClick={() => { setLoading(true); setLoadAttempt(attempt => attempt + 1); }} className="mt-4 min-h-[44px] px-5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Try again</button>
         </div>
       </div>
     );
@@ -106,6 +124,7 @@ export default function Totals() {
           <BarChart3 className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm font-semibold text-foreground mb-1">Nothing to total yet</p>
           <p className="text-xs text-muted-foreground">Add some transactions and your all-time totals will show up here.</p>
+          <Link to="/finance?add=1" className="inline-flex items-center justify-center mt-4 min-h-[44px] px-5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">Add transaction</Link>
         </div>
       </div>
     );

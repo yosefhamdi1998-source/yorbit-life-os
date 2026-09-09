@@ -197,3 +197,9 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Refreshed Home with a theme-tinted header, clear Add transaction action, and Income & spending section title.
 - Verified: report-range tests including leap February/year endpoints; strict lint; production build. Browser sample-data checks: January spending 63/65 records, income 2/65; Home Add opens New Transaction; phone Home and filtered Money screenshots inspected.
 - Limits: chart-bar click handling was implemented but not independently exercised in this pass. This is a focused release, not an exhaustive all-buttons or App Store certification.
+
+## 2026-09-09 — Recoverable Totals loading
+- Replaced the transient failure toast followed by a misleading empty-account screen with a persistent error and Try again action. Retry shows an accessible loading status; abandoned requests cannot update an unmounted page.
+- Added a direct Add transaction action to the genuine empty state.
+- Verified strict lint and production build. Synthetic browser checks: first request failure -> error -> Try again -> loading -> 919 populated records; empty account action opens New Transaction. Also independently clicked the yearly expense chart bar from the prior release: opened Jan 1–Dec 31 2025, Spending selected, 372/383 records.
+- No production financial records were changed. Monthly chart bars and other app flows still need their own coverage; this does not certify full launch readiness.
