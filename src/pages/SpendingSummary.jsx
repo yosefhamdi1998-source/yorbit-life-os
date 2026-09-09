@@ -1,3 +1,4 @@
+import { reportTrendLabel } from '@/lib/reportTrendLabel';
 import { previousComparisonCutoff } from '@/lib/reportComparison';
 import { reportAverageWindow } from '@/lib/reportAverage';
 import { spendingCategories } from '@/lib/spendingCategories';
@@ -262,12 +263,12 @@ export default function SpendingSummary() {
     if (period === 'yearly' || (explicitRange && span > 90)) {
       return eachMonthOfInterval({ start, end }).map(m => {
         const key = format(m, 'yyyy-MM');
-        return { key: format(m, 'MMM'), spent: Math.round(periodTx.filter(t => t.date?.startsWith(key)).reduce((s, t) => s + (t.amount || 0), 0)) };
+        return { key: reportTrendLabel(m, start, end, true), spent: Math.round(periodTx.filter(t => t.date?.startsWith(key)).reduce((s, t) => s + (t.amount || 0), 0)) };
       });
     }
     return eachDayOfInterval({ start, end }).map(d => {
       const key = format(d, 'yyyy-MM-dd');
-      return { key: period === 'biweekly' ? format(d, 'MMM d') : format(d, 'd'), spent: Math.round(periodTx.filter(t => t.date === key).reduce((s, t) => s + (t.amount || 0), 0)) };
+      return { key: reportTrendLabel(d, start, end, false), spent: Math.round(periodTx.filter(t => t.date === key).reduce((s, t) => s + (t.amount || 0), 0)) };
     });
   }, [period, start, end, expenses, periodTx]);
 

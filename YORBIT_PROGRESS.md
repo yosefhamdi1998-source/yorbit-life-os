@@ -148,3 +148,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Loading placeholders expose a named status for assistive technology.
 - Extended the dev-only report-retry fixture with a 1.5-second recovery delay. Verified both pages transition error -> named loading status -> populated page, without showing the report during the delay.
 - Strict lint, production build, and diff checks passed. No real records or services altered.
+
+## September 9, 2026 — unambiguous spending trend dates
+
+- Daily trend labels include the month when a report crosses months, and the year when it crosses years. Monthly trends include years for multi-year windows.
+- Single-month/day and single-year/month charts retain compact labels. Amounts and date filtering are unchanged.
+- Added test:report-trend-label to the full test command, covering compact and cross-month/year formats.
+- Verified rendered sample axes: Jan 2025 vs Jan 2026 in a multi-year report; Aug 10 through Sep 7 in a cross-month report. Existing axis spacing skips ticks as needed.
+- Strict lint, production build, label regression tests, and diff checks passed.

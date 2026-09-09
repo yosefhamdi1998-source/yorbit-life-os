@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { parseISO } from 'date-fns';
+import { reportTrendLabel } from '../src/lib/reportTrendLabel.js';
+const label = (date, start, end, monthly) => reportTrendLabel(parseISO(date), parseISO(start), parseISO(end), monthly);
+assert.equal(label('2026-09-09','2026-09-01','2026-09-30',false),'9');
+assert.equal(label('2026-09-01','2026-08-10','2026-09-08',false),'Sep 1');
+assert.equal(label('2026-01-01','2025-12-20','2026-01-10',false),'Jan 1, 2026');
+assert.equal(label('2026-01-01','2026-01-01','2026-12-31',true),'Jan');
+assert.equal(label('2025-01-01','2025-01-01','2026-12-31',true),'Jan 2025');
+assert.equal(label('2026-01-01','2025-01-01','2026-12-31',true),'Jan 2026');
+console.log('PASS: trend labels distinguish cross-month and multi-year ranges while keeping short ranges compact');
