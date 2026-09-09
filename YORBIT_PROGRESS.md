@@ -170,3 +170,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added a named, touch-sized Clear transaction search button without resetting other filters or the page date range.
 - Sample browser check: spaced Coursera query returned four matches; Clear restored all 61 transactions in the selected period.
 - Strict lint, production build, and diff checks passed. Search semantics otherwise unchanged and no records modified.
+
+## September 9, 2026 — load PDF engine only when requested
+
+- Changed Spending Summary PDF export to import jsPDF on demand inside the existing busy/error handling, instead of loading it whenever the report opens.
+- Production bundle inspection confirms dynamic PDF import and no static jsPDF import in the Spending Summary chunk. No measured latency claim is made.
+- All 20 local Node regression scripts passed together, including CSV, starter budget, export pagination, report categories/dates, and PDF wrapping. Initial unprivileged run hit a filesystem restriction; rerun with required access passed. Live database checks were not part of this run.
+- Strict lint and production build passed. Sample PDF export action returned to enabled controls with no browser errors; downloaded file contents were not re-reviewed because PDF layout did not change in this pass.

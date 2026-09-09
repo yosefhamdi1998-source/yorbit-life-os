@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Download, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { writeTransactionRows } from '@/lib/pdfTransactionRows';
 
@@ -52,9 +51,10 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
     }
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     setBusy('pdf');
     try {
+      const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({ unit: 'pt', format: 'a4' });
       const pageW = doc.internal.pageSize.getWidth();
       const right = pageW - 40;
