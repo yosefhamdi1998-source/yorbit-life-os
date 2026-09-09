@@ -39,7 +39,8 @@
     "test:report-average": "node scripts/test-report-average.mjs",
     "test:report-comparison": "node scripts/test-report-comparison.mjs",
     "test:report-trend-label": "node scripts/test-report-trend-label.mjs",
-    "test:pdf-rows": "node scripts/test-pdf-rows.mjs"
+    "test:pdf-rows": "node scripts/test-pdf-rows.mjs",
+    "test:delete-coverage": "node scripts/test-delete-coverage.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
