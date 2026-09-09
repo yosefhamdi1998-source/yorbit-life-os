@@ -1,3 +1,4 @@
+import { reportAverageWindow } from '@/lib/reportAverage';
 import { spendingCategories } from '@/lib/spendingCategories';
 import { readReportRange } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
@@ -266,9 +267,10 @@ export default function SpendingSummary() {
     });
   }, [period, start, end, expenses, periodTx]);
 
-  const bucketsCount = explicitRange ? (span > 90 ? eachMonthOfInterval({start,end}).length : span) : period === 'monthly' ? end.getDate() : period === 'biweekly' ? 14 : 12;
-  const avgPerBucket = totalSpending / bucketsCount;
-  const avgLabel = (period === 'yearly' || (explicitRange && span > 90)) ? 'Avg / Month' : 'Avg / Day';
+  const averageMonthly = period === 'yearly' || !!(explicitRange && span > 90);
+  const averageWindow = reportAverageWindow(start, end, averageMonthly, today);
+  const avgPerBucket = averageWindow.count > 0 ? totalSpending / averageWindow.count : 0;
+  const avgLabel = averageMonthly ? 'Avg / Month' : 'Avg / Day';
 
   const now = new Date();
   const nextDisabled =
@@ -363,7 +365,8 @@ export default function SpendingSummary() {
           <div className="grid grid-cols-2 gap-2.5">
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">{avgLabel}</p>
-              <p className="text-white font-black text-lg leading-tight tabular-nums truncate">{fmtCompact(avgPerBucket)}</p>
+              <p className="text-white font-black text-lg leading-tight tabular-nums truncate">{averageWindow.count > 0 ? fmtCompact(avgPerBucket) : '—'}</p>
+              <p className="text-white/70 text-[11px] mt-1">{averageWindow.count} {averageMonthly ? 'calendar months' : 'calendar days'}{averageWindow.partial ? ' so far' : ' in period'}</p>
             </div>
             <div className="bg-white/10 rounded-xl px-3 py-2.5 min-w-0">
               <p className="text-white/60 text-[10px] font-semibold uppercase tracking-wide mb-1">Top category</p>

@@ -102,3 +102,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - CSV category names now use the existing CSV escaping routine.
 - Added test:spending-categories to the full test command. Regression fixtures verify known/unknown/missing categories, repeat-category aggregation, income/transfer exclusions, and total reconciliation.
 - Validation: category and report-range tests, strict lint, production build; browser sample report rendering and monthly previous-period navigation. No real financial records changed. Full provider/import/export lifecycle remains outside this pass.
+
+## September 9, 2026 — elapsed-period spending averages
+
+- Current-period daily averages now divide by elapsed calendar days rather than including future days. Monthly averages use calendar months reached so far, including the current partial month.
+- Added visible day/month counts; completed periods retain their full length. Future ranges display no average rather than divide by zero.
+- Added test:report-average to the full test command. Checks cover partial/completed periods, exact date windows, first day, future ranges, leap day, and daylight-saving calendar boundaries.
+- Verified sample September report: $318/day across nine days, versus the former $96/day across 30. Completed August remains $280/day across 31 days.
+- Validation: report-average regression tests, strict lint, production build, and sample browser current/previous month checks passed. No production records changed.

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { parseISO } from 'date-fns';
+import { reportAverageWindow } from '../src/lib/reportAverage.js';
+const average = (start, end, monthly, today) => reportAverageWindow(...[start, end].map(parseISO), monthly, parseISO(today));
+assert.deepEqual(average('2026-09-01', '2026-09-30', false, '2026-09-09'), { count: 9, partial: true });
+assert.deepEqual(average('2026-08-01', '2026-08-31', false, '2026-09-09'), { count: 31, partial: false });
+assert.deepEqual(average('2026-01-01', '2026-12-31', true, '2026-09-09'), { count: 9, partial: true });
+assert.deepEqual(average('2025-01-01', '2025-12-31', true, '2026-09-09'), { count: 12, partial: false });
+assert.deepEqual(average('2026-08-10', '2026-09-08', false, '2026-09-09'), { count: 30, partial: false });
+assert.deepEqual(average('2026-09-09', '2026-09-22', false, '2026-09-09'), { count: 1, partial: true });
+assert.deepEqual(average('2026-10-01', '2026-10-31', false, '2026-09-09'), { count: 0, partial: true });
+assert.equal(average('2024-02-01', '2024-02-29', false, '2024-03-01').count, 29);
+assert.equal(average('2026-03-07', '2026-03-09', false, '2026-03-10').count, 3);
+console.log('PASS: elapsed averages cover partial/completed periods, exact dates, leap days, DST, and future ranges');
