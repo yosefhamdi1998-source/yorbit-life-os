@@ -156,3 +156,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added test:report-trend-label to the full test command, covering compact and cross-month/year formats.
 - Verified rendered sample axes: Jan 2025 vs Jan 2026 in a multi-year report; Aug 10 through Sep 7 in a cross-month report. Existing axis spacing skips ticks as needed.
 - Strict lint, production build, label regression tests, and diff checks passed.
+
+## September 9, 2026 — prevent overlapping PDF transaction rows
+
+- PDF transaction exports now advance once per wrapped line and add pages within the page margins. Long descriptions no longer collide with the next row or overflow the page.
+- Added test:pdf-rows to the full suite using real jsPDF line wrapping. It checks all 600 repeated phrases survive a multi-page description, every baseline stays within margins, and the next transaction remains present with separate spacing.
+- Generated a three-page synthetic PDF starting near a page bottom, rendered through Poppler, and visually inspected all pages. Test images/PDF are local QA files outside the source archive.
+- Strict lint, production build, PDF row regression, and diff checks passed. This does not claim comprehensive PDF styling, Unicode, category-summary pagination, or export lifecycle coverage.

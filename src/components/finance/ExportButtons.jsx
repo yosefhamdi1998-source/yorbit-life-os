@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
+import { writeTransactionRows } from '@/lib/pdfTransactionRows';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
@@ -95,13 +96,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       const sorted = [...periodTransactions].sort((a, b) => (a.date < b.date ? 1 : -1));
-      sorted.forEach((t) => {
-        if (y > 780) { doc.addPage(); y = 50; }
-        const sign = t.type === 'income' ? '+' : '-';
-        const line = `${t.date}   ${sign}$${fmt(t.amount)}   ${t.title}   (${t.category})`;
-        doc.text(line, 40, y, { maxWidth: pageW - 80 });
-        y += 15;
-      });
+      writeTransactionRows(doc, sorted, y, fmt);
 
       doc.save(`yorbit-summary-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       toast({ title: 'PDF exported', description: 'Saved to your downloads.' });
