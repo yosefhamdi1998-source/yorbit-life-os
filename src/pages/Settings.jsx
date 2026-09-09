@@ -131,7 +131,7 @@ export default function Settings() {
       // on the first rejection and can leave a silently partial delete.)
       await base44.deleteAllMyData();
       setDeleteDataOpen(false);
-      toast({ title: 'Data deleted', description: 'All your financial data has been removed.' });
+      toast({ title: 'Data deleted', description: 'Your transactions, budgets, goals, bills, net worth entries, investment holdings, and cached insights were deleted. Other data remains.' });
     } catch {
       toast({ title: "Couldn't delete your data", description: 'We could not confirm the result. Refresh your data before trying again.', variant: 'destructive' });
     }
@@ -575,9 +575,9 @@ export default function Settings() {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete all your financial data?</AlertDialogTitle>
+                <AlertDialogTitle>Delete these financial records?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete all your transactions, budgets, goals, bills, and net worth entries. Your account remains. This cannot be undone.
+                  This permanently deletes your transactions, budgets, goals, bills, net worth entries, investment holdings, and cached insights. Your account, subscription, bank connections, AI Coach conversations, notes, and other personal content remain. This cannot be undone.
                   {connectedAccountCount > 0 && (
                     <span className="block mt-2 font-semibold text-destructive">
                       You have {connectedAccountCount} bank{connectedAccountCount === 1 ? '' : 's'} still connected.
@@ -640,3 +640,4 @@ export default function Settings() {
     </div>
   );
 }
+

@@ -218,3 +218,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Plaid legacy-token storage remains unresolved; this authentication fix does not retire that column.
 - Spending report tooltips now explicitly use dark green in light mode / mint in dark, with foreground labels and subtle hover shading. Category comparison uses clear text labels. Home activity, Money transactions and Budget cards now share vector category badges; badges have subtle borders and brighter dark-mode icons.
 - Verified light/dark category tooltip screenshots and Money list; strict lint, production build, actual service guard tests pass. Not a complete app or security certification.
+
+## 2026-09-09 23:34 UTC — Accurate financial-record deletion disclosure
+- Settings confirmation now lists records removed and retained, including retained Coach history, notes, account, subscription and bank connections. Title and success message no longer promise deletion of all financial data.
+- No deletion behavior, database policies, records, or accounts changed. Checked against the existing RPC source and prior live audit; no destructive invocation performed.
+- Strict lint and final production build passed. Opened the sample confirmation dialog, checked disclosure, and canceled.
