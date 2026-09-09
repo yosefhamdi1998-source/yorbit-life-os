@@ -50,6 +50,7 @@ export default [
       ...pluginJs.configs.recommended.rules,
       ...pluginReact.configs.flat.recommended.rules,
       "no-unused-vars": "off",
+      "no-duplicate-imports": "error",
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",
       "unused-imports/no-unused-imports": "error",

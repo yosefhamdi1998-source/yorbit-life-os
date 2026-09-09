@@ -5,10 +5,18 @@ let failPage = false;
 globalThis.__yorbitPaginationMock = {
   from() {
     let counted = false;
+    const ordering = [];
     return {
       select(_fields, options) { counted = options?.count === 'exact'; return this; },
-      order() { return this; },
-      range(from,to) { return Promise.resolve(failPage && from===2000 ? {data:null,error:{message:'Sample page failed'}} : {data:ledger.slice(from,to+1),count:counted?ledger.length:null,error:null}); },
+      order(column, options) { ordering.push({column, ...options}); return this; },
+      eq() { return this; },
+      range(from,to) {
+        // SQL may return equal-date rows in a different order per request.
+        // Simulate that legal behavior unless a unique ID order is requested.
+        const stable = ordering.some(order => order.column === 'id');
+        const pageLedger = stable || from === 0 ? ledger : [...ledger.slice(1), ledger[0]];
+        return Promise.resolve(failPage && from===2000 ? {data:null,error:{message:'Sample page failed'}} : {data:pageLedger.slice(from,to+1),count:counted?ledger.length:null,error:null});
+      },
     };
   },
 };
@@ -18,6 +26,11 @@ const rows = await entities.Transaction.listAll('-date');
 assert.equal(rows.length,51025);
 assert.equal(new Set(rows.map(row=>row.id)).size,51025);
 assert.equal(rows.at(-1).id,51024);
+for (const read of [() => entities.Transaction.list('-date'), () => entities.Transaction.filter({}, '-date'), () => entities.Bill.list('-created_date')]) {
+  const paged = await read();
+  assert.equal(paged.length, ledger.length);
+  assert.equal(new Set(paged.map(row => row.id)).size, ledger.length, 'Tied dates must not duplicate or skip records between pages');
+}
 failPage = true;
 await assert.rejects(entities.Transaction.listAll('-date'), /Sample page failed/);
 delete globalThis.__yorbitPaginationMock;

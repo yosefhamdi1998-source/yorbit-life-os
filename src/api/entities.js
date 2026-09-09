@@ -31,7 +31,10 @@ function applySort(query, sort) {
   if (!sort) return query;
   const desc = sort.startsWith('-');
   const column = desc ? sort.slice(1) : sort;
-  return query.order(column, { ascending: !desc });
+  query = query.order(column, { ascending: !desc });
+  // Dates and amounts can tie across page boundaries. A unique tie-breaker
+  // keeps the same record from appearing twice while another is skipped.
+  return column === 'id' ? query : query.order('id', { ascending: true });
 }
 
 async function getUserId() {

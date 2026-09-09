@@ -1,4 +1,22 @@
-# Yorbit progress — September 8, 2026
+# Yorbit progress — September 9, 2026
+
+## September 9 follow-up
+
+- Fixed unstable pagination when many records share the same date or amount. All entity reads now use a unique ID tie-breaker. A regression test simulates differently ordered ties across pages and checks 51,025 records, filtered reads, generic entity reads, and failed pages. This does not provide a database snapshot during concurrent writes.
+- Consolidated duplicate imports in Coach and Settings and enabled the duplicate-import lint rule to prevent recurrence.
+- Full automated test suite passed, including 25 live database enum checks, import deduplication, CSV handling, date windows, starter budgets, checkout mocks, and export pagination. Lint and production build passed. Payment mock tests are not proof of live billing readiness.
+- Completed a read-only signup audit. Private signup identities stay out of this repository. No accounts or financial data were deleted.
+
+## Access this work from another computer
+
+- Live app: https://yorbit-life-os.vercel.app/
+- This report: https://github.com/yosefhamdi1998-source/yorbit-life-os/blob/master/YORBIT_PROGRESS.md
+- Engineering handoff: https://github.com/yosefhamdi1998-source/yorbit-life-os/blob/master/YORBIT_HANDOFF.md
+- The Codex task is named **Review Yorbit UX** and is pinned on its local host. The local conversation and working files do not become a synced ChatGPT conversation by pinning them.
+- For continuing the same local task remotely, use the same ChatGPT account and workspace. Where available, set up **Settings > Connections > Control this Mac or PC** on the original computer, then **Control other devices** on the second computer. The original computer must remain awake, online, and running the app. Official instructions: https://learn.chatgpt.com/docs/remote-connections
+- A different ChatGPT account does not automatically gain access. Online code/report access follows the GitHub repository permissions.
+
+Plaid Trial supports ten bank connections (Items), not ten Yorbit signups. Removing Items does not restore trial slots. This describes Plaid's public Trial terms; the team's exact plan and historical usage still need dashboard verification: https://support.plaid.com/hc/en-us/articles/39994173227159-What-is-the-Plaid-Trial-plan
 
 ## What changed in this work session
 
