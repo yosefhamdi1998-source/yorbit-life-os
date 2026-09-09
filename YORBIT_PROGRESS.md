@@ -190,3 +190,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Long custom report ranges already grouped by month but incorrectly retained the Daily Spending Trend heading and daily area chart. Chart mode, heading, bucket grouping, and average now share the same monthly/daily decision.
 - Browser checks: a multi-year custom range shows Monthly Spending with bars and Avg / Month; a 30-day custom range retains Daily Spending Trend with an area chart and Avg / Day.
 - Strict lint, production build, and diff checks passed. Transaction totals and filtering are unchanged.
+
+## 2026-09-09 — Totals drill-down and Home presentation
+- Added exact calendar-month/year transaction links to Totals income/spending amounts, month rows, and chart bars. Mobile month cards expose income, spending and net rather than hiding amounts. Month counts now include transfers consistently with year counts.
+- Fixed Money's URL type filter: expense links previously fell back to All. Both income and expense are now accepted.
+- Refreshed Home with a theme-tinted header, clear Add transaction action, and Income & spending section title.
+- Verified: report-range tests including leap February/year endpoints; strict lint; production build. Browser sample-data checks: January spending 63/65 records, income 2/65; Home Add opens New Transaction; phone Home and filtered Money screenshots inspected.
+- Limits: chart-bar click handling was implemented but not independently exercised in this pass. This is a focused release, not an exhaustive all-buttons or App Store certification.

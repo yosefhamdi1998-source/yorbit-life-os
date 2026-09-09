@@ -300,13 +300,20 @@ export default function Dashboard() {
 
   return (
     <div className="pb-8 overflow-x-hidden">
-      <header className="flex items-center justify-between gap-4 pt-6 pb-5"><div><h1 className="text-2xl font-bold tracking-tight">Overview</h1><p className="text-sm text-muted-foreground mt-1">Your accounts, spending, and upcoming bills</p></div><Link to="/finance?add=1" className="shrink-0 inline-flex items-center gap-1 min-h-[44px] px-3 rounded-xl border border-border bg-card text-sm font-semibold"><Plus className="w-4 h-4" /> Add</Link></header>
+      <header className="my-5 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-5">
+        <div className="max-w-lg">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-primary mb-2">Yorbit · Plan for your next payday</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Your money, in focus.</h1>
+          <p className="text-sm text-muted-foreground mt-2">See what came in, what went out, and what needs your attention.</p>
+        </div>
+        <Link to="/finance?add=1" className="shrink-0 inline-flex items-center gap-2 min-h-[44px] px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:opacity-90"><Plus className="w-4 h-4" /> Add transaction</Link>
+      </header>
       <PullToRefreshIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
 
       <section aria-label="Money overview" className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div><h2 className="text-sm font-semibold">Your money at a glance</h2><p className="text-xs text-muted-foreground mt-1">Recorded activity through {format(latestTxDate, 'MMM d, yyyy')}</p></div>
+          <div><h2 className="text-sm font-semibold">Income & spending</h2><p className="text-xs text-muted-foreground mt-1">Recorded activity through {format(latestTxDate, 'MMM d, yyyy')}</p></div>
           <select aria-label="Overview date range" value={cashFlowPeriod} onChange={e => setCashFlowPeriod(e.target.value)} className="min-h-[44px] rounded-xl border border-border bg-card px-3 text-sm font-medium">
             <option value="week">Last 7 days</option><option value="month">Last 30 days</option><option value="3month">Last 3 months</option><option value="6month">Last 6 months</option>
             {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}<option value="all">All time</option>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { totalsLink } from '@/lib/totalsLink';
 import { base44 } from '@/api/base44Client';
 import { BarChart3, ChevronDown, TrendingUp, TrendingDown, ListChecks } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -25,6 +27,7 @@ function TrendTooltip({ active, payload, label }) {
 }
 
 export default function Totals() {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedYear, setExpandedYear] = useState(null);
@@ -55,8 +58,9 @@ export default function Totals() {
       const mo = yr.months[parseInt(month, 10) - 1];
       yr.count += 1;
       allCount += 1;
-      if (t.type === 'income') { yr.income += amt; allIncome += amt; if (mo) { mo.income += amt; mo.count += 1; } }
-      else if (t.type === 'expense') { yr.expense += amt; allExpense += amt; if (mo) { mo.expense += amt; mo.count += 1; } }
+      if (mo) mo.count += 1;
+      if (t.type === 'income') { yr.income += amt; allIncome += amt; if (mo) mo.income += amt; }
+      else if (t.type === 'expense') { yr.expense += amt; allExpense += amt; if (mo) mo.expense += amt; }
     }
 
     const years = Object.keys(yearMap).sort((a, b) => b.localeCompare(a));
@@ -77,7 +81,7 @@ export default function Totals() {
   // just a headline number and a text list, nothing visual.
   const latestYear = years[0];
   const monthChartData = latestYear
-    ? byYear[latestYear].months.filter(m => m.count > 0).map(m => ({ year: m.name, income: m.income, expense: m.expense }))
+    ? byYear[latestYear].months.filter(m => m.count > 0).map(m => ({ year: m.name, calendarYear: latestYear, month: m.key, income: m.income, expense: m.expense }))
     : [];
 
   if (loading) {
@@ -147,8 +151,8 @@ export default function Totals() {
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={62} tickFormatter={v => fmtAxisCompact(v)} />
               <Tooltip content={<TrendTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
-              <Bar dataKey="income" fill="#2F9273" radius={[5, 5, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="expense" fill="#DD8163" radius={[5, 5, 0, 0]} maxBarSize={28} />
+              <Bar onClick={entry => { if (entry?.payload) navigate(totalsLink(entry.payload.calendarYear || entry.payload.year, entry.payload.month, "income")); }} cursor="pointer" dataKey="income" fill="#2F9273" radius={[5, 5, 0, 0]} maxBarSize={28} />
+              <Bar onClick={entry => { if (entry?.payload) navigate(totalsLink(entry.payload.calendarYear || entry.payload.year, entry.payload.month, "expense")); }} cursor="pointer" dataKey="expense" fill="#DD8163" radius={[5, 5, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1">
@@ -171,8 +175,8 @@ export default function Totals() {
               <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', fontWeight: 700 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={62} tickFormatter={v => fmtAxisCompact(v)} />
               <Tooltip content={<TrendTooltip />} cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.4 }} />
-              <Bar dataKey="income" fill="#2F9273" radius={[4, 4, 0, 0]} maxBarSize={22} />
-              <Bar dataKey="expense" fill="#DD8163" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              <Bar onClick={entry => { if (entry?.payload) navigate(totalsLink(entry.payload.calendarYear || entry.payload.year, entry.payload.month, "income")); }} cursor="pointer" dataKey="income" fill="#2F9273" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              <Bar onClick={entry => { if (entry?.payload) navigate(totalsLink(entry.payload.calendarYear || entry.payload.year, entry.payload.month, "expense")); }} cursor="pointer" dataKey="expense" fill="#DD8163" radius={[4, 4, 0, 0]} maxBarSize={22} />
             </BarChart>
           </ResponsiveContainer>
           <div className="flex items-center gap-4 justify-center mt-1">
@@ -184,6 +188,7 @@ export default function Totals() {
 
       {/* Year-by-year breakdown, expandable to months */}
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">By Year</p>
+      <p className="text-xs text-muted-foreground mb-3">Expand a year, then select a month or amount to see its transactions.</p>
       <div className="space-y-3">
         {years.map(year => {
           const y = byYear[year];
@@ -194,6 +199,7 @@ export default function Totals() {
             <div key={year} className="sky-card rounded-2xl overflow-hidden">
               <button
                 onClick={() => setExpandedYear(isOpen ? null : year)}
+                aria-expanded={isOpen}
                 className="w-full flex items-center justify-between px-4 py-3.5 text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -220,8 +226,8 @@ export default function Totals() {
               </button>
 
               <div className="px-4 pb-3 flex items-center gap-4">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> ${fmtFull(y.income)}</span>
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><TrendingDown className="w-3.5 h-3.5 text-orange-500" /> ${fmtFull(y.expense)}</span>
+                <Link aria-label={`View income for ${year}`} to={totalsLink(year, null, 'income')} className="flex items-center gap-1.5 min-h-[44px] text-xs font-semibold text-muted-foreground hover:underline"><TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> ${fmtFull(y.income)}</Link>
+                <Link aria-label={`View spending for ${year}`} to={totalsLink(year, null, 'expense')} className="flex items-center gap-1.5 min-h-[44px] text-xs font-semibold text-muted-foreground hover:underline"><TrendingDown className="w-3.5 h-3.5 text-orange-500" /> ${fmtFull(y.expense)}</Link>
               </div>
 
               {isOpen && (
@@ -231,18 +237,15 @@ export default function Totals() {
                   ) : activeMonths.map(m => {
                     const mNet = m.income - m.expense;
                     return (
-                      <div key={m.key} className="flex items-center justify-between px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ListChecks className="w-3.5 h-3.5 text-muted-foreground/50" />
-                          <span className="text-sm font-semibold text-foreground">{m.name} {year}</span>
-                          <span className="text-[10px] text-muted-foreground">· {m.count} tx</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-emerald-500 font-semibold tabular-nums hidden sm:inline">+${fmtFull(m.income)}</span>
-                          <span className="text-xs text-orange-500 font-semibold tabular-nums hidden sm:inline">−${fmtFull(m.expense)}</span>
-                          <span className={`text-sm font-bold tabular-nums ${mNet >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {mNet >= 0 ? '+' : '−'}${fmtFull(Math.abs(mNet))}
-                          </span>
+                      <div key={m.key} className="px-4 py-3 space-y-2">
+                        <Link to={totalsLink(year, m.key)} className="flex items-center justify-between gap-2 min-h-[44px] rounded-lg hover:bg-secondary/60">
+                          <span className="flex items-center gap-2"><ListChecks className="w-4 h-4 text-primary" /><span className="text-sm font-semibold">{m.name} {year}</span><span className="text-xs text-muted-foreground">{m.count} transactions</span></span>
+                          <span className="text-sm text-primary">View →</span>
+                        </Link>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <Link aria-label={`View income for ${m.name} ${year}`} to={totalsLink(year, m.key, 'income')} className="rounded-xl bg-secondary/50 p-2 min-h-[44px] hover:bg-secondary"><span className="block text-[11px] text-muted-foreground">Income</span><span className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">${fmtFull(m.income)}</span></Link>
+                          <Link aria-label={`View spending for ${m.name} ${year}`} to={totalsLink(year, m.key, 'expense')} className="rounded-xl bg-secondary/50 p-2 min-h-[44px] hover:bg-secondary"><span className="block text-[11px] text-muted-foreground">Spending</span><span className="text-sm font-semibold tabular-nums">${fmtFull(m.expense)}</span></Link>
+                          <Link aria-label={`View all transactions for ${m.name} ${year}`} to={totalsLink(year, m.key)} className="rounded-xl bg-secondary/50 p-2 min-h-[44px] hover:bg-secondary"><span className="block text-[11px] text-muted-foreground">Net</span><span className="text-sm font-semibold tabular-nums">{mNet < 0 ? '−' : '+'}${fmtFull(Math.abs(mNet))}</span></Link>
                         </div>
                       </div>
                     );

@@ -3,6 +3,17 @@ import { parseISO, format } from 'date-fns';
 import { filterByPeriod, getPeriodBounds, filterByPreviousPeriod } from '../src/lib/periods.js';
 import { reportLink, readReportRange } from '../src/lib/reportRange.js';
 import { billsDueThisWeek } from '../src/lib/billWindow.js';
+import { totalsLink } from '../src/lib/totalsLink.js';
+for (const [year, month, end] of [['2024', '02', '2024-02-29'], ['2026', '02', '2026-02-28'], ['2026', '01', '2026-01-31'], ['2026', null, '2026-12-31']]) {
+  for (const type of [undefined, 'income', 'expense']) {
+    const url = new URL(totalsLink(year, month, type), 'https://example.test');
+    const range = readReportRange(url.search);
+    assert.equal(url.pathname, '/finance');
+    assert.equal(format(range.start, 'yyyy-MM-dd'), `${year}-${month || '01'}-01`);
+    assert.equal(format(range.end, 'yyyy-MM-dd'), end);
+    assert.equal(url.searchParams.get('type'), type || null);
+  }
+}
 const anchor = parseISO('2026-09-08');
 const transactions = ['2025-12-31','2026-08-10','2026-08-25','2026-08-26','2026-09-01','2026-09-02','2026-09-08'].map(date => ({date}));
 for (const period of ['week','weekly','biweekly','month','3month','6month','year','lastyear','year-2025','all']) {

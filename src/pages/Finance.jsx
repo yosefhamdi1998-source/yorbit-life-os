@@ -189,7 +189,10 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
 // ─── Transaction List ─────────────────────────────────────────────────────────
 function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRange }) {
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState(() => new URLSearchParams(window.location.search).get('type') === 'income' ? 'income' : 'all');
+  const [typeFilter, setTypeFilter] = useState(() => {
+    const type = new URLSearchParams(window.location.search).get('type');
+    return ['income', 'expense'].includes(type) ? type : 'all';
+  });
   const [categoryFilter, setCategoryFilter] = useState('all');
 
   const [showAdvanced, setShowAdvanced] = useState(false);
