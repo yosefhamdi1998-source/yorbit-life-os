@@ -4,13 +4,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { writeTransactionRows } from '@/lib/pdfTransactionRows';
+import { escapeCSVCell as csvEsc } from '@/lib/csv';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
-
-const csvEsc = (v) => {
-  const s = String(v ?? '');
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 export default function ExportButtons({ allTransactions, periodTransactions, categoryData, totalSpending, periodLabel }) {
   const [busy, setBusy] = useState(null);
@@ -21,7 +17,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       const rows = [];
       rows.push('Yorbit Finance Export');
       rows.push(`Period,${csvEsc(periodLabel)}`);
-      rows.push(`Generated,${format(new Date(), "MMM d, yyyy h:mm a")}`);
+      rows.push(`Generated,${csvEsc(format(new Date(), "MMM d, yyyy h:mm a"))}`);
       rows.push('');
       rows.push('--- Spending Summary (Selected Period) ---');
       rows.push('Category,Amount');

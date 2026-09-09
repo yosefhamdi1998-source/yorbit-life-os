@@ -177,3 +177,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Production bundle inspection confirms dynamic PDF import and no static jsPDF import in the Spending Summary chunk. No measured latency claim is made.
 - All 20 local Node regression scripts passed together, including CSV, starter budget, export pagination, report categories/dates, and PDF wrapping. Initial unprivileged run hit a filesystem restriction; rerun with required access passed. Live database checks were not part of this run.
 - Strict lint and production build passed. Sample PDF export action returned to enabled controls with no browser errors; downloaded file contents were not re-reviewed because PDF layout did not change in this pass.
+
+## September 9, 2026 — preserve CSV cells containing line breaks
+
+- CSV cell escaping now quotes carriage returns as well as line feeds, commas, and quotes. Merchant names/notes containing CR-only line breaks no longer split into extra rows.
+- Generated-date metadata is also escaped, preserving its comma inside one cell.
+- Shared escaping helper is exercised by export-to-parser round-trip tests for commas, quotes, CR, LF, CRLF, zero, and null. Each transaction remains one row with its description and amount intact.
+- Existing CSV parser/dedup checks, strict lint, production build, and diff checks passed. No real records changed; this pass does not claim a spreadsheet-formula security audit.

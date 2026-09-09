@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseCSV, statementRowKey } from '../src/lib/csv.js';
+import { parseCSV, statementRowKey, escapeCSVCell } from '../src/lib/csv.js';
 
 const parsed = parseCSV('\uFEFFDate,Description,Amount\r\n2026-09-01,"Cafe, \"\"Lunch\"\"",-12.75\r\n2026-09-02,"Invoice\nsecond line",900\r\n');
 assert.equal(parsed.rows.length, 2);
@@ -14,4 +14,13 @@ assert.throws(() => parseCSV('Date,Amount,Amount\n2026-09-01,10,20'), /duplicate
 const row = { date: '2026-09-01', title: 'Payment', amount: 20, type: 'income' };
 assert.notEqual(statementRowKey(row), statementRowKey({ ...row, type: 'expense' }));
 assert.equal(statementRowKey(row), statementRowKey({ ...row, amount: '20.00' }));
-console.log('CSV quoted fields, Venmo alignment, malformed input, and income/expense identity checks passed.');
+for (const description of ['Cafe, Lunch', 'Cafe "Lunch"', 'First\rSecond', 'First\nSecond', 'First\r\nSecond']) {
+  const exported = ['Date,Description,Amount', ['2026-09-01', description, 12.75].map(escapeCSVCell).join(',')].join('\n');
+  const imported = parseCSV(exported);
+  assert.equal(imported.rows.length, 1);
+  assert.equal(imported.rows[0].Description, description);
+  assert.equal(imported.rows[0].Amount, '12.75');
+}
+assert.equal(escapeCSVCell(null), '');
+assert.equal(escapeCSVCell(0), '0');
+console.log('CSV export round trips, quoted fields, Venmo alignment, malformed input, and income/expense identity checks passed.');

@@ -1,3 +1,8 @@
+export function escapeCSVCell(value) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
 // Parse records before detecting the header so quoted newlines remain one field.
 export function parseCSV(text) {
   const records = [];
