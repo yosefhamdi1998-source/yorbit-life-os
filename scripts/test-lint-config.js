@@ -29,7 +29,6 @@
 // Usage: node scripts/test-lint-config.js
 
 import { ESLint } from 'eslint';
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,8 +41,8 @@ const check = (label, got, expected) => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}: got ${got}, expected ${expected}`);
 };
 
-// Written inside src/pages so it matches the same config block the real pages
-// do. A fixture elsewhere would prove nothing about the files that ship.
+// Resolve the same config as real pages without writing a temporary source
+// file. Writing/removing this file raced with concurrent full lint scans.
 const fixture = path.join(root, 'src', 'pages', '__lint_fixture__.jsx');
 
 const CASES = [
@@ -69,14 +68,8 @@ async function main() {
   console.log('Lint config must catch crash-class mistakes\n');
 
   for (const c of CASES) {
-    fs.writeFileSync(fixture, c.code);
-    let ruleIds = [];
-    try {
-      const results = await eslint.lintFiles([fixture]);
-      ruleIds = results.flatMap(r => r.messages.map(m => m.ruleId));
-    } finally {
-      fs.rmSync(fixture, { force: true });
-    }
+    const results = await eslint.lintText(c.code, { filePath: fixture });
+    const ruleIds = results.flatMap(r => r.messages.map(m => m.ruleId));
     check(`${c.name} -> ${c.rule} reported`, ruleIds.includes(c.rule), true);
   }
 

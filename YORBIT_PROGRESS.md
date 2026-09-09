@@ -2,6 +2,8 @@
 
 ## September 9 follow-up
 
+- Automation follow-up: removed the reproduced collision between the lint regression test and strict lint. The regression test now uses ESLint's in-memory lintText with the same page file path/configuration instead of creating and deleting a source file. Both checks passed when run concurrently; all crash-detection assertions remain. This changes development checks only, not application behavior.
+
 - Integrated Claude's fixes-and-dead-code work and lint cleanup through 7b58524 by fast-forward, preserving all existing commits. Reviewed the full cleanup diff, including removal of Home's unused net-worth/account requests and preservation of bill-copy/export field omissions.
 - Independently passed the full regression suite, all 25 live enum checks, production build, and strict lint with zero warnings. Run strict lint after the test suite: test-lint-config temporarily creates/removes a source fixture, which can collide with a simultaneous lint scan.
 - Verified the integrated Home renders with sample data. Claude additionally reported a 13-route sample-data pass; that broader pass was not independently repeated during this integration.
