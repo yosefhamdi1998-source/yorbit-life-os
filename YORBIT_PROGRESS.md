@@ -125,3 +125,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Enlarged filter/type/category/sort controls to 44px minimum height for touch use.
 - Verified sample minimum amount filter (20 of 61 results), Income selection, ascending/descending amount sorting, and clearing filters through browser controls.
 - Strict lint, production build, and diff checks passed. No transaction data was modified; no claim of full screen-reader audit.
+
+## September 9, 2026 — explain invalid transaction filter ranges
+
+- Added specific guidance for negative amounts, minimum greater than maximum, and From date later than To date. Affected inputs expose invalid state and reference the guidance for assistive technology.
+- Empty results distinguish invalid ranges from valid filters with no matches. Filters remain user-controlled; no financial records are modified.
+- Browser sample checks passed for reversed amounts, negative values, and correction back to zero (warning and invalid state clear).
+- Native date-field automation did not reliably commit React change events, so reversed-date browser interaction is not claimed as verified. Date validation is a direct comparison of ISO date inputs.
+- Strict lint, production build, and diff checks passed.

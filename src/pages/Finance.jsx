@@ -221,6 +221,13 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
     return [...new Set(transactions.map(t => t.category).filter(c => c && c !== 'other'))].sort();
   }, [transactions]);
 
+  const amountRangeError = Number(amountMin) < 0 || Number(amountMax) < 0
+    ? 'Amounts must be zero or greater.'
+    : amountMin !== '' && amountMax !== '' && Number(amountMin) > Number(amountMax)
+      ? 'Minimum amount must be less than or equal to maximum amount.' : '';
+  const dateRangeError = customFrom && customTo && customFrom > customTo
+    ? 'From date must be on or before To date.' : '';
+
   const filtered = useMemo(() => {
     let list = transactions;
     if (typeFilter === 'income') list = list.filter(t => t.type === 'income');
@@ -384,6 +391,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
 
         {showAdvanced && (
           <div id="transaction-advanced-filters" className="sky-card rounded-xl p-4 space-y-3">
+            {amountRangeError && <p id="transaction-amount-error" role="alert" className="text-sm text-destructive">{amountRangeError}</p>}
+            {dateRangeError && <p id="transaction-date-error" role="alert" className="text-sm text-destructive">{dateRangeError}</p>}
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</p>
               {advancedFilterCount > 0 && (
@@ -393,15 +402,15 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Amount range ($)</label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="number" aria-label="Minimum transaction amount" placeholder="Min" value={amountMin} onChange={e => setAmountMin(e.target.value)} min="0" />
-                <Input type="number" aria-label="Maximum transaction amount" placeholder="Max" value={amountMax} onChange={e => setAmountMax(e.target.value)} min="0" />
+                <Input type="number" aria-label="Minimum transaction amount" aria-invalid={!!amountRangeError} aria-describedby={amountRangeError ? 'transaction-amount-error' : undefined} placeholder="Min" value={amountMin} onChange={e => setAmountMin(e.target.value)} min="0" />
+                <Input type="number" aria-label="Maximum transaction amount" aria-invalid={!!amountRangeError} aria-describedby={amountRangeError ? 'transaction-amount-error' : undefined} placeholder="Max" value={amountMax} onChange={e => setAmountMax(e.target.value)} min="0" />
               </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Exact date range</label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="date" aria-label="From date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
-                <Input type="date" aria-label="To date" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+                <Input type="date" aria-label="From date" aria-invalid={!!dateRangeError} aria-describedby={dateRangeError ? 'transaction-date-error' : undefined} value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+                <Input type="date" aria-label="To date" aria-invalid={!!dateRangeError} aria-describedby={dateRangeError ? 'transaction-date-error' : undefined} value={customTo} onChange={e => setCustomTo(e.target.value)} />
               </div>
             </div>
           </div>
@@ -464,7 +473,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
 
       {sorted.length === 0 ? (
         <div className="bg-card border border-dashed border-border rounded-2xl p-6 text-center">
-          <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
+          <p className="text-sm text-muted-foreground">{amountRangeError || dateRangeError ? 'Correct the filter range to see matching transactions.' : 'No transactions match your filters.'}</p>
         </div>
       ) : (
         // One card holding the rows, rather than a stack of floating cards:
