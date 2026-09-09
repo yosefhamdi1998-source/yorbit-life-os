@@ -12,7 +12,7 @@ import AddRecordModal from '@/components/forms/AddRecordModal';
 import useDeleteLock from '@/hooks/useDeleteLock';
 
 export default function Forms() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const { toast } = useToast();
   const [forms, setForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);

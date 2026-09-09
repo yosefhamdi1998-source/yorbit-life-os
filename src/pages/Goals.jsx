@@ -51,7 +51,7 @@ const EMPTY_FORM = { name: '', preset: 'custom', target_amount: '', current_amou
 const MAX_CONTRIBUTION = 10000000;
 
 export default function Goals() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const { isPro } = useProStatus();
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);

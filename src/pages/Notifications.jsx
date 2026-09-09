@@ -19,7 +19,7 @@ const fmtAmount = (n) =>
 import useDeleteLock from '@/hooks/useDeleteLock';
 
 export default function Notifications() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState(null);

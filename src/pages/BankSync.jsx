@@ -88,7 +88,7 @@ export default function BankSync() {
             for (const acct of exchangeRes.accounts || []) {
               await syncAccount(acct.id, acct.account_type, true);
             }
-          } catch (e) {
+          } catch {
             setError("We couldn't connect your bank. Please try again.");
           }
           setConnecting(false);
@@ -165,7 +165,7 @@ export default function BankSync() {
         });
       }
       await loadAccounts();
-    } catch (e) {
+    } catch {
       setError(isInvestment ? "We couldn't sync your holdings. Please try again." : "We couldn't sync your transactions. Please try again.");
     }
     setSyncingId(null);

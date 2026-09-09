@@ -13,10 +13,6 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'other'];
-const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
-const ALL_CATS = [...new Set([...EXPENSE_CATS, ...INCOME_CATS])];
-
 // Second-pass fallback for when a column's own name doesn't say what it is
 // (a bank's own jargon, an unlabeled export, a language mismatch). Instead
 // of giving up and asking the user to pick manually, look at what's

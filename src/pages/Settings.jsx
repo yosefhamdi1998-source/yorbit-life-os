@@ -199,7 +199,7 @@ export default function Settings() {
         // access_token_ref is a live bank-connection credential, not
         // something to hand back in a downloadable file — every other
         // field describing the connection is still included.
-        base44.entities.ConnectedAccount.list().then(rows => rows.map(({ access_token_ref, ...rest }) => rest)),
+        base44.entities.ConnectedAccount.list().then(rows => rows.map(({ access_token_ref: _accessTokenRef, ...rest }) => rest)),
         base44.entities.InvestmentHolding.list(),
         base44.entities.AdvisorConversation.list(),
         base44.entities.AdvisorMessage.list(),

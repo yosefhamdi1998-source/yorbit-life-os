@@ -7,8 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
-import { composeNetWorth } from '@/lib/netWorth';
-import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
+import { filterByPeriod, sumByType, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
 import { fmtFull } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
@@ -74,8 +73,6 @@ export default function Dashboard() {
   const [budgets, setBudgets] = useState([]);
   const [savingsGoals, setSavingsGoals] = useState([]);
   const [bills, setBills] = useState([]);
-  const [netWorthEntries, setNetWorthEntries] = useState([]);
-  const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
@@ -104,19 +101,19 @@ export default function Dashboard() {
   })();
   const thisMonth = format(latestTxDate, 'yyyy-MM');
 
+  const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
+
   const loadData = useCallback(async () => {
     setLoadFailed(false);
     try {
-      const [tr, b, sg, bl, nw, accts] = await Promise.all([
+      const [tr, b, sg, bl] = await Promise.all([
         base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.SavingsGoal.list(),
         base44.entities.Bill.list('due_date', 5000),
-        base44.entities.NetWorthEntry.list(),
-        base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
-      setTransactions(tr); setBudgets(b); setSavingsGoals(sg); setBills(bl); setNetWorthEntries(nw); setConnectedAccounts(accts || []);
-      return { tr, b, sg, bl, nw };
+      setTransactions(tr); setBudgets(b); setSavingsGoals(sg); setBills(bl);
+      return { tr, b, sg, bl };
     } catch {
       setLoadFailed(true);
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
@@ -160,19 +157,6 @@ export default function Dashboard() {
 
   const { pullY, refreshing, threshold } = usePullToRefresh(loadData);
 
-  const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
-  const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const netSaved = monthIncome - monthExpenses;
-  // A fraction-of-a-cent "income" row (a staking reward like $0.00007 is a
-  // real example in this data) technically passes `> 0` but turns netSaved
-  // divided by it into a meaningless five-figure percentage. Require at
-  // least $1 of real income before a rate means anything.
-  const savingsRate = computeSavingsRate(monthIncome, monthExpenses);
-  const worth = composeNetWorth(connectedAccounts, netWorthEntries);
-  const totalAssets = netWorthEntries.filter(e => e.type === 'asset').reduce((s, e) => s + (e.value || 0), 0);
-  const totalLiabilities = netWorthEntries.filter(e => e.type === 'liability').reduce((s, e) => s + (e.value || 0), 0);
-  const netWorth = totalAssets - totalLiabilities;
 
   const isNewUser = transactions.length === 0 && budgets.length === 0 && savingsGoals.length === 0;
 
@@ -188,7 +172,6 @@ export default function Dashboard() {
   const { income: heroIncome, expenses: heroExpenses, net: heroNetSaved } = sumByType(heroTx);
   // Same fraction-of-a-cent guard as `savingsRate` above.
   const heroSavingsRate = computeSavingsRate(heroIncome, heroExpenses);
-  const heroPeriodLabel = getPeriodLabel(cashFlowPeriod, latestTxDate);
   const heroPeriodPhrase = getPeriodPhrase(cashFlowPeriod, latestTxDate);
   // TRUE calendar bounds of the selected window, from the period definition
   // and not from the rows that landed in it. Deriving these from heroTx made
@@ -196,7 +179,6 @@ export default function Dashboard() {
   // two-week window - defeating the coverage check entirely.
   const { start: heroPeriodStart, end: heroPeriodEnd } =
     getPeriodBounds(cashFlowPeriod, latestTxDate, transactions);
-  const isYearPeriod = cashFlowPeriod.startsWith('year-');
   // Same trailing-4-years list as the Yearly picker on Money, so the two
   // don't quietly offer a different range of history.
   const thisYearNum = new Date().getFullYear();
@@ -223,10 +205,6 @@ export default function Dashboard() {
       + (latestTxDate.getMonth() - start.getMonth()) + 1;
   })();
 
-  // Same period, one step back — powers the Savings Progress comparison
-  // and the Financial Health Score's "why it changed" explanation.
-  const prevTx = filterByPreviousPeriod(transactions, cashFlowPeriod, latestTxDate);
-  const prevSums = sumByType(prevTx);
 
   // Cash Flow Trend chart's own window — independent of the hero period
   // switcher above (that answers "how am I doing in [this period]"; this
@@ -294,23 +272,6 @@ export default function Dashboard() {
   const topSaveMoreCategory = Object.entries(spendByCat)
     .map(([cat, spent]) => ({ cat, spent }))
     .sort((a, b) => b.spent - a.spent)[0] || null;
-
-  // Net worth as it was actually recorded over time: entries in the order
-  // they were added, accumulated. Not a projection — every point is a real
-  // state the account was in. Needs 2+ points to say anything, so it stays
-  // hidden until then.
-  const netWorthTrend = (() => {
-    if (netWorthEntries.length < 2) return [];
-    const sorted = [...netWorthEntries]
-      .filter(e => e.created_date)
-      .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-    if (sorted.length < 2) return [];
-    let running = 0;
-    return sorted.map(e => {
-      running += e.type === 'liability' ? -(e.value || 0) : (e.value || 0);
-      return running;
-    });
-  })();
 
   // Local midnight, so "Due in Nd" counts calendar days (a bill due tomorrow
   // showed "Due in 0d" when compared against the current time of day).

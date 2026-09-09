@@ -26,7 +26,7 @@ const BILL_CAT_OPTIONS = Object.entries(CAT_ICONS).map(([key, icon]) => ({
 function fmt(n) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 export default function Bills() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -51,7 +51,7 @@ export default function Bills() {
     try {
       const data = await base44.entities.Bill.list('due_date', 50);
       setBills(data);
-    } catch (error) {
+    } catch {
       toast({ title: "Couldn't load bills", description: "Please check your connection and try again.", variant: 'destructive' });
     } finally {
       if (showSkeleton) setLoading(false);
@@ -62,7 +62,7 @@ export default function Bills() {
     try {
       const data = await base44.entities.Bill.list('due_date', 50);
       setBills(data);
-    } catch (error) {
+    } catch {
       toast({ title: "Couldn't load bills", description: "Please check your connection and try again.", variant: 'destructive' });
     }
   }, []);
@@ -123,7 +123,7 @@ export default function Bills() {
       }
       closeForm();
       loadBills(false);
-    } catch (error) {
+    } catch {
       toast({ title: "Couldn't save bill", description: "Please try again in a moment.", variant: 'destructive' });
       // Revert optimistic update for edit
       if (editingBill) loadBills(false);
@@ -138,7 +138,7 @@ export default function Bills() {
     setBills(prev => prev.map(b => b.id === bill.id ? { ...b, is_paid: newPaid } : b));
     try {
       await base44.entities.Bill.update(bill.id, { is_paid: newPaid });
-    } catch (error) {
+    } catch {
       // Revert on failure
       setBills(prev => prev.map(b => b.id === bill.id ? { ...b, is_paid: bill.is_paid } : b));
       toast({ title: "Couldn't update bill", description: "Please try again in a moment.", variant: 'destructive' });
@@ -193,7 +193,7 @@ export default function Bills() {
     // back with a new id, which is fine — nothing references bills by id
     // across tables. This can't duplicate the way the old recreate-path
     // could, because the original really was deleted first.
-    const { id: _oldId, created_date, updated_date, user_id, ...fields } = entry.bill;
+    const { id: _oldId, created_date: _created, updated_date: _updated, user_id: _userId, ...fields } = entry.bill;
     try {
       await base44.entities.Bill.create(fields);
       setDeletedBills(prev => {

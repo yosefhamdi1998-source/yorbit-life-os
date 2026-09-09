@@ -195,7 +195,7 @@ export default function Investments() {
     cashOut: Number(r.cash_withdrawn) || 0,
   })), [yearlyRows]);
 
-  const { assets: clientAssets, byAsset, totals, yearly: clientYearly } = useMemo(() => {
+  const { assets: clientAssets, yearly: clientYearly } = useMemo(() => {
     const byAsset = {};
     let bought = 0, sold = 0, moneyIn = 0, moneyOut = 0;
     const yearMap = {};

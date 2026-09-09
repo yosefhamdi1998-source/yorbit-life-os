@@ -52,7 +52,7 @@ function BudgetChartTooltip({ active, payload, label }) {
 }
 
 export default function Budget() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const { isPro } = useProStatus();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -83,7 +83,7 @@ export default function Budget() {
       ]);
       setTransactions(tx);
       setBudgets(b);
-    } catch (error) {
+    } catch {
       setLoadFailed(true);
       toast({ title: "Couldn't load your budgets", description: "Please check your connection and try again.", variant: 'destructive' });
     } finally {
@@ -128,7 +128,7 @@ export default function Budget() {
       setShowForm(false);
       setTimeout(() => setSaved(false), 3000);
       loadData();
-    } catch (error) {
+    } catch {
       toast({ title: "Couldn't save budget", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
       savingRef.current = false;
@@ -143,7 +143,7 @@ export default function Budget() {
       await base44.entities.Budget.delete(id);
       toast({ title: 'Budget deleted' });
       loadData();
-    } catch (error) {
+    } catch {
       toast({ title: "Couldn't delete budget", description: "Please try again in a moment.", variant: 'destructive' });
     }
   });

@@ -48,7 +48,7 @@ const PieTooltip = ({ active, payload }) => {
 };
 
 // Sankey draws only the ribbons; nodes and their labels are ours to render.
-function SankeyNode({ x, y, width, height, index, payload, containerWidth }) {
+function SankeyNode({ x, y, width, height, payload, containerWidth }) {
   const isLeaf = x + width + 6 > containerWidth - 130;
   const color = payload.color || '#94A3B8';
   if (height < 1) return null;

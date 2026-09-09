@@ -16,8 +16,8 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import StatCard from '@/components/StatCard';
 import PageHeader from '@/components/PageHeader';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useNavigate, Link } from 'react-router-dom';
-import { subMonths, format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { format, parseISO, startOfDay, differenceInCalendarDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import useDeleteLock from '@/hooks/useDeleteLock';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
@@ -26,14 +26,8 @@ import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
-const INCOME_CATS = ['salary', 'freelance', 'investment', 'other'];
 const CAT_COLORS = { housing: '#7C3AED', food: '#DD8163', transport: '#3B82F6', entertainment: '#EC4899', health: '#EF4444', shopping: '#F59E0B', education: '#2F9273', savings: '#059669', salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8' };
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
-
-const TX_TYPE_OPTIONS = [
-  { value: 'expense', label: '💸 Expense' },
-  { value: 'income', label: '💵 Income' },
-];
 
 const NW_TYPE_OPTIONS = [
   { value: 'asset', label: '✅ Asset' },
@@ -47,13 +41,6 @@ const NW_CAT_OPTIONS = NET_WORTH_CATEGORIES.map(c => ({
   label: c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' '),
 }));
 const NW_CAT_ICONS = { cash: '💵', investment: '📈', property: '🏠', vehicle: '🚗', crypto: '🪙', loan: '🏦', mortgage: '🏡', credit_card: '💳', other: '💼' };
-
-function getCatOptions(type) {
-  return (type === 'income' ? INCOME_CATS : EXPENSE_CATS).map(c => ({
-    value: c,
-    label: `${CAT_ICONS[c] || ''} ${c.charAt(0).toUpperCase() + c.slice(1)}`,
-  }));
-}
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
@@ -514,8 +501,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
 
 // ─── Main Finance Page ────────────────────────────────────────────────────────
 export default function Finance() {
-  const { runGuarded: guardDelete, isDeleting } = useDeleteLock();
-  const navigate = useNavigate();
+  const { runGuarded: guardDelete } = useDeleteLock();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [netWorth, setNetWorth] = useState([]);
@@ -543,7 +529,7 @@ export default function Finance() {
         base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
       ]);
       setTransactions(tx); setBudgets(b); setNetWorth(nw); setAccounts(accts || []);
-    } catch (error) {
+    } catch {
       setLoadFailed(true);
       toast({ title: "Couldn't load your data", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
@@ -592,7 +578,7 @@ export default function Finance() {
     try {
       await base44.entities.Transaction.delete(id);
       toast({ title: 'Transaction deleted' });
-    } catch (error) {
+    } catch {
       if (existing) setTransactions(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete transaction", description: "Please try again in a moment.", variant: 'destructive' });
     }
@@ -618,7 +604,7 @@ export default function Finance() {
       setNwForm({ name: '', type: 'asset', value: '', category: 'cash' });
       toast({ title: 'Entry added' });
       await loadData();
-    } catch (err) {
+    } catch {
       toast({ title: "Couldn't save entry", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
       setNwSaving(false);
@@ -632,7 +618,7 @@ export default function Finance() {
     try {
       await base44.entities.NetWorthEntry.delete(id);
       toast({ title: 'Entry deleted' });
-    } catch (error) {
+    } catch {
       if (existing) setNetWorth(prev => [existing, ...prev]);
       toast({ title: "Couldn't delete entry", description: "Please try again in a moment.", variant: 'destructive' });
     }
@@ -652,20 +638,11 @@ export default function Finance() {
     return latest ? parseISO(latest) : new Date();
   }, [transactions]);
   const thisMonth = format(latestTxDate, 'yyyy-MM');
-  const thisYearNum = latestTxDate.getFullYear();
-  const thisYear = String(thisYearNum);
-  const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM');
 
-  const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
-  const lastMonthTx = transactions.filter(t => t.date?.startsWith(lastMonthStr));
-  const monthExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  const monthIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const lastMonthExpenses = lastMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   // Live bank balances + manual entries, with the label deciding itself.
   const worth = composeNetWorth(accounts, netWorth);
   const totalAssets = netWorth.filter(n => n.type === 'asset').reduce((s, n) => s + (n.value || 0), 0);
   const totalLiabilities = netWorth.filter(n => n.type === 'liability').reduce((s, n) => s + (n.value || 0), 0);
-  const netSaved = monthIncome - monthExpenses;
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
   // into a five-figure percentage.
 
