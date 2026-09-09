@@ -42,7 +42,13 @@ class FixtureEntity {
 class FixtureTransactionEntity extends FixtureEntity {
   budgeted() { return this.rows.filter(r => !r.exclude_from_budget); }
   investing() { return this.rows.filter(r => r.exclude_from_budget); }
-  async list(sort, limit) { const r = applySort(this.budgeted(), sort); return limit ? r.slice(0, limit) : r; }
+  async list(sort, limit) {
+    if (scenarioName === 'report-retry' && !this.reportFailureShown) {
+      this.reportFailureShown = true;
+      throw new Error('Synthetic transaction load failure');
+    }
+    const r = applySort(this.budgeted(), sort); return limit ? r.slice(0, limit) : r;
+  }
   async filter(q = {}, sort, limit) {
     const matched = this.budgeted().filter(r => Object.entries(q).every(([k, v]) => r[k] === v));
     const r = applySort(matched, sort);

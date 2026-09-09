@@ -16,7 +16,6 @@ import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ExportButtons from '@/components/finance/ExportButtons';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
 import { CAT_COLORS, CategoryBadge } from '@/lib/categoryVisuals';
 import { fmtAxisCompact, fmtFull, fmtCompact, heroValueSizeClass } from '@/lib/format';
 
@@ -131,6 +130,8 @@ export default function SpendingSummary() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [{ period: initialPeriod, cursor: initialCursor }] = useState(initialStateFromQuery);
   const [period, setPeriod] = useState(initialPeriod);
   const [cursor, setCursor] = useState(initialCursor);
@@ -142,9 +143,13 @@ export default function SpendingSummary() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     (async () => {
       try {
         const tx = await base44.entities.Transaction.list('-date', 50000);
+        if (cancelled) return;
         setTransactions(tx);
 
         // Land on the newest month that actually has spending, rather than
@@ -160,13 +165,14 @@ export default function SpendingSummary() {
           if (latest) setCursor(parseISO(latest));
         }
       } catch {
-        toast({ title: "Couldn't load your spending", description: "Please try again in a moment.", variant: 'destructive' });
+        if (!cancelled) setLoadError(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
      
-  }, []);
+    return () => { cancelled = true; };
+  }, [loadAttempt, openedWithExplicitPeriod]);
 
   const expenses = useMemo(() => transactions.filter(t => t.type === 'expense'), [transactions]);
 
@@ -295,6 +301,19 @@ export default function SpendingSummary() {
         <div className="h-12 w-12 rounded-2xl bg-secondary animate-pulse mb-4" />
         <div className="h-24 rounded-2xl bg-secondary animate-pulse mb-3" />
         <div className="h-64 rounded-2xl bg-secondary animate-pulse" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="py-4 pb-8">
+        <PageHeader title="Spending Summary" showBack />
+        <div className="sky-card rounded-2xl p-6 text-center" role="alert">
+          <h2 className="text-base font-semibold">Couldn't load your spending</h2>
+          <p className="text-sm text-muted-foreground mt-2 mb-4">Your report is unavailable right now. Check your connection and try again.</p>
+          <Button className="min-h-[44px]" onClick={() => setLoadAttempt(value => value + 1)}>Retry loading report</Button>
+        </div>
       </div>
     );
   }

@@ -133,3 +133,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Browser sample checks passed for reversed amounts, negative values, and correction back to zero (warning and invalid state clear).
 - Native date-field automation did not reliably commit React change events, so reversed-date browser interaction is not claimed as verified. Date validation is a direct comparison of ISO date inputs.
 - Strict lint, production build, and diff checks passed.
+
+## September 9, 2026 — distinguish unavailable reports from zero spending
+
+- Spending Summary now shows a persistent load-error state with Retry instead of a transient toast followed by zero totals. Charts and export controls are withheld until records load successfully.
+- Retry preserves explicit date ranges; cancelled requests cannot update an unmounted report.
+- Added dev-only scenario=report-retry, which fails the first transaction load and succeeds on retry. Production does not use the fixture implementation.
+- Browser check: failure screen contained no totals/exports; Retry restored the Aug 10–Sep 8 report and $8,048 sample total with its original date range.
+- Strict lint, production build, and diff checks passed. No live data or network service was disrupted.
