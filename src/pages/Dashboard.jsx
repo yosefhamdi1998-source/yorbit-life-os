@@ -393,7 +393,10 @@ export default function Dashboard() {
             <WhatsNextCard
               overdueBillCount={overdueBillCount}
               heroNetSaved={heroNetSaved}
-              fallbackTip={topSaveMoreCategory ? `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.` : null}
+              fallbackTip={topSaveMoreCategory ? {
+                text: `You spent the most on ${topSaveMoreCategory.cat} this period ($${fmt(topSaveMoreCategory.spent)}) — see Save More for ideas.`,
+                to: '/save-more',
+              } : null}
               bare
             />
           </div>

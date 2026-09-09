@@ -220,4 +220,14 @@
 }
 /* Text links need a lighter tone on dark surfaces; filled buttons keep
    the theme's primary color and its white foreground. */
-.text-primary { color: hsl(var(--primary-text, var(--primary))); }
+/* Qualified with `html` on purpose. Tailwind emits its hover/focus VARIANT
+   utilities in a later block than the plain ones, so an unlayered rule here
+   beats `.text-primary` on source order but still loses to
+   `.hover\:text-primary:hover` (verified in the built CSS: variants land
+   ~4KB further down). The extra element bumps specificity to (0,2,1) so the
+   cascade is decided by weight, not by emit order. Without this a link went
+   DARKER on hover in dark mode — the one moment it should stand out most. */
+html .text-primary { color: hsl(var(--primary-text, var(--primary))); }
+html .hover\:text-primary:hover { color: hsl(var(--primary-text, var(--primary))); }
+html .focus\:text-primary:focus { color: hsl(var(--primary-text, var(--primary))); }
+html .group:hover .group-hover\:text-primary { color: hsl(var(--primary-text, var(--primary))); }

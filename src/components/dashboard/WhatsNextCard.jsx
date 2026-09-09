@@ -33,11 +33,24 @@ export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallback
 
   if (!checked) return null;
 
-  const tip = (overdueBillCount > 0 ? `You have ${overdueBillCount} overdue bill${overdueBillCount === 1 ? '' : 's'} — review ${overdueBillCount === 1 ? 'it' : 'them'} first.` : null)
-    || nextMove
-    || (heroNetSaved < 0 ? "Spending was above recorded income this period. Review your budget and expected income." : null)
+  // Text and destination are chosen together. They used to be two separate
+  // precedence chains — one building the sentence, one inside `to=` — which
+  // had already drifted: a brand new user saw "Add a few transactions and
+  // Coach will..." wired to /save-more, a page that is empty for someone
+  // with no transactions. Keeping them in one object makes that class of
+  // mismatch impossible rather than merely fixed once.
+  const tip =
+    (overdueBillCount > 0 && {
+      text: `You have ${overdueBillCount} overdue bill${overdueBillCount === 1 ? '' : 's'} — review ${overdueBillCount === 1 ? 'it' : 'them'} first.`,
+      to: '/bills?status=overdue',
+    })
+    || (nextMove && { text: nextMove, to: '/coach' })
+    || (heroNetSaved < 0 && {
+      text: 'Spending was above recorded income this period. Review your budget and expected income.',
+      to: '/budget',
+    })
     || fallbackTip
-    || "Add a few transactions and Coach will start giving you personalized moves.";
+    || { text: 'Add a few transactions and Coach will start giving you personalized moves.', to: '/coach' };
 
   const content = (
     <div className={`flex items-start gap-3 ${bare ? '' : 'sky-card rounded-2xl p-4 lg:p-5 hover:border-primary/40 transition-colors'}`}>
@@ -46,14 +59,14 @@ export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallback
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">What should I do next?</p>
-        <p className="text-sm font-semibold text-foreground leading-snug">{tip}</p>
+        <p className="text-sm font-semibold text-foreground leading-snug">{tip.text}</p>
       </div>
       <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
     </div>
   );
 
   return (
-    <Link to={overdueBillCount > 0 ? '/bills?status=overdue' : nextMove ? '/coach' : heroNetSaved < 0 ? '/budget' : '/save-more'} className={bare ? 'block' : 'block mb-5'}>
+    <Link to={tip.to} className={bare ? 'block' : 'block mb-5'}>
       {content}
     </Link>
   );
