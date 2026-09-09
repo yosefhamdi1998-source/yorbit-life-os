@@ -1,3 +1,4 @@
+import { CategoryBadge } from '@/lib/categoryVisuals';
 import StarterBudget from '@/components/budget/StarterBudget';
 import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef } from 'react';
@@ -347,7 +348,7 @@ export default function Budget() {
               <div key={cat} className={`bg-card border rounded-2xl p-4 ${over ? 'border-red-200' : close ? 'border-amber-200' : 'border-border'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{CAT_ICONS[cat]}</span>
+                    <CategoryBadge category={cat} />
                     <span className="text-sm font-semibold capitalize">{cat}</span>
                   </div>
                   <div className="flex items-center gap-2">

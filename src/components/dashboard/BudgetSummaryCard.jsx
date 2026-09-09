@@ -1,7 +1,7 @@
+import { CategoryBadge } from '@/lib/categoryVisuals';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, ChevronRight, PiggyBank } from 'lucide-react';
 
-const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', investment: '📈', other: '💸' };
 
 function fmt(n) { return (n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
@@ -161,7 +161,7 @@ export default function BudgetSummaryCard({ transactions, budgets, thisMonth, co
             <div key={cat} className="px-4 py-3">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{CAT_ICONS[cat]}</span>
+                  <CategoryBadge category={cat} size="w-7 h-7" />
                   <span className="text-sm font-semibold capitalize text-foreground">{cat}</span>
                   {over && (
                     <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">

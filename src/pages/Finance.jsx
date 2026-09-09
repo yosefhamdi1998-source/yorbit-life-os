@@ -1,3 +1,4 @@
+import { CategoryBadge } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
 import { readReportRange } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
@@ -26,7 +27,6 @@ import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
 const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
-const CAT_COLORS = { housing: '#7C3AED', food: '#DD8163', transport: '#3B82F6', entertainment: '#EC4899', health: '#EF4444', shopping: '#F59E0B', education: '#2F9273', savings: '#059669', salary: '#22C55E', freelance: '#6366F1', investment: '#0EA5E9', other: '#94A3B8' };
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 
 const NW_TYPE_OPTIONS = [
@@ -85,12 +85,7 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
             {selected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
           </div>
         )}
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base"
-          style={{ backgroundColor: (CAT_COLORS[tx.category] || '#94A3B8') + '22' }}
-        >
-          {CAT_ICONS[tx.category] || '💸'}
-        </div>
+        <CategoryBadge category={tx.category} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{prettyMerchant(tx.title)}</p>
           <p className="text-xs text-muted-foreground capitalize truncate">

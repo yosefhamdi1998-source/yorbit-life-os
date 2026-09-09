@@ -1,3 +1,4 @@
+import { CategoryBadge } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
 import { billsDueThisWeek } from '@/lib/billWindow';
 import { reportLink } from '@/lib/reportRange';
@@ -20,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { prettyMerchant } from '@/lib/merchantName';
 
-const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 const CAT_BILL_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
 // Tinted icon chips instead of uniform gray — a small thing that reads as
 // considerably less flat across a whole list of rows.
@@ -427,9 +427,7 @@ export default function Dashboard() {
             <div className="divide-y divide-border/40">
               {transactions.slice(0, simpleMode ? 3 : 5).map(tx => (
                 <div key={tx.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${CAT_TINT[tx.category] || CAT_TINT.other}`}>
-                    {CAT_ICONS[tx.category] || '💸'}
-                  </div>
+                  <CategoryBadge category={tx.category} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{prettyMerchant(tx.title)}</p>
                     {/* Was printing the raw ISO date ("2026-09-01") while

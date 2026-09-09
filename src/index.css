@@ -15,6 +15,7 @@
     --background: 225 16% 96%;
     --foreground: 222 44% 11%;
     --card: 0 0% 100%;
+    --chart-spent-text: 161 94% 24%;
     --card-foreground: 222 44% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 44% 11%;
@@ -56,6 +57,7 @@
     --background: 222 20% 9%;
     --foreground: 210 26% 93%;
     --card: 222 17% 13%;
+    --chart-spent-text: 156 72% 67%;
     --card-foreground: 210 26% 93%;
     --popover: 222 17% 13%;
     --popover-foreground: 210 26% 93%;

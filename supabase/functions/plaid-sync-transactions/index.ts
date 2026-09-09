@@ -1,3 +1,4 @@
+import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
@@ -155,7 +156,7 @@ Deno.serve(async (req) => {
     // JWT). In the service-role case there's no `user` to check against — the
     // caller already authenticated with the service-role secret, which is enough.
     const authHeader = req.headers.get('Authorization') || '';
-    const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
+    const isServiceRoleCall = isServiceBearer(authHeader, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
     // Identity is established BEFORE the account is looked up.
     //

@@ -203,3 +203,18 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added a direct Add transaction action to the genuine empty state.
 - Verified strict lint and production build. Synthetic browser checks: first request failure -> error -> Try again -> loading -> 919 populated records; empty account action opens New Transaction. Also independently clicked the yearly expense chart bar from the prior release: opened Jan 1–Dec 31 2025, Spending selected, 372/383 records.
 - No production financial records were changed. Monthly chart bars and other app flows still need their own coverage; this does not certify full launch readiness.
+
+## 2026-09-09 22:32 UTC run — Plaid security verification (unresolved)
+- Prioritized Claude audit branch 31d89de over cosmetic changes. No implementation/deployment overlapped; working tree was clean on a77d688.
+- Live read-only CLI checks: 1 non-null Plaid legacy token row; 1 exact matching protected-table copy. No credential values selected or reported.
+- anon/authenticated retain SELECT/INSERT/UPDATE column privileges. connected_accounts has RLS enabled and owner-only predicates auth.uid() = user_id for SELECT/INSERT/UPDATE/DELETE. This supports an own-account client token exposure finding, NOT evidence of anonymous or cross-user disclosure. plaid_credentials has forced RLS and zero policies.
+- Source still writes tokens into the legacy column, tolerates protected-table write failure, and returns the inserted account via select(). The token retirement comment incorrectly names the net-worth migration. This remains unresolved and takes priority over polish.
+- Safe follow-up requires coordinated Edge Function changes, verified protected storage, and retirement of legacy token data. This scheduled run did not alter real bank records, tokens, permissions, or deployed functions. Existing bank sync remains untouched. No claim of remediation or full security audit.
+- Supabase connector denied access; existing authorized CLI connection succeeded. The first CLI query required --linked with --project-ref, corrected per returned error. CLI returns only last result set for multiple statements, so policies were verified separately.
+
+## 2026-09-10 — Service authentication guard and category readability
+- Added shared isServiceBearer, requiring a configured nonblank secret and exact Bearer token, using timingSafeEqual on equal-length bytes. Three guards now use it with zero sentinel fallbacks. Actual helper regression tests pass and are included in npm test.
+- Deployed five affected Supabase functions successfully; read-only metadata confirms ACTIVE, verify_jwt=true preserved: transactions v20, holdings v6, sync-all v5, weekly analysis v8, reminders v8. No financial operation invoked. Live negative POST test was rejected by automatic approval review due to possible billable side effects; not retried. Runtime end-to-end authentication remains untested.
+- Plaid legacy-token storage remains unresolved; this authentication fix does not retire that column.
+- Spending report tooltips now explicitly use dark green in light mode / mint in dark, with foreground labels and subtle hover shading. Category comparison uses clear text labels. Home activity, Money transactions and Budget cards now share vector category badges; badges have subtle borders and brighter dark-mode icons.
+- Verified light/dark category tooltip screenshots and Money list; strict lint, production build, actual service guard tests pass. Not a complete app or security certification.

@@ -1,3 +1,4 @@
+import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
     const admin = serviceClient();
 
     const authHeader = req.headers.get('Authorization') || '';
-    const isServiceRoleCall = authHeader.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '__none__');
+    const isServiceRoleCall = isServiceBearer(authHeader, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
     // Identity before data — see plaid-sync-transactions for why. The
     // 404/401 split otherwise told an unauthenticated caller whether a

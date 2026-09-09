@@ -31,8 +31,8 @@ export function CategoryIcon({ category, className = 'w-4 h-4', style }) {
 export function CategoryBadge({ category, size = 'w-9 h-9', iconSize = 'w-4 h-4' }) {
   const color = CAT_COLORS[category] || CAT_COLORS.other;
   return (
-    <div className={`${size} rounded-xl flex items-center justify-center shrink-0`} style={{ backgroundColor: color + '1F' }}>
-      <CategoryIcon category={category} className={iconSize} style={{ color }} />
+    <div aria-hidden="true" className={`${size} rounded-xl border flex items-center justify-center shrink-0`} style={{ backgroundColor: color + '1F', borderColor: color + '33' }}>
+      <CategoryIcon category={category} className={`${iconSize} dark:brightness-150`} style={{ color }} />
     </div>
   );
 }
