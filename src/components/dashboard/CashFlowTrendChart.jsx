@@ -163,9 +163,9 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 pb-4 mb-2 border-b border-border/60">
-        <div><p className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-600" />Income</p><p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums mt-1">${fmtFull(totalIncome)}</p></div>
-        <div><p className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Spending</p><p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums mt-1">${fmtFull(totalExpense)}</p></div>
+      <div className="grid grid-cols-2 gap-3 text-center pb-4 mb-2 border-b border-border/60">
+        <div><p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-600" />Income</p><p className="money-figure mt-2">${fmtFull(totalIncome)}</p></div>
+        <div><p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Spending</p><p className="money-figure mt-2">${fmtFull(totalExpense)}</p></div>
       </div>
       {!hasAnyData ? (
         <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">

@@ -78,3 +78,12 @@ The Stripe access change remains blocked by automatic approval review pending it
 The sample CSV passed upload, income/expense detection, category preview, import, and duplicate reimport. Reimport wrote zero rows and skipped all three duplicates. Fixed the receipt link so View Transactions opens the statement dates, then verified September 1–3 was selected in Money. This does not yet cover every bank or PDF layout.
 
 Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcKRBTn8, and its Home-to-Budget guidance was verified live.
+
+## September 9, 2026 — centered figures and chart-forward Home
+
+- Centered Home and shared summary figures with a lighter Inter numeric treatment, responsive sizing, and consistent spacing.
+- Moved full-mode cash-flow and category insights above bills/budget. Simple mode retains its shorter layout.
+- Added a spending category ring covering every category, with an accessible total and explicit remainder below the top-five list.
+- Verified sample-data desktop and mobile Home in light/dark themes; exercised Bars/Line/Split, month detail and next-period navigation, and income/spending links with matching dates and totals.
+- Validation: strict lint (zero warnings), production build, and report-range tests passed. This is a focused visual/navigation pass, not an assertion that every integration or button has been tested.
+- Design references: Monarch Reports (help.monarch.com/hc/en-us/articles/21846787088916-Using-Reports) and Simplifi Dashboard (support.simplifi.quicken.com/en/articles/3357180-getting-to-know-your-dashboard): prominent cash-flow/category views with detailed reports behind them.

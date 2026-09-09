@@ -20,9 +20,18 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
 
   if (rows.length === 0) return null;
 
+  // Include every category in the ring; the list below shows the largest five.
+  let cursor = 0;
+  const segments = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([cat, spent]) => {
+    const start = cursor;
+    cursor += total > 0 ? spent / total * 100 : 0;
+    return `${CAT_COLORS[cat] || '#94A3B8'} ${start}% ${cursor}%`;
+  });
+  const remaining = total - rows.reduce((sum, row) => sum + row.spent, 0);
+
   return (
     <div className="sky-card rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+      <div className="flex flex-wrap gap-3 items-center justify-between px-4 pt-4 pb-3">
         <div className="flex items-center gap-2">
           <PieChart className="w-4 h-4 text-muted-foreground" />
           <p className="font-bold text-sm">Spending · {format(parseISO(`${thisMonth}-01`), 'MMM yyyy')}</p>
@@ -31,6 +40,14 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
           Full breakdown <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
+      <div className="relative w-44 h-44 mx-auto my-5 rounded-full p-4" aria-hidden="true" style={{ background: `conic-gradient(${segments.join(',')})` }}>
+        <div className="w-full h-full rounded-full bg-card flex flex-col items-center justify-center">
+          <span className="text-xs text-muted-foreground">Total spent</span>
+          <span className="money-figure mt-1">${fmt(total)}</span>
+          <span className="text-xs text-muted-foreground mt-1">{Object.keys(byCat).length} categories</span>
+        </div>
+      </div>
+      <p className="sr-only">Total spending: ${fmt(total)} across {Object.keys(byCat).length} categories.</p>
       <div className="px-4 pb-4 space-y-4">
         {rows.map(({ cat, spent }) => {
           const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
@@ -54,6 +71,7 @@ export default function CategoryBreakdownCard({ transactions, thisMonth }) {
             </div>
           );
         })}
+        {remaining > 0 && <p className="text-xs text-muted-foreground border-t border-border pt-3">Other categories: ${fmt(remaining)} · {Math.round(remaining / total * 100)}% of spending. Open the full breakdown to see them all.</p>}
       </div>
     </div>
   );

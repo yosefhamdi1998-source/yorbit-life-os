@@ -49,9 +49,9 @@ export default function StatCard({
   const negative = numeric && value < 0;
 
   return (
-    <div className={`sky-card rounded-2xl px-3 py-3 lg:px-5 lg:py-4 border ${CARD_WASH[tone] || 'border-transparent'}`}>
+    <div className={`sky-card text-center min-w-0 rounded-2xl px-3 py-3 lg:px-5 lg:py-4 border ${CARD_WASH[tone] || 'border-transparent'}`}>
       {Icon && (
-        <div className={`hidden lg:flex w-8 h-8 rounded-xl items-center justify-center mb-2 ${BADGE_BG[tone] || BADGE_BG.default}`}>
+        <div className={`hidden lg:flex mx-auto w-8 h-8 rounded-xl items-center justify-center mb-2 ${BADGE_BG[tone] || BADGE_BG.default}`}>
           <Icon className="w-4 h-4" strokeWidth={2.25} />
         </div>
       )}
@@ -62,7 +62,7 @@ export default function StatCard({
       <p className="text-xs font-bold uppercase tracking-[0.09em] text-muted-foreground mb-1.5">
         {label}
       </p>
-      <p className={`font-numeric text-2xl lg:text-3xl font-black tracking-[-0.02em] leading-none tabular-nums ${TONES[tone] || TONES.default}`}>
+      <p className={`money-figure ${TONES[tone] || TONES.default}`}>
         {numeric ? (
           <>
             {negative && '−'}

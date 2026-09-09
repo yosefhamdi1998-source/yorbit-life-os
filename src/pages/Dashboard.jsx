@@ -312,11 +312,11 @@ export default function Dashboard() {
             {YEAR_OPTIONS.map(y => <option key={y} value={`year-${y}`}>{y}</option>)}<option value="all">All time</option>
           </select>
         </div>
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'income')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Income ↗</p><p className="text-2xl font-bold tracking-tight tabular-nums text-emerald-600 dark:text-emerald-400">${fmtFull(heroIncome)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
-          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'expense')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Spending ↗</p><p className="text-2xl font-bold tracking-tight tabular-nums">${fmtFull(heroExpenses)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
-          <div className="rounded-2xl p-4 sm:p-5 bg-primary/10 border border-primary/20"><p className="text-xs text-muted-foreground mb-2">Income minus spending</p><p className="text-2xl font-bold tracking-tight tabular-nums">{heroNetSaved < 0 ? '−' : ''}${fmtFull(Math.abs(heroNetSaved))}</p><p className="text-xs text-muted-foreground mt-2">Not your available bank balance</p></div>
-          <div className="sky-card rounded-2xl p-4 sm:p-5"><p className="text-xs text-muted-foreground mb-2">Savings rate</p><p className="text-2xl font-bold tracking-tight tabular-nums">{savingsRateLabel(heroSavingsRate)}</p><p className="text-xs text-muted-foreground mt-2">Share of recorded income left</p></div>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 money-overview">
+          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'income')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Income ↗</p><p className="money-figure text-emerald-600 dark:text-emerald-400">${fmtFull(heroIncome)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
+          <Link to={reportLink(cashFlowPeriod, latestTxDate, transactions, 'expense')} className="sky-card rounded-2xl p-4 sm:p-5 hover:border-primary/40 transition-colors"><p className="text-xs text-muted-foreground mb-2">Spending ↗</p><p className="money-figure">${fmtFull(heroExpenses)}</p><p className="text-xs text-muted-foreground mt-2">{rangeLabel(cashFlowPeriod)}</p></Link>
+          <div className="rounded-2xl p-4 sm:p-5 bg-primary/10 border border-primary/20"><p className="text-xs text-muted-foreground mb-2">Income minus spending</p><p className="money-figure">{heroNetSaved < 0 ? '−' : ''}${fmtFull(Math.abs(heroNetSaved))}</p><p className="text-xs text-muted-foreground mt-2">Not your available bank balance</p></div>
+          <div className="sky-card rounded-2xl p-4 sm:p-5"><p className="text-xs text-muted-foreground mb-2">Savings rate</p><p className="money-figure">{savingsRateLabel(heroSavingsRate)}</p><p className="text-xs text-muted-foreground mt-2">Share of recorded income left</p></div>
         </div>
         <CoverageNotice transactions={heroTx} periodStart={heroPeriodStart} periodEnd={heroPeriodEnd} periodLabel={heroPeriodPhrase} className="mt-3" />
       </section>
@@ -359,6 +359,13 @@ export default function Dashboard() {
         )}
 
 </section>
+      {!simpleMode && <section aria-label="Spending insights" className="mb-8">
+        <div className="mb-3"><h2 className="text-base font-semibold">Your money in motion</h2><p className="text-xs text-muted-foreground mt-1">Explore a month to see the details behind the numbers.</p></div>
+        <div className="grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-5 items-start">
+          <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
+          <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
+        </div>
+      </section>}
       <section aria-label="Bills and budget" className="mb-8">
         <h2 className="text-base font-semibold mb-3">Your plan</h2>
         <div className="grid lg:grid-cols-2 gap-5 items-start">        {/* Upcoming Bills */}
@@ -401,13 +408,6 @@ export default function Dashboard() {
 
 <BudgetSummaryCard compact transactions={transactions} budgets={budgets} thisMonth={thisMonth} /></div>
       </section>
-      {!simpleMode && <section aria-label="Spending insights" className="mb-8">
-        <div className="mb-3"><h2 className="text-base font-semibold">Understand your spending</h2><p className="text-xs text-muted-foreground mt-1">Explore a month to see the details behind the numbers.</p></div>
-        <div className="grid xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-5 items-start">
-          <CashFlowTrendChart data={cashFlowTrend} period={trendPeriod} onPeriodChange={setTrendPeriod} simple={simpleMode} historyMonths={historyMonths} />
-          <CategoryBreakdownCard transactions={transactions} thisMonth={thisMonth} />
-        </div>
-      </section>}
       <section aria-label="Activity and goals" className={`grid ${simpleMode ? "" : "lg:grid-cols-2"} gap-5 items-start`}>        {/* Recent Transactions */}
         {transactions.length > 0 ? (
           <div className="sky-card rounded-2xl overflow-hidden">
