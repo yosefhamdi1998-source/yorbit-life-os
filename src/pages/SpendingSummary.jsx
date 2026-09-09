@@ -337,7 +337,8 @@ export default function SpendingSummary() {
               <button
                 key={p.key}
                 onClick={() => switchPeriod(p.key)}
-                className={`flex-1 text-[11px] font-semibold py-1.5 rounded-full border transition-all ${period === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
+                aria-pressed={!explicitRange && period === p.key}
+                className={`flex-1 min-h-[44px] text-[11px] font-semibold py-1.5 rounded-full border transition-all ${!explicitRange && period === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
               >
                 {p.label}
               </button>
@@ -345,11 +346,11 @@ export default function SpendingSummary() {
           </div>
 
           <div className="flex items-center justify-between mb-4">
-            <button disabled={!!explicitRange} onClick={goPrev} aria-label="Previous period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
+            <button disabled={!!explicitRange} onClick={goPrev} aria-label="Previous period" className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0">
               <ChevronLeft className="w-4 h-4 text-white" />
             </button>
             <p className="text-white text-sm font-bold">{label}</p>
-            <button onClick={goNext} disabled={!!explicitRange || nextDisabled} aria-label="Next period" className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-30 shrink-0">
+            <button onClick={goNext} disabled={!!explicitRange || nextDisabled} aria-label="Next period" className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-30 shrink-0">
               <ChevronRight className="w-4 h-4 text-white" />
             </button>
           </div>

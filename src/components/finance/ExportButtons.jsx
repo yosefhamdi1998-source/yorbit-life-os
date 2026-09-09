@@ -118,21 +118,25 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
         variant="outline"
         size="sm"
         onClick={exportCSV}
+        aria-label="Export CSV transaction history"
+        title="CSV: all loaded transactions and selected-period spending summary"
         disabled={busy !== null}
         className="h-9 px-3 gap-1.5 min-h-[44px]"
       >
         {busy === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        <span className="hidden sm:inline">CSV</span>
+        <span>CSV</span>
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={exportPDF}
+        aria-label="Export PDF for selected period"
+        title="PDF: selected-period spending and transactions"
         disabled={busy !== null}
         className="h-9 px-3 gap-1.5 min-h-[44px]"
       >
         {busy === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-        <span className="hidden sm:inline">PDF</span>
+        <span>PDF</span>
       </Button>
     </div>
   );

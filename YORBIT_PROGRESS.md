@@ -87,3 +87,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Verified sample-data desktop and mobile Home in light/dark themes; exercised Bars/Line/Split, month detail and next-period navigation, and income/spending links with matching dates and totals.
 - Validation: strict lint (zero warnings), production build, and report-range tests passed. This is a focused visual/navigation pass, not an assertion that every integration or button has been tested.
 - Design references: Monarch Reports (help.monarch.com/hc/en-us/articles/21846787088916-Using-Reports) and Simplifi Dashboard (support.simplifi.quicken.com/en/articles/3357180-getting-to-know-your-dashboard): prominent cash-flow/category views with detailed reports behind them.
+
+## September 9, 2026 — clear mobile report controls
+
+- CSV/PDF report buttons now retain visible file-type labels on phones and have descriptive accessible names and scope tooltips.
+- Spending Summary period tabs and arrows have 44px tap targets; calendar tabs expose their selected state. Custom date ranges no longer falsely highlight Monthly.
+- Sample-data browser checks: mobile labels/layout, previous/next period navigation, yearly selected state, and custom-range unselected/disabled states. Export file generation itself was not retested in this pass.
+- Strict lint, production build, and report-range tests passed. No financial records changed.
