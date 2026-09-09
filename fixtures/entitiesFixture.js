@@ -47,6 +47,7 @@ class FixtureTransactionEntity extends FixtureEntity {
       this.reportFailureShown = true;
       throw new Error('Synthetic transaction load failure');
     }
+    if (scenarioName === 'report-retry') await new Promise(resolve => setTimeout(resolve, 1500));
     const r = applySort(this.budgeted(), sort); return limit ? r.slice(0, limit) : r;
   }
   async filter(q = {}, sort, limit) {

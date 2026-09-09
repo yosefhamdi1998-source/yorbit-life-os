@@ -286,11 +286,11 @@ export default function Dashboard() {
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
     .slice(0, 3);
 
-  if (loadFailed) return <DataLoadError onRetry={() => loadData()} />;
+  if (loadFailed) return <DataLoadError onRetry={() => { setLoading(true); loadData(); }} />;
 
   if (loading) {
     return (
-      <div className="pt-4 space-y-4">
+      <div role="status" aria-label="Loading your money data" className="pt-4 space-y-4">
         <div className="h-40 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/60 animate-pulse" />
         <div className="h-24 rounded-2xl bg-secondary/60 animate-pulse" />
         <div className="h-32 rounded-2xl bg-secondary/60 animate-pulse" />

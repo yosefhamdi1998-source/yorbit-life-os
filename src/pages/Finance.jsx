@@ -711,11 +711,11 @@ export default function Finance() {
     budget: budgets.find(b => b.category === cat && b.month === thisMonth)?.monthly_limit || 0,
   })).filter(d => d.spent > 0);
 
-  if (loadFailed) return <DataLoadError onRetry={() => loadData()} />;
+  if (loadFailed) return <DataLoadError onRetry={() => loadData(true)} />;
 
   if (loading) {
     return (
-      <div className="py-4">
+      <div role="status" aria-label="Loading your money data" className="py-4">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 rounded-2xl bg-secondary animate-pulse" />
           <div className="space-y-2 flex-1">

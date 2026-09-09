@@ -141,3 +141,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added dev-only scenario=report-retry, which fails the first transaction load and succeeds on retry. Production does not use the fixture implementation.
 - Browser check: failure screen contained no totals/exports; Retry restored the Aug 10–Sep 8 report and $8,048 sample total with its original date range.
 - Strict lint, production build, and diff checks passed. No live data or network service was disrupted.
+
+## September 9, 2026 — prevent empty figures during retries
+
+- Home and Money now enter their loading state when retrying a failed load, instead of clearing the error and briefly rendering empty/stale figures while waiting.
+- Loading placeholders expose a named status for assistive technology.
+- Extended the dev-only report-retry fixture with a 1.5-second recovery delay. Verified both pages transition error -> named loading status -> populated page, without showing the report during the delay.
+- Strict lint, production build, and diff checks passed. No real records or services altered.
