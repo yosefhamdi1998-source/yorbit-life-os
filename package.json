@@ -39,7 +39,9 @@
     "test:report-average": "node scripts/test-report-average.mjs",
     "test:report-comparison": "node scripts/test-report-comparison.mjs",
     "test:report-trend-label": "node scripts/test-report-trend-label.mjs",
-    "test:pdf-rows": "node scripts/test-pdf-rows.mjs"
+    "test:pdf-rows": "node scripts/test-pdf-rows.mjs",
+    "audit:rls-isolation": "npx supabase db query --linked -f scripts/audit-rls-isolation.sql",
+    "test:cross-user-isolation": "npx supabase db query --linked -f scripts/test-cross-user-isolation.sql"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
