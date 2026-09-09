@@ -94,3 +94,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Spending Summary period tabs and arrows have 44px tap targets; calendar tabs expose their selected state. Custom date ranges no longer falsely highlight Monthly.
 - Sample-data browser checks: mobile labels/layout, previous/next period navigation, yearly selected state, and custom-range unselected/disabled states. Export file generation itself was not retested in this pass.
 - Strict lint, production build, and report-range tests passed. No financial records changed.
+
+## September 9, 2026 — reconcile every spending category
+
+- Replaced Spending Summary's hardcoded category whitelist with grouping of actual expense records. Categories such as freelance, newly introduced labels, and missing categories no longer disappear while still counting in the spending total.
+- Charts, category breakdown, flow calculation, and exported category summary share this grouping. Missing labels fall back to other; income and transfers are excluded.
+- CSV category names now use the existing CSV escaping routine.
+- Added test:spending-categories to the full test command. Regression fixtures verify known/unknown/missing categories, repeat-category aggregation, income/transfer exclusions, and total reconciliation.
+- Validation: category and report-range tests, strict lint, production build; browser sample report rendering and monthly previous-period navigation. No real financial records changed. Full provider/import/export lifecycle remains outside this pass.

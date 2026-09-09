@@ -1,3 +1,4 @@
+import { spendingCategories } from '@/lib/spendingCategories';
 import { readReportRange } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -25,7 +26,6 @@ const CAT_ICONS = {
   shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻',
   investment: '📈', other: '💸',
 };
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const PERIODS = [
   { key: 'monthly', label: 'Monthly' },
   { key: 'biweekly', label: 'Bi-Weekly' },
@@ -200,10 +200,7 @@ export default function SpendingSummary() {
   // Say plainly what's being compared, so the number can't be misread.
   const comparisonLabel = isPartial ? 'vs. same point last period' : 'vs. previous period';
 
-  const catData = useMemo(() => EXPENSE_CATS.map(cat => ({
-    name: cat,
-    spent: periodTx.filter(t => t.category === cat).reduce((s, t) => s + (t.amount || 0), 0),
-  })).filter(d => d.spent > 0).sort((a, b) => b.spent - a.spent), [periodTx]);
+  const catData = useMemo(() => spendingCategories(periodTx), [periodTx]);
 
   const topCategory = catData[0];
 

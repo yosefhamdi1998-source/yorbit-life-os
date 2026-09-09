@@ -25,7 +25,7 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       rows.push('');
       rows.push('--- Spending Summary (Selected Period) ---');
       rows.push('Category,Amount');
-      categoryData.forEach((c) => rows.push(`${c.name},${c.spent}`));
+      categoryData.forEach((c) => rows.push([c.name, c.spent].map(csvEsc).join(',')));
       rows.push(`Total,${totalSpending}`);
       rows.push('');
       rows.push('--- Transaction History (All) ---');
