@@ -2,6 +2,10 @@
 
 ## September 9 follow-up
 
+- Enhanced Home charts: more vertical space on desktop, a dashed spending line to distinguish series beyond color, and an expandable period table with exact cents and direct detail access.
+- Period details now support previous/next navigation without closing the panel, show category percentages, and stack totals on phones to prevent amounts wrapping. Verified first/last navigation boundaries, April-to-May links, September detail, and layouts at 390px and 1440px using sample data.
+- Added Home chart style in Settings. The chart and Settings share a device preference; selecting Line, navigating Home, and reloading preserved the choice. Full-mode chart tools remain absent from Simple Home.
+
 - Fixed unstable pagination when many records share the same date or amount. All entity reads now use a unique ID tie-breaker. A regression test simulates differently ordered ties across pages and checks 51,025 records, filtered reads, generic entity reads, and failed pages. This does not provide a database snapshot during concurrent writes.
 - Consolidated duplicate imports in Coach and Settings and enabled the duplicate-import lint rule to prevent recurrence.
 - Full automated test suite passed, including 25 live database enum checks, import deduplication, CSV handling, date windows, starter budgets, checkout mocks, and export pagination. Lint and production build passed. Payment mock tests are not proof of live billing readiness.
@@ -49,7 +53,7 @@ Plaid Trial supports ten bank connections (Items), not ten Yorbit signups. Remov
 
 The code is committed to the GitHub production branch used by Vercel. The database migrations were applied separately to Supabase and recorded in its migration history. Source backups contain code, not a complete database backup or private credentials. No production financial rows were changed in these tests.
 
-Latest code revision sent to Vercel: 07d35bc. See YORBIT_HANDOFF.md for earlier deployment IDs and engineering details.
+The September 9 pagination release was verified Ready on Vercel. See the production deployment history for the newest release and YORBIT_HANDOFF.md for earlier deployment IDs and engineering details.
 
 ## Still unfinished — do not advertise these as verified
 

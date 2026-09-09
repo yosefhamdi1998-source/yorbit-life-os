@@ -26,6 +26,7 @@ import { BACKGROUND_THEMES, getBackgroundTheme, applyBackgroundTheme } from '@/l
 import { Switch } from '@/components/ui/switch';
 import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode, setSimpleMode } from '@/lib/simpleMode';
+import { CHART_STYLES, getChartStyle, saveChartStyle } from '@/lib/chartPreferences';
 
 export default function Settings() {
   const { isPro, loading: checkingPlan } = useProStatus();
@@ -77,6 +78,7 @@ export default function Settings() {
   const [exportDone, setExportDone] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [bgTheme, setBgTheme] = useState(getBackgroundTheme);
+  const [chartStyle, setChartStyle] = useState(getChartStyle);
   const [largeText, setLargeText] = useState(getLargeText);
   const chooseTextSize = (checked) => { applyTextSize(checked); setLargeText(checked); };
   const [simpleMode, setSimpleModeState] = useState(getSimpleMode);
@@ -293,6 +295,14 @@ export default function Settings() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="sky-card rounded-2xl p-5">
+          <label htmlFor="chart-style" className="font-bold text-sm">Home chart style</label>
+          <p id="chart-style-help" className="text-xs text-muted-foreground mt-1 mb-3">Choose how income and spending appear in full mode. Saved on this device; you can also change it on the chart.</p>
+          <select id="chart-style" aria-describedby="chart-style-help" value={chartStyle} onChange={event => { setChartStyle(event.target.value); saveChartStyle(event.target.value); }} className="w-full min-h-[44px] rounded-lg border border-border bg-card px-3 text-sm">
+            {CHART_STYLES.map(style => <option key={style.key} value={style.key}>{style.label} — {style.description}</option>)}
+          </select>
         </div>
 
         {/* Text size */}

@@ -1,8 +1,10 @@
 import CashFlowDetail from './CashFlowDetail';
+import { getChartStyle, saveChartStyle } from '@/lib/chartPreferences';
 import { useState } from 'react';
 import { ComposedChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BarChart3, ChartLine, ChartPie } from 'lucide-react';
 import { fmtAxisCompact, fmtFull } from '@/lib/format';
+const exactMoney = value => Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Three honestly-different readings of the same data, not the same chart
 // redrawn: Bars compare income vs. expense bucket by bucket (the default —
@@ -60,8 +62,9 @@ function CashFlowTooltip({ active, payload, label }) {
 const PERIOD_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '2y': 24, '3y': 36, all: Infinity };
 
 export default function CashFlowTrendChart({ data, period, onPeriodChange, simple, historyMonths }) {
-  const [chartType, setChartType] = useState('bar');
+  const [chartType, setChartType] = useState(getChartStyle);
   const [selected, setSelected] = useState(null);
+  const selectedIndex = selected ? data.findIndex(bucket => bucket.start === selected.start) : -1;
   const selectBucket = event => {
     const bucket = event?.activePayload?.[0]?.payload;
     if (bucket?.start) setSelected(bucket);
@@ -130,7 +133,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
               {CHART_TYPES.map(ct => (
                 <button
                   key={ct.key}
-                  onClick={() => setChartType(ct.key)}
+                  onClick={() => { setChartType(ct.key); saveChartStyle(ct.key); }}
                   aria-label={ct.label}
                   aria-pressed={chartType === ct.key}
                   title={ct.label}
@@ -200,7 +203,8 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
         </>
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="h-[240px] sm:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
             {chartType === 'line' ? (
               <LineChart onClick={selectBucket} accessibilityLayer data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
@@ -208,7 +212,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={56} tickFormatter={v => fmtAxisCompact(v)} />
                 <Tooltip content={<CashFlowTooltip />} cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }} />
                 <Line type="monotone" dataKey="income" stroke="#2F9273" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="expense" stroke="#DD8163" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="expense" stroke="#DD8163" strokeDasharray="6 4" strokeWidth={2.5} dot={!dense} activeDot={{ r: 5 }} />
               </LineChart>
             ) : (
               <ComposedChart onClick={selectBucket} accessibilityLayer data={data} margin={{ top: 12, right: 8, left: -4, bottom: 0 }} barGap={dense ? 1 : 4}>
@@ -241,6 +245,7 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
               </ComposedChart>
             )}
           </ResponsiveContainer>
+          </div>
           <div className="flex items-center gap-4 justify-center mt-1 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#2F9273' }} /> Income</span>
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#DD8163' }} /> Expenses</span>
@@ -257,7 +262,24 @@ export default function CashFlowTrendChart({ data, period, onPeriodChange, simpl
           {data.map((bucket, i) => <option key={bucket.start || i} value={i}>{bucket.label || bucket.month}</option>)}
         </select>
       </label>}
-      <CashFlowDetail bucket={selected} onClose={() => setSelected(null)} />
+      {hasAnyData && <details className="mt-3 border-t border-border/60 pt-3">
+        <summary className="min-h-[44px] cursor-pointer text-sm font-semibold text-primary py-3">View period totals</summary>
+        <p className="text-xs text-muted-foreground mb-3">Recorded activity only. Empty periods may mean missing history. Select a date to explore its records.</p>
+        <div className="overflow-x-auto max-h-80 rounded-xl border border-border">
+          <table className="w-full text-xs text-right tabular-nums">
+            <caption className="sr-only">Income, spending, and net by period</caption>
+            <thead className="sticky top-0 bg-card"><tr className="border-b border-border"><th scope="col" className="p-3 text-left">Period</th><th scope="col" className="p-3">Income</th><th scope="col" className="p-3">Spending</th><th scope="col" className="p-3">Net</th></tr></thead>
+            <tbody>{data.map((bucket, i) => <tr key={bucket.start || i} className="border-b border-border/50 last:border-0 hover:bg-secondary/50">
+              <th scope="row" className="text-left font-medium"><button className="min-h-[44px] px-3 text-primary text-left" onClick={() => setSelected(bucket)}>{bucket.label || bucket.month}</button></th>
+              <td className="p-3 whitespace-nowrap">${exactMoney(bucket.income)}</td><td className="p-3 whitespace-nowrap">${exactMoney(bucket.expense)}</td>
+              <td className="p-3 whitespace-nowrap">{bucket.income >= bucket.expense ? '+' : '−'}${exactMoney(Math.abs(bucket.income - bucket.expense))}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </details>}
+      <CashFlowDetail bucket={selected} onClose={() => setSelected(null)}
+        onPrevious={selectedIndex > 0 ? () => setSelected(data[selectedIndex - 1]) : undefined}
+        onNext={selectedIndex >= 0 && selectedIndex < data.length - 1 ? () => setSelected(data[selectedIndex + 1]) : undefined} />
     </div>
   );
 }
