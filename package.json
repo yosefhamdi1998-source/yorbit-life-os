@@ -39,7 +39,8 @@
     "test:report-average": "node scripts/test-report-average.mjs",
     "test:report-comparison": "node scripts/test-report-comparison.mjs",
     "test:report-trend-label": "node scripts/test-report-trend-label.mjs",
-    "test:pdf-rows": "node scripts/test-pdf-rows.mjs"
+    "test:pdf-rows": "node scripts/test-pdf-rows.mjs",
+    "audit:plaid-tokens": "npx supabase db query --linked -f scripts/audit-plaid-token-exposure.sql"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

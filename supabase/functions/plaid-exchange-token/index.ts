@@ -62,9 +62,11 @@ Deno.serve(async (req) => {
       // Write the credential to the vault as well. plaid_credentials has RLS
       // on with no policies, so it is unreadable by any ordinary role; the
       // copy still written to connected_accounts.access_token_ref above is
-      // transitional and is blanked by 20260907160000 once sync is verified
-      // against the vault. New links are protected from the moment they are
-      // created rather than waiting for a backfill.
+      // transitional. Note that nothing blanks it yet: the migration this
+      // comment used to name (20260907160000) is net_worth_value_positive
+      // and has nothing to do with Plaid. Until the sequence in
+      // _shared/plaidToken.ts is carried out, every new link leaves a live
+      // production token in a column whose REVOKE has failed twice.
       if (data?.id) {
         const { error: vaultErr } = await admin.from('plaid_credentials').upsert({
           user_id: user.id,

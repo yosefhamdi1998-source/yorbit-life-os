@@ -10,8 +10,25 @@
 //
 // The fallback to connected_accounts.access_token_ref is TRANSITIONAL. During
 // rollout both locations hold the token so a not-yet-redeployed function
-// keeps working. 20260907160000 blanks the old column once sync is verified,
-// and this fallback should be deleted at the same time.
+// keeps working.
+//
+// It has no end date yet. This comment used to say the old column "is
+// blanked by 20260907160000" — that id is net_worth_value_positive.sql,
+// which constrains net_worth_entries.value and never touches Plaid. NO
+// migration in the tree blanks the column, and plaid-exchange-token still
+// writes a live token to it on every new link, so the transitional state
+// grows rather than drains.
+//
+// Retiring it safely is a sequence, not an edit:
+//   1. Make the vault write in plaid-exchange-token fatal instead of
+//      logged-and-ignored — today it falls back to this column on failure,
+//      so the column cannot be removed while that path exists.
+//   2. Stop writing access_token_ref on new links.
+//   3. Blank the column ONLY for rows with a matching plaid_credentials
+//      row holding the same token.
+//   4. Delete this fallback.
+// scripts/audit-plaid-token-exposure.sql reports which rows are safe for
+// step 3 and whether the column is still client-readable/writable.
 //
 // Must only ever be called with a service-role client.
 export async function getPlaidAccessToken(
