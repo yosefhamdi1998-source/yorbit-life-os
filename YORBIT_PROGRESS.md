@@ -117,3 +117,11 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Uses elapsed calendar days instead of milliseconds, and clamps at the previous period end. Completed-period comparisons are unchanged.
 - Added test:report-comparison to the full suite. Verified February/leap-year boundaries, current-record exclusion, completed periods, and DST under America/New_York.
 - Validation: comparison and report-range tests, strict lint, build, and sample current-month report rendering passed. No production data changed.
+
+## September 9, 2026 — accessible transaction filters
+
+- Named the transaction search and minimum/maximum amount fields explicitly.
+- Filters announces expanded state and identifies its controlled panel; type/category choices announce selected state, and sort buttons announce direction.
+- Enlarged filter/type/category/sort controls to 44px minimum height for touch use.
+- Verified sample minimum amount filter (20 of 61 results), Income selection, ascending/descending amount sorting, and clearing filters through browser controls.
+- Strict lint, production build, and diff checks passed. No transaction data was modified; no claim of full screen-reader audit.

@@ -366,11 +366,13 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
         <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input aria-label="Search transactions" placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
           <button
             onClick={() => setShowAdvanced(v => !v)}
-            className={`relative shrink-0 flex items-center gap-1.5 px-3 rounded-md border text-xs font-semibold transition-all ${showAdvanced || advancedFilterCount > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
+            aria-expanded={showAdvanced}
+            aria-controls="transaction-advanced-filters"
+            className={`relative min-h-[44px] shrink-0 flex items-center gap-1.5 px-3 rounded-md border text-xs font-semibold transition-all ${showAdvanced || advancedFilterCount > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground hover:text-foreground'}`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filters
@@ -381,7 +383,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
         </div>
 
         {showAdvanced && (
-          <div className="sky-card rounded-xl p-4 space-y-3">
+          <div id="transaction-advanced-filters" className="sky-card rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filters</p>
               {advancedFilterCount > 0 && (
@@ -391,8 +393,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Amount range ($)</label>
               <div className="grid grid-cols-2 gap-2">
-                <Input type="number" placeholder="Min" value={amountMin} onChange={e => setAmountMin(e.target.value)} min="0" />
-                <Input type="number" placeholder="Max" value={amountMax} onChange={e => setAmountMax(e.target.value)} min="0" />
+                <Input type="number" aria-label="Minimum transaction amount" placeholder="Min" value={amountMin} onChange={e => setAmountMin(e.target.value)} min="0" />
+                <Input type="number" aria-label="Maximum transaction amount" placeholder="Max" value={amountMax} onChange={e => setAmountMax(e.target.value)} min="0" />
               </div>
             </div>
             <div>
@@ -413,7 +415,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             <button
               key={f.key}
               onClick={() => setTypeFilter(f.key)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${typeFilter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              aria-pressed={typeFilter === f.key}
+              className={`text-xs min-h-[44px] px-3 py-1.5 rounded-full border transition-all ${typeFilter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               {f.label}
             </button>
@@ -424,7 +427,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCategoryFilter('all')}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              aria-pressed={categoryFilter === 'all'}
+              className={`text-xs min-h-[44px] px-3 py-1.5 rounded-full border transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               All categories
             </button>
@@ -432,7 +436,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`text-xs px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+                aria-pressed={categoryFilter === cat}
+                className={`text-xs min-h-[44px] px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
               >
                 <span>{CAT_ICONS[cat] || '💸'}</span>{cat}
               </button>
@@ -446,7 +451,9 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             <button
               key={s.key}
               onClick={() => toggleSort(s.key)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${sortBy === s.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
+              aria-pressed={sortBy === s.key}
+              aria-label={`${s.label}${sortBy === s.key ? `, ${sortDir === 'desc' ? 'descending' : 'ascending'}` : ''}`}
+              className={`text-xs min-h-[44px] px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${sortBy === s.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
             >
               {s.label}
               {sortBy === s.key && (sortDir === 'desc' ? <ArrowDown className="w-3 h-3" /> : <ArrowUp className="w-3 h-3" />)}
