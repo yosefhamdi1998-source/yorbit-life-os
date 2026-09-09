@@ -2,6 +2,11 @@
 
 ## September 9 follow-up
 
+- Integrated Claude's fixes-and-dead-code work and lint cleanup through 7b58524 by fast-forward, preserving all existing commits. Reviewed the full cleanup diff, including removal of Home's unused net-worth/account requests and preservation of bill-copy/export field omissions.
+- Independently passed the full regression suite, all 25 live enum checks, production build, and strict lint with zero warnings. Run strict lint after the test suite: test-lint-config temporarily creates/removes a source fixture, which can collide with a simultaneous lint scan.
+- Verified the integrated Home renders with sample data. Claude additionally reported a 13-route sample-data pass; that broader pass was not independently repeated during this integration.
+- Normal lint now exposes warnings, and lint:strict fails on warnings. No financial records were modified during integration. GitHub Pages remains unchanged.
+
 - Enhanced Home charts: more vertical space on desktop, a dashed spending line to distinguish series beyond color, and an expandable period table with exact cents and direct detail access.
 - Period details now support previous/next navigation without closing the panel, show category percentages, and stack totals on phones to prevent amounts wrapping. Verified first/last navigation boundaries, April-to-May links, September detail, and layouts at 390px and 1440px using sample data.
 - Added Home chart style in Settings. The chart and Settings share a device preference; selecting Line, navigating Home, and reloading preserved the choice. Full-mode chart tools remain absent from Simple Home.
