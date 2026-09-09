@@ -1,3 +1,4 @@
+import { previousComparisonCutoff } from '@/lib/reportComparison';
 import { reportAverageWindow } from '@/lib/reportAverage';
 import { spendingCategories } from '@/lib/spendingCategories';
 import { readReportRange } from '@/lib/reportRange';
@@ -186,14 +187,11 @@ export default function SpendingSummary() {
   // against the first 3 days of August. Like against like.
   const today = new Date();
   const isPartial = end > today;
-  const elapsedMs = isPartial ? today - start : end - start;
+  const comparisonCutoff = previousComparisonCutoff(start, end, prevRange, today);
 
   const prevTx = useMemo(() => {
-    const cutoff = isPartial
-      ? new Date(prevRange.start.getTime() + elapsedMs)
-      : prevRange.end;
-    return expenses.filter(t => inRange(t.date, prevRange.start, cutoff));
-  }, [expenses, prevRange, isPartial, elapsedMs]);
+    return expenses.filter(t => inRange(t.date, prevRange.start, comparisonCutoff));
+  }, [expenses, prevRange, comparisonCutoff]);
 
   const totalSpending = periodTx.reduce((s, t) => s + (t.amount || 0), 0);
   const prevTotal = prevTx.reduce((s, t) => s + (t.amount || 0), 0);

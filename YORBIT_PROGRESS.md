@@ -110,3 +110,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added test:report-average to the full test command. Checks cover partial/completed periods, exact date windows, first day, future ranges, leap day, and daylight-saving calendar boundaries.
 - Verified sample September report: $318/day across nine days, versus the former $96/day across 30. Completed August remains $280/day across 31 days.
 - Validation: report-average regression tests, strict lint, production build, and sample browser current/previous month checks passed. No production records changed.
+
+## September 9, 2026 — keep comparisons within the previous period
+
+- Fixed partial-period comparison cutoff spilling out of a shorter previous month (for example March 30 previously reached into March when comparing against February).
+- Uses elapsed calendar days instead of milliseconds, and clamps at the previous period end. Completed-period comparisons are unchanged.
+- Added test:report-comparison to the full suite. Verified February/leap-year boundaries, current-record exclusion, completed periods, and DST under America/New_York.
+- Validation: comparison and report-range tests, strict lint, build, and sample current-month report rendering passed. No production data changed.
