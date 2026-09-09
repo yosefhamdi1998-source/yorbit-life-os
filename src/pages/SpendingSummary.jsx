@@ -258,9 +258,11 @@ export default function SpendingSummary() {
     return { nodes, links };
   }, [transactions, start, end, catData]);
 
-  // Trend buckets: daily for monthly/biweekly, monthly for yearly
+  const averageMonthly = period === 'yearly' || !!(explicitRange && span > 90);
+
+  // Trend buckets: daily for short ranges, monthly for yearly/long ranges
   const trendData = useMemo(() => {
-    if (period === 'yearly' || (explicitRange && span > 90)) {
+    if (averageMonthly) {
       return eachMonthOfInterval({ start, end }).map(m => {
         const key = format(m, 'yyyy-MM');
         return { key: reportTrendLabel(m, start, end, true), spent: Math.round(periodTx.filter(t => t.date?.startsWith(key)).reduce((s, t) => s + (t.amount || 0), 0)) };
@@ -270,9 +272,8 @@ export default function SpendingSummary() {
       const key = format(d, 'yyyy-MM-dd');
       return { key: reportTrendLabel(d, start, end, false), spent: Math.round(periodTx.filter(t => t.date === key).reduce((s, t) => s + (t.amount || 0), 0)) };
     });
-  }, [period, start, end, expenses, periodTx]);
+  }, [averageMonthly, start, end, periodTx]);
 
-  const averageMonthly = period === 'yearly' || !!(explicitRange && span > 90);
   const averageWindow = reportAverageWindow(start, end, averageMonthly, today);
   const avgPerBucket = averageWindow.count > 0 ? totalSpending / averageWindow.count : 0;
   const avgLabel = averageMonthly ? 'Avg / Month' : 'Avg / Day';
@@ -457,8 +458,8 @@ export default function SpendingSummary() {
 
           {/* Trend */}
           <div className="sky-card rounded-2xl p-4 mb-4">
-            <p className="font-bold text-sm mb-3">{period === 'yearly' ? 'Monthly Spending' : 'Daily Spending Trend'}</p>
-            {period === 'yearly' ? (
+            <p className="font-bold text-sm mb-3">{averageMonthly ? 'Monthly Spending' : 'Daily Spending Trend'}</p>
+            {averageMonthly ? (
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={trendData} margin={{ top: 5, right: 5, left: -4, bottom: 0 }}>
                   <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.4} />

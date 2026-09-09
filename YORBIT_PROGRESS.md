@@ -184,3 +184,9 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Generated-date metadata is also escaped, preserving its comma inside one cell.
 - Shared escaping helper is exercised by export-to-parser round-trip tests for commas, quotes, CR, LF, CRLF, zero, and null. Each transaction remains one row with its description and amount intact.
 - Existing CSV parser/dedup checks, strict lint, production build, and diff checks passed. No real records changed; this pass does not claim a spreadsheet-formula security audit.
+
+## September 9, 2026 — align report chart scales
+
+- Long custom report ranges already grouped by month but incorrectly retained the Daily Spending Trend heading and daily area chart. Chart mode, heading, bucket grouping, and average now share the same monthly/daily decision.
+- Browser checks: a multi-year custom range shows Monthly Spending with bars and Avg / Month; a 30-day custom range retains Daily Spending Trend with an area chart and Avg / Day.
+- Strict lint, production build, and diff checks passed. Transaction totals and filtering are unchanged.
