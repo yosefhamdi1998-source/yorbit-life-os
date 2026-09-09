@@ -12,8 +12,7 @@ const TODAY = format(new Date(), 'yyyy-MM-dd');
 // deterministic tip (no AI, no cost) when there's no cache yet, e.g. a
 // brand new user who hasn't opened Coach today.
 // `bare` drops the card wrapper/margin so this can sit inside a shared
-// card underneath FinancialHealthScore instead of stacking as its own
-// full section.
+// card on Home instead of stacking as its own full section.
 export default function WhatsNextCard({ overdueBillCount, heroNetSaved, fallbackTip, bare = false }) {
   const [nextMove, setNextMove] = useState(null);
   const [checked, setChecked] = useState(false);

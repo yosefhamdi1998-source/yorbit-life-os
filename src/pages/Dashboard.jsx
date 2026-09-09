@@ -9,7 +9,6 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import { format, differenceInDays, parseISO, startOfDay, subMonths, subDays } from 'date-fns';
 import { composeNetWorth } from '@/lib/netWorth';
 import { filterByPeriod, filterByPreviousPeriod, sumByType, getPeriodLabel, getPeriodPhrase, savingsRate as computeSavingsRate, savingsRateLabel, rangeLabel, getPeriodBounds } from '@/lib/periods';
-import { computeHealthScore } from '@/lib/financialHealth';
 import { fmtFull } from '@/lib/format';
 import { getSimpleMode } from '@/lib/simpleMode';
 import WhatsNextCard from '@/components/dashboard/WhatsNextCard';
@@ -285,10 +284,6 @@ export default function Dashboard() {
     .filter(r => r.limit > 0);
 
   const overdueBillCount = bills.filter(b => !b.is_paid && b.due_date && b.due_date < format(new Date(), 'yyyy-MM-dd')).length;
-
-  const healthScore = computeHealthScore({
-    heroIncome, heroExpenses, prevIncome: prevSums.income, prevExpenses: prevSums.expenses, prevTxCount: prevTx.length, budgetedRows, bills,
-  });
 
   // Cheapest possible "what's driving spend" signal for the What's Next
   // fallback — the full breakdown lives on the new Save More page.
