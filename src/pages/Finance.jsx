@@ -235,7 +235,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
     if (categoryFilter !== 'all') list = list.filter(t => t.category === categoryFilter);
 
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = search.trim().toLowerCase();
       list = list.filter(t => t.title?.toLowerCase().includes(q) || t.notes?.toLowerCase().includes(q));
     }
     // Advanced Search: amount range and an exact date range, both additive
@@ -373,7 +373,8 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
         <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input aria-label="Search transactions" placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input aria-label="Search transactions" placeholder="Search by merchant or description…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9 pr-12 min-h-[44px]" />
+            {search && <button type="button" aria-label="Clear transaction search" onClick={() => setSearch('')} className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded-r-md"><X className="w-4 h-4" /></button>}
           </div>
           <button
             onClick={() => setShowAdvanced(v => !v)}

@@ -163,3 +163,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added test:pdf-rows to the full suite using real jsPDF line wrapping. It checks all 600 repeated phrases survive a multi-page description, every baseline stays within margins, and the next transaction remains present with separate spacing.
 - Generated a three-page synthetic PDF starting near a page bottom, rendered through Poppler, and visually inspected all pages. Test images/PDF are local QA files outside the source archive.
 - Strict lint, production build, PDF row regression, and diff checks passed. This does not claim comprehensive PDF styling, Unicode, category-summary pagination, or export lifecycle coverage.
+
+## September 9, 2026 — forgiving transaction search
+
+- Merchant/note matching now trims leading and trailing query spaces, preventing pasted names from unexpectedly returning no matches.
+- Added a named, touch-sized Clear transaction search button without resetting other filters or the page date range.
+- Sample browser check: spaced Coursera query returned four matches; Clear restored all 61 transactions in the selected period.
+- Strict lint, production build, and diff checks passed. Search semantics otherwise unchanged and no records modified.
