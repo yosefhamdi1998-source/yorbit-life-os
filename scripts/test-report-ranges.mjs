@@ -37,3 +37,14 @@ assert.deepEqual(billsDueThisWeek([
  {due_date:'2026-09-10',amount:50,is_paid:true},
 ],anchor),{start:'2026-09-08',end:'2026-09-14',count:2,total:50});
 console.log('PASS: weekly bills include today, exclude paid, overdue and following-week bills');
+
+const {categoryReportLink}=await import('../src/lib/reportRange.js');
+for(const category of ['other','food','Imported & unusual / category']) {
+ const link=new URL(categoryReportLink(category,parseISO('2026-08-10'),parseISO('2026-09-08')),'https://example.test');
+ assert.equal(link.pathname,'/finance');
+ assert.equal(link.searchParams.get('category'),category);
+ assert.equal(link.searchParams.get('type'),'expense');
+ assert.equal(link.searchParams.get('start'),'2026-08-10');
+ assert.equal(link.searchParams.get('end'),'2026-09-08');
+}
+console.log('PASS: category links preserve custom report boundaries and encode imported category names');

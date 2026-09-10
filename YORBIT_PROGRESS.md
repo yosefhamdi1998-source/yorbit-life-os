@@ -308,3 +308,25 @@ Four useful improvements completed, rather than forcing five: (1) coherent manua
 - Daily 9 AM and Monday review are not due at this 04:44 Eastern run.
 - Configuration references: https://docs.codemagic.io/yaml-code-signing/signing-ios/ and https://docs.codemagic.io/yaml-publishing/app-store-connect/ . This is source configuration validation, not a signed-build certification.
 - Final combined production build exited 0; strict lint and targeted tests passed. Pre-publish remote master was 8fe9cd1.
+- Production verification: e7a171055959b1caeb0c7edb7a01a649f9c58b8b deployed Ready in 21s; Vercel deployment 6rhiZf92M8uxqSqXv83qiwoWfn5j. Reloaded the canonical live report and clicked Monthly: selected=true, text RGB 15/23/42 on white. No real data mutated. This deployment evidence is retained locally for the next coordinated commit.
+
+## 2026-09-10 09:46 UTC — Reconcile report categories with transactions
+One complete customer-flow improvement this run: report category drill-down and reconciliation. Did not manufacture five separate changes from this one flow. Precise filtering, unknown-category handling, accessible navigation, cent-level totals and browser verification were treated as one coordinated change; launch signing/payment/token work remains subject to the previously documented constraints.
+- Every Spending Summary breakdown row is now a keyboard-accessible link to Money with the report's exact start/end dates, expense type and encoded category. Category filter is visibly selected on arrival and can be cleared.
+- Other includes null/empty categories, matching report aggregation; imported categories remain visible. Regression tests reconcile every bucket and verify exact custom dates and encoded unusual names.
+- Breakdown amounts and the matching spending/income total show cents. Header cards retain whole-period context; the list explicitly labels its filtered total.
+- Strict lint caught a missing formatting import during development; corrected before release, then replaced the whole-dollar formatter with cents precision. Final strict lint and range/category regression tests pass. No failure was published.
+
+### Coverage checkpoint — 2026-09-10 09:46 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Monthly report category to transactions | Tested, synthetic | Keyboard Enter on food opens expense/category/date filters |
+| Custom report category to transactions | Tested, synthetic | Aug 10–Sep 8 food: report and list both $230.76 |
+| Empty search and clear-search recovery | Tested, synthetic | No matches and zero total, then records return |
+| Clear category | Tested, synthetic | All categories restores period spending total |
+| Dark and light layout | Tested at 897px | Screenshot inspected, no horizontal overflow; phone-size not claimed |
+| Report charts | Partial | Rendered during traversal; breakdown offers keyboard-accessible underlying records; direct chart interactions still pending |
+| Phone, Simple mode, other settings | Not re-tested this run | Remain on rotating coverage list |
+| Native signing and real payment lifecycle | Unverified | No native build or financial operation invoked |
+- Daily 9 AM and Monday checkpoint not due at this 05:46 Eastern run.
+- Final combined production build exited 0; remote master verified e7a1710 before publishing.

@@ -2,10 +2,10 @@ import { reportTrendLabel } from '@/lib/reportTrendLabel';
 import { previousComparisonCutoff } from '@/lib/reportComparison';
 import { reportAverageWindow } from '@/lib/reportAverage';
 import { spendingCategories } from '@/lib/spendingCategories';
-import { readReportRange } from '@/lib/reportRange';
+import { readReportRange, categoryReportLink } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   format, subMonths, addMonths, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameMonth, subDays, addDays, startOfYear, endOfYear, eachMonthOfInterval,
@@ -506,25 +506,27 @@ export default function SpendingSummary() {
 
           {/* Breakdown */}
           <div className="sky-card rounded-2xl p-4">
-            <p className="font-bold text-sm mb-3">Breakdown</p>
+            <p className="font-bold text-sm mb-1">Breakdown</p>
+            <p className="text-xs text-muted-foreground mb-3">Choose a category to see its transactions.</p>
             <div className="space-y-3">
               {catData.map(({ name, spent }) => {
                 const pct = totalSpending > 0 ? Math.round((spent / totalSpending) * 100) : 0;
                 const color = CAT_COLORS[name] || '#94A3B8';
                 return (
-                  <div key={name} className="flex items-center gap-3">
+                  <Link key={name} to={categoryReportLink(name, start, end)} aria-label={`View ${name} transactions for ${label}`} className="flex items-center gap-3 rounded-xl p-2 -mx-2 min-h-[44px] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <CategoryBadge category={name} size="w-10 h-10" iconSize="w-[18px] h-[18px]" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold capitalize text-foreground truncate">{name}</span>
-                        <span className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmt(spent)}</span>
+                        <span className="text-sm font-bold text-foreground tabular-nums shrink-0">${spent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       <p className="text-xs text-muted-foreground font-medium mt-0.5">{pct}% of spending</p>
                       <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ backgroundColor: color + '22' }}>
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                       </div>
                     </div>
-                  </div>
+                    <ChevronRight aria-hidden="true" className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </Link>
                 );
               })}
             </div>

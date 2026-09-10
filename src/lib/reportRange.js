@@ -13,3 +13,7 @@ export function readReportRange(search) {
   if (!valid(start) || !valid(end) || start > end) return null;
   return { start: parseISO(start), end: parseISO(end), label: `${format(parseISO(start), 'MMM d, yyyy')} – ${format(parseISO(end), 'MMM d, yyyy')}` };
 }
+
+export function categoryReportLink(category, start, end) {
+  return `/finance?${new URLSearchParams({ start: format(start, 'yyyy-MM-dd'), end: format(end, 'yyyy-MM-dd'), type: 'expense', category })}`;
+}

@@ -1,3 +1,4 @@
+import { transactionCategory } from '@/lib/spendingCategories';
 import { CategoryBadge } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
 import { readReportRange } from '@/lib/reportRange';
@@ -188,9 +189,9 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
     const type = new URLSearchParams(window.location.search).get('type');
     return ['income', 'expense'].includes(type) ? type : 'all';
   });
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState(() => new URLSearchParams(window.location.search).get('category') || 'all');
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(() => !!new URLSearchParams(window.location.search).get('category'));
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
   const [customFrom, setCustomFrom] = useState('');
@@ -211,13 +212,12 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
   // for anyone whose data trails today's real date.
   const latestTxDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
 
-  // "other" is dropped from the chip list on request — it's a catch-all
-  // bucket, not a meaningful thing to filter by, and cutting it (plus
-  // switching these rows from horizontal scroll to wrap below) is what
-  // gets the category row to fit without a scroller.
+  // Keep a linked category visible even when the selected period has no matches.
   const categoryOptions = useMemo(() => {
-    return [...new Set(transactions.map(t => t.category).filter(c => c && c !== 'other'))].sort();
-  }, [transactions]);
+    const categories = new Set(transactions.map(transactionCategory));
+    if (categoryFilter !== 'all') categories.add(categoryFilter);
+    return [...categories].sort();
+  }, [transactions, categoryFilter]);
 
   const amountRangeError = Number(amountMin) < 0 || Number(amountMax) < 0
     ? 'Amounts must be zero or greater.'
@@ -230,7 +230,7 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
     let list = transactions;
     if (typeFilter === 'income') list = list.filter(t => t.type === 'income');
     else if (typeFilter === 'expense') list = list.filter(t => t.type === 'expense');
-    if (categoryFilter !== 'all') list = list.filter(t => t.category === categoryFilter);
+    if (categoryFilter !== 'all') list = list.filter(t => transactionCategory(t) === categoryFilter);
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -351,6 +351,12 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
             {selectMode ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><ListChecks className="w-3.5 h-3.5" /> Select</>}
           </button>
         </div>
+
+        {typeFilter !== 'all' && !amountRangeError && !dateRangeError && (
+          <p className="text-sm font-semibold text-foreground tabular-nums" aria-live="polite">
+            Matching {typeFilter === 'expense' ? 'spending' : 'income'}: ${filtered.reduce((sum, tx) => sum + (tx.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        )}
 
         {/* Sticky while scrolling the list below, so the running total stays
             visible as you keep tapping rows further down the page. */}

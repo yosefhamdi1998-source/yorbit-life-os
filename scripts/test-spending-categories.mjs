@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spendingCategories } from '../src/lib/spendingCategories.js';
+import { spendingCategories, transactionCategory } from '../src/lib/spendingCategories.js';
 
 const records = [
   { type: 'expense', category: 'housing', amount: 1200 },
@@ -22,3 +22,9 @@ assert.equal(result.reduce((sum, row) => sum + row.spent, 0),
   records.filter(row => row.type === 'expense').reduce((sum, row) => sum + row.amount, 0));
 assert.deepEqual(spendingCategories([]), []);
 console.log('PASS: all expense categories reconcile, with income/transfers excluded and missing categories retained');
+
+for (const row of result) {
+  const opened=records.filter(t=>t.type==='expense' && transactionCategory(t)===row.name);
+  assert.equal(opened.reduce((sum,t)=>sum+t.amount,0),row.spent);
+}
+console.log('PASS: category drill-down totals match chart buckets, including missing categories');
