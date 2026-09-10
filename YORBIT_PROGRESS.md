@@ -223,3 +223,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Settings confirmation now lists records removed and retained, including retained Coach history, notes, account, subscription and bank connections. Title and success message no longer promise deletion of all financial data.
 - No deletion behavior, database policies, records, or accounts changed. Checked against the existing RPC source and prior live audit; no destructive invocation performed.
 - Strict lint and final production build passed. Opened the sample confirmation dialog, checked disclosure, and canceled.
+
+## 2026-09-10 00:35 UTC — Accessible Add Transaction fields
+- Added persistent accessible names to optional description/notes inputs and aria-pressed state to expense/income buttons. Validation messages now expose an alert and use light/dark red text variants.
+- Sample browser checks: default Expense pressed; Income click updates selection and category; negative amount shows announced validation without saving; Cancel closes form. Strict lint and production build passed.
+- No real financial data changed. This is targeted accessibility coverage, not full keyboard/dialog certification.

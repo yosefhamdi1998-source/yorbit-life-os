@@ -179,6 +179,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                   <button
                     key={opt.value}
                     onClick={() => handleTypeChange(opt.value)}
+                    aria-pressed={form.type === opt.value}
                     className={`flex-1 py-3 text-sm font-bold transition-all ${
                       form.type === opt.value
                         ? opt.value === 'income'
@@ -196,6 +197,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
               <div className="space-y-3">
                 <Input
                   placeholder="Description (optional)"
+                  aria-label="Transaction description (optional)"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   className="h-12 text-base"
@@ -226,6 +228,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                 />
                 <Input
                   placeholder="Notes (optional)"
+                  aria-label="Transaction notes (optional)"
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   className="h-12"
@@ -241,7 +244,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                 tapped. */}
             {error && (
               <div className="px-5 pt-2 shrink-0">
-                <p className="text-xs font-semibold text-red-500">{error}</p>
+                <p role="alert" className="text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
 
