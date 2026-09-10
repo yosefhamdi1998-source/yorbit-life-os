@@ -238,3 +238,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Enlarged remove-limit buttons to 44x44 CSS pixels and added category-specific accessible names. Small icon remains visually secondary; hover state clarifies destructive intent.
 - Phone preview at 390px checked: Food/Transport/Entertainment cards fit; measured targets approx 44x44; keyboard Tab navigation reaches next control. No removal invoked and no records changed.
 - Strict lint and production build passed (build slower than usual). This does not cover every Budget control.
+
+## 2026-09-10 03:37 UTC — Persistent transaction save failure feedback
+- Failed Add Transaction saves now retain an announced inline message after the parent toast disappears. Wording says the save could not be confirmed and advises checking transactions before retrying; does not claim an ambiguous network failure means no insert happened.
+- Added dev-only save-retry fixture: first create throws before insert. Browser confirmed retained description/amount and alert; Cancel works. Subsequent browser retry did not close the form and remains unresolved; no claim of end-to-end retry success. Isolated fixture create test failed once and then returned one synthetic row as designed.
+- Strict lint and production build passed. No production records written or financial functions invoked.

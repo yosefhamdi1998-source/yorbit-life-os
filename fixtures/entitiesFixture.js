@@ -40,6 +40,13 @@ class FixtureEntity {
 // Mirrors the real TransactionEntity: the default list excludes investing
 // activity, which is reached through the explicit helpers instead.
 class FixtureTransactionEntity extends FixtureEntity {
+  async create(payload) {
+    if (scenarioName === 'save-retry' && !this.saveFailureShown) {
+      this.saveFailureShown = true;
+      throw new Error('Synthetic save failure before insert');
+    }
+    return super.create(payload);
+  }
   budgeted() { return this.rows.filter(r => !r.exclude_from_budget); }
   investing() { return this.rows.filter(r => r.exclude_from_budget); }
   async list(sort, limit) {

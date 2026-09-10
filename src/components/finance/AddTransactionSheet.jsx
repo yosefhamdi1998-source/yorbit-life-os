@@ -103,7 +103,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
       await onSave({ ...form, title, amount: Number(form.amount) });
       onClose();
     } catch {
-      // Parent already shows the error toast
+      setError("We couldn't confirm the save. Your entries are still here. Check your transactions before trying again to avoid a duplicate.");
     }
   });
 
