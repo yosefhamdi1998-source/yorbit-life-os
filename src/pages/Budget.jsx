@@ -356,8 +356,8 @@ export default function Budget() {
                     {close && !over && <div className="flex items-center gap-1 text-xs font-medium text-amber-500"><Clock className="w-3 h-3" />Close</div>}
                     {!over && !close && limit > 0 && <div className="flex items-center gap-1 text-xs font-medium text-emerald-500"><CheckCircle className="w-3 h-3" />On track</div>}
                     {budget && (
-                      <button onClick={() => deleteBudget(budget.id)} className="text-muted-foreground hover:text-destructive p-1 transition-colors" title="Remove budget limit" aria-label="Remove budget limit">
-                        <X className="w-3.5 h-3.5" />
+                      <button onClick={() => deleteBudget(budget.id)} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl transition-colors" title={`Remove ${cat} budget limit`} aria-label={`Remove ${cat} budget limit`}>
+                        <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>

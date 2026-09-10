@@ -233,3 +233,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Extracted actual form validation into a tested helper. Date parsing now checks a real ISO calendar date rather than Date.parse normalization (e.g. February 30). Numeric input requires a finite complete value, not parseFloat's accepted prefix; save uses the same Number conversion.
 - Regression cases cover leap/non-leap February, impossible month/day, malformed/empty amounts, zero/negative values, amount bounds and title length. Included in npm test. Focused tests, strict lint, production build passed.
 - No production transaction writes. Validation is client-side feedback, not a replacement for server constraints.
+
+## 2026-09-10 02:36 UTC — Budget remove-limit touch targets
+- Enlarged remove-limit buttons to 44x44 CSS pixels and added category-specific accessible names. Small icon remains visually secondary; hover state clarifies destructive intent.
+- Phone preview at 390px checked: Food/Transport/Entertainment cards fit; measured targets approx 44x44; keyboard Tab navigation reaches next control. No removal invoked and no records changed.
+- Strict lint and production build passed (build slower than usual). This does not cover every Budget control.
