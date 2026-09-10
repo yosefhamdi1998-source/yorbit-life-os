@@ -10,6 +10,8 @@ export default defineConfig({
   server: { host: '127.0.0.1', port: 5174, strictPort: true },
   resolve: {
     alias: [
+      { find: /^@\/lib\/platform$/, replacement: path.resolve(__dirname, './fixtures/nativePlatformFixture.js') },
+      { find: /^@\/lib\/revenuecat$/, replacement: path.resolve(__dirname, './fixtures/nativePurchaseFixture.js') },
       { find: /^@\/api\/base44Client$/, replacement: path.resolve(__dirname, './fixtures/base44Fixture.js') },
       { find: /^@\/api\/supabaseClient$/, replacement: path.resolve(__dirname, './fixtures/supabaseFixture.js') },
       { find: /^\.\/supabaseClient$/, replacement: path.resolve(__dirname, './fixtures/supabaseFixture.js') },

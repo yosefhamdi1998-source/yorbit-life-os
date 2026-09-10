@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
+import { getNativePlan } from '@/lib/nativePlans';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
 import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Lock, Infinity as InfinityIcon } from 'lucide-react';
 // Aliased: importing lucide's `Infinity` under its own name shadows the
@@ -40,6 +41,9 @@ export default function Upgrade() {
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [iosOfferings, setIosOfferings] = useState(null);
   const [restoring, setRestoring] = useState(false);
+  const [offeringsAttempt, setOfferingsAttempt] = useState(0);
+  const nativeIOS = isNativeIOS();
+  const nativePlans = { monthly: getNativePlan(iosOfferings, 'monthly'), yearly: getNativePlan(iosOfferings, 'yearly') };
   const navigate = useNavigate();
 
   // `iosOfferings` starts null and the buy button renders "Loading…" while
@@ -54,25 +58,41 @@ export default function Upgrade() {
   useEffect(() => {
     if (!isNativeIOS()) return;
     let settled = false;
+    let active = true;
+    setOfferingsFailed(false);
+    setIosOfferings(null);
     const timer = setTimeout(() => {
       if (!settled) setOfferingsFailed(true);
     }, 10000);
 
     getOfferings()
       .then(offerings => {
+        if (!active) return;
         settled = true;
         clearTimeout(timer);
-        if (offerings?.current) setIosOfferings(offerings);
-        else setOfferingsFailed(true);
+        const annual = getNativePlan(offerings, 'yearly');
+        const monthly = getNativePlan(offerings, 'monthly');
+        if (annual || monthly) {
+          setIosOfferings(offerings);
+          setOfferingsFailed(false);
+          setPlan(current => getNativePlan(offerings, current) ? current : annual ? 'yearly' : 'monthly');
+        } else setOfferingsFailed(true);
       })
       .catch(() => {
+        if (!active) return;
         settled = true;
         clearTimeout(timer);
         setOfferingsFailed(true);
       });
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => { active = false; clearTimeout(timer); };
+  }, [offeringsAttempt]);
+
+  const displayPrices = nativeIOS ? Object.fromEntries(['monthly', 'yearly'].map(key => [key, {
+    ...PRICES[key],
+    amount: nativePlans[key]?.amount || (offeringsFailed || iosOfferings ? 'Unavailable' : 'Loading…'),
+    annual: null, badge: null,
+  }])) : PRICES;
 
   const handleCheckout = async () => {
     if (window.self !== window.top) { setIframeBlocked(true); return; }
@@ -105,9 +125,7 @@ export default function Upgrade() {
       toast({ title: "Subscriptions unavailable", description: "Please try again later.", variant: 'destructive' });
       return;
     }
-    const pkg = plan === 'yearly'
-      ? iosOfferings.current.availablePackages.find(p => p.identifier === '$rc_annual')
-      : iosOfferings.current.availablePackages.find(p => p.identifier === '$rc_monthly');
+    const pkg = getNativePlan(iosOfferings, plan)?.pkg;
     if (!pkg) {
       toast({ title: "Plan not found", description: "Please try a different plan.", variant: 'destructive' });
       return;
@@ -173,7 +191,7 @@ export default function Upgrade() {
                 <p className="text-white/70 text-xs mt-0.5">More support for your money plan</p>
               </div>
               <span className="bg-yellow-300 text-indigo-900 text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap">
-                7-DAY FREE TRIAL
+                {nativeIOS ? 'YORBIT PRO' : '7-DAY FREE TRIAL'}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -201,19 +219,20 @@ export default function Upgrade() {
               key={p}
               onClick={() => setPlan(p)}
               aria-pressed={plan === p}
+              disabled={loading || restoring || (nativeIOS && !nativePlans[p])}
               className={`flex-1 rounded-xl py-3.5 flex flex-col items-center transition-colors relative border-2 ${plan === p ? 'bg-card border-primary shadow-md' : 'border-transparent hover:bg-card'}`}
             >
-              {PRICES[p].badge && (
+              {displayPrices[p].badge && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                  {PRICES[p].badge}
+                  {displayPrices[p].badge}
                 </span>
               )}
-              <span className="text-lg font-black text-foreground">{PRICES[p].amount}</span>
-              <span className="text-xs text-muted-foreground">{PRICES[p].period}</span>
-              {PRICES[p].annual && (
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">{PRICES[p].annual} billed</span>
+              <span className="text-lg font-black text-foreground">{displayPrices[p].amount}</span>
+              <span className="text-xs text-muted-foreground">{displayPrices[p].period}</span>
+              {displayPrices[p].annual && (
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">{displayPrices[p].annual} billed</span>
               )}
-              <span className="text-[10px] text-muted-foreground mt-0.5">{PRICES[p].note}</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">{displayPrices[p].note}</span>
             </button>
           ))}
         </div>
@@ -297,7 +316,7 @@ export default function Upgrade() {
           <>
             <Button
               onClick={handleIOSPurchase}
-              disabled={loading || (!iosOfferings && !offeringsFailed)}
+              disabled={loading || restoring || !nativePlans[plan]}
               className="w-full h-14 rounded-2xl text-base font-bold text-white shadow-xl shadow-primary/30 gap-2 active:scale-[0.98] transition-all"
               style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
             >
@@ -308,15 +327,16 @@ export default function Upgrade() {
                   ? 'Subscriptions unavailable'
                   : !iosOfferings
                     ? 'Loading…'
-                    : `Start 7-Day Free Trial`}
+                    : `Subscribe to Pro`}
             </Button>
             {offeringsFailed && (
               <p className="text-center text-xs text-muted-foreground mt-2">
-                We couldn&apos;t reach the App Store. Check your connection and try again — you have not been charged.
+                Subscription options couldn&apos;t be loaded. Check your connection and try again.
               </p>
             )}
+            {offeringsFailed && <Button variant="outline" className="w-full mt-2 min-h-[44px]" onClick={() => setOfferingsAttempt(value => value + 1)}>Retry subscription options</Button>}
             <p className="text-center text-xs text-muted-foreground mt-3 leading-relaxed">
-              7 days free, then {PRICES[plan].amount}{PRICES[plan].period} · Cancel anytime · No hidden fees
+              {nativePlans[plan] ? <>{displayPrices[plan].amount}{displayPrices[plan].period} · Renews automatically until canceled. Any eligible introductory offer is shown by Apple before confirmation.</> : 'Pricing will appear when subscription options are available.'}
             </p>
           </>
         ) : (
@@ -340,7 +360,7 @@ export default function Upgrade() {
         {isNativeIOS() ? (
           <button
             onClick={handleRestore}
-            disabled={restoring}
+            disabled={restoring || loading}
             className="w-full mt-2 py-3 text-xs text-muted-foreground font-medium text-center disabled:opacity-50"
           >
             {restoring ? 'Restoring…' : 'Restore Purchases'}

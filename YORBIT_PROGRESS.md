@@ -270,3 +270,13 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Reproduced live: Home Add navigated to Money and consumed add=1 without leaving the form open. Local first-load success concealed it; revisiting the already-loaded Money route reproduced the failure.
 - Layout now captures the current useOutlet() element for the keyed page transition instead of letting the exiting Outlet mount the next page prematurely and consume its one-shot Add request. Corrected the remaining Home empty-activity Add link to include add=1.
 - Local repeated Home→Add navigation opens the transaction dialog on each attempt; Cancel and refresh keep it closed afterward. No transactions saved. Viewport override did not take effect (actual width remained 897), so no new phone-size verification is claimed. Strict lint, production build and final diff review passed; remote master was dbe03d7.
+
+## 2026-09-10 — Five native subscription improvements
+1. Native plan prices and currency now come from the validated RevenueCat product priceString instead of web dollar constants.
+2. Removed unconditional seven-day trial and savings claims from the native paywall; Apple confirms eligible introductory offers. Web billing copy remains separately unverified.
+3. Missing or mismatched products/periods cannot be selected or purchased; a valid remaining plan is selected automatically.
+4. Failed offering loads have an actual retry action; late successful responses clear timeout errors and disposed requests cannot overwrite current state.
+5. Purchase cancellation recognizes the installed SDK's string/numeric cancellation code and userCancelled flag, rather than showing a purchase error.
+- Targeted tests execute actual native screen handler and offering effect with mocked SDK results, validate localized price and product/period mismatches, and check cancellation/error outcomes. Strict lint and production build passed; later test-only additions passed targeted tests/lint. Native browser fixture verified initial unavailable state, retry to EUR monthly pricing, annual disabled, missing entitlement purchase feedback, and Restore with no purchases. No real purchase or external financial call invoked.
+- Fixtures are only aliased by vite.fixture.config.js; the production build uses real SDK modules. No secrets configured. Historical readiness document now identifies its date and current unverified native-build/account/billing/security gaps. Codemagic Node 20 versus installed Capacitor's Node >=22 is recorded for follow-up.
+- Remote master verified at fbbcb33 before release. These are code/preparation improvements; a Vercel release does not update an installed iOS binary or constitute App Store approval.

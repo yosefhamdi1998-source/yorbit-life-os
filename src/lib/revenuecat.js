@@ -1,4 +1,4 @@
-import { Purchases } from '@revenuecat/purchases-capacitor';
+import { Purchases, PURCHASES_ERROR_CODE } from '@revenuecat/purchases-capacitor';
 import { REVENUECAT_API_KEY, ENTITLEMENT, SUBSCRIPTION_PRODUCTS } from '@/lib/appStoreConfig';
 import { isNativeIOS } from '@/lib/platform';
 
@@ -53,7 +53,7 @@ export async function purchasePackage(pkg) {
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan, error: null };
   } catch (err) {
-    if (err.code === 'PURCHASE_CANCELLED') {
+    if (String(err?.code) === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR || err?.userCancelled === true) {
       return { error: null, cancelled: true };
     }
     return { error: 'Purchase could not be completed. Please try again.' };

@@ -1,6 +1,8 @@
 # Yorbit — App Store Readiness
 
-**Verdict: NOT READY.** Not close, and the reasons are mostly not code.
+> **Current verification note — September 10, 2026:** The September 5 audit below is historical, not a current certification. See YORBIT_PROGRESS.md for subsequent fixes and actual test coverage. Native purchase pricing, availability, retry, cancellation, and access feedback now have mocked/source-level regression coverage; no signed iPhone build or live Apple purchase has been verified here. RevenueCat's public Apple key and App Store ID remain empty in source. The Codemagic workflow specifies Node 20 while the installed Capacitor CLI requires Node 22 or newer; that build configuration needs correction and a verified macOS build. Bank-token protection and production billing verification remain launch blockers.
+
+**Historical verdict: NOT READY.**
 
 Last verified 2026-09-05 against commit `HEAD` on `master`, the live Supabase
 project, and the deployed builds at `yorbit-life-os.vercel.app` and GitHub
