@@ -16,6 +16,7 @@
 #      as a group named `app_store_credentials` containing:
 #        APP_STORE_CONNECT_ISSUER_ID
 #        APP_STORE_CONNECT_KEY_IDENTIFIER
+#        APP_STORE_APPLE_ID (numeric app ID from App Store Connect)
 #        APP_STORE_CONNECT_PRIVATE_KEY
 #      Codemagic can also auto-generate/manage signing certificates for you
 #      via that same API key — see "Automatic code signing" in their docs.
@@ -40,12 +41,11 @@ workflows:
       groups:
         - app_store_credentials
       vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "app.yorbit"
-      node: 20
+      node: 22
       xcode: latest
-      cocoapods: default
     triggering:
       events:
         - push
@@ -61,20 +61,29 @@ workflows:
       - name: Sync Capacitor iOS project
         script: |
           npx cap sync ios
-      - name: Install CocoaPods dependencies
+      - name: Resolve Swift package dependencies
         script: |
-          cd ios/App && pod install
+          xcodebuild -resolvePackageDependencies -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME"
       - name: Set up automatic code signing
         script: |
           xcode-project use-profiles
       - name: Increment build number
         script: |
-          cd $CM_BUILD_DIR
-          agvtool new-version -all $(($(app-store-connect get-latest-app-store-build-number "$BUNDLE_ID") + 1))
+          set -eu
+          : "${APP_STORE_APPLE_ID:?Set the numeric Apple application ID in app_store_credentials}"
+          case "$APP_STORE_APPLE_ID" in
+            *[!0-9]*) echo "APP_STORE_APPLE_ID must be numeric" >&2; exit 1 ;;
+          esac
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
+          case "$LATEST_BUILD_NUMBER" in
+            ''|*[!0-9]*) echo "Could not verify the latest Apple build number; stopping" >&2; exit 1 ;;
+          esac
+          cd "$CM_BUILD_DIR/ios/App"
+          agvtool new-version -all "$((LATEST_BUILD_NUMBER + 1))"
       - name: Build ipa for App Store distribution
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
@@ -95,7 +104,7 @@ workflows:
         - google_play_credentials
       vars:
         PACKAGE_NAME: "app.moneyglow"
-      node: 20
+      node: 22
       java: 17
     triggering:
       events:
