@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { validateTransactionForm as validate } from '../src/lib/transactionValidation.js';
+const form={date:'2024-02-29',amount:'12.34',title:'Lunch'};
+assert.equal(validate(form),null);
+for(const date of ['2026-02-29','2026-02-30','2026-04-31','2026-13-01','2026-00-01','2026-01-00','','2026-2-01','not a date']) assert.equal(validate({...form,date}),'Choose a valid transaction date.',date);
+for(const amount of ['12oops','Infinity','NaN','', ' ',undefined]) assert.equal(validate({...form,amount}),'Enter an amount.');
+for(const amount of ['0','-1']) assert.equal(validate({...form,amount}),'Amount has to be more than $0.');
+assert.equal(validate({...form,amount:'10000000'}),null);
+assert.ok(validate({...form,amount:'10000001'}));
+assert.equal(validate({...form,title:'x'.repeat(200)}),null);
+assert.ok(validate({...form,title:'x'.repeat(201)}));
+console.log('PASS: calendar dates, leap years, finite complete amounts, and database bounds');

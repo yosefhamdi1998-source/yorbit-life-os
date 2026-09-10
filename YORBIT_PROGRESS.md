@@ -228,3 +228,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Added persistent accessible names to optional description/notes inputs and aria-pressed state to expense/income buttons. Validation messages now expose an alert and use light/dark red text variants.
 - Sample browser checks: default Expense pressed; Income click updates selection and category; negative amount shows announced validation without saving; Cancel closes form. Strict lint and production build passed.
 - No real financial data changed. This is targeted accessibility coverage, not full keyboard/dialog certification.
+
+## 2026-09-10 01:35 UTC — Strict transaction date validation
+- Extracted actual form validation into a tested helper. Date parsing now checks a real ISO calendar date rather than Date.parse normalization (e.g. February 30). Numeric input requires a finite complete value, not parseFloat's accepted prefix; save uses the same Number conversion.
+- Regression cases cover leap/non-leap February, impossible month/day, malformed/empty amounts, zero/negative values, amount bounds and title length. Included in npm test. Focused tests, strict lint, production build passed.
+- No production transaction writes. Validation is client-side feedback, not a replacement for server constraints.

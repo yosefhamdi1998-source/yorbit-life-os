@@ -1,3 +1,4 @@
+import { validateTransactionForm } from '@/lib/transactionValidation';
 import { useState, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,19 +37,6 @@ const DEFAULT_FORM = () => ({
 // "Couldn't save transaction. Please try again in a moment." — advice
 // that is actively wrong, since trying again with the same input fails
 // forever and nothing said which field was the problem.
-const MAX_AMOUNT = 10000000;
-const MAX_TITLE = 200;
-
-function validate(form) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date || "") || Number.isNaN(Date.parse(form.date))) return "Choose a valid transaction date.";
-  const amount = parseFloat(form.amount);
-  if (!form.amount || Number.isNaN(amount)) return 'Enter an amount.';
-  if (amount <= 0) return 'Amount has to be more than $0.';
-  if (amount > MAX_AMOUNT) return `Amount has to be $${MAX_AMOUNT.toLocaleString()} or less.`;
-  if ((form.title || '').length > MAX_TITLE) return `Description has to be ${MAX_TITLE} characters or fewer.`;
-  return null;
-}
-
 export default function AddTransactionSheet({ open, onClose, onSave }) {
   const [form, setForm] = useState(DEFAULT_FORM());
   // Synchronous re-entry guard — `disabled={saving}` alone let a fast
@@ -103,7 +91,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
   };
 
   const handleSave = () => runGuarded(async () => {
-    const problem = validate(form);
+    const problem = validateTransactionForm(form);
     if (problem) { setError(problem); return; }
     setError('');
     try {
@@ -112,7 +100,7 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
       // the button stayed disabled without saying why.
       const title = form.title.trim()
         || form.category.charAt(0).toUpperCase() + form.category.slice(1);
-      await onSave({ ...form, title, amount: parseFloat(form.amount) });
+      await onSave({ ...form, title, amount: Number(form.amount) });
       onClose();
     } catch {
       // Parent already shows the error toast
