@@ -258,3 +258,10 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Fixed selected/hover plan backgrounds using theme card colors rather than hardcoded white, with a primary selection border and aria-pressed. Annual equivalent price uses readable light/dark green variants.
 - Browser verified monthly and annual selection, dark price RGB 233/237/242 on card 26/27/40, and light price 16/23/40 on card 252/252/253. Strict lint and production build passed. No checkout or purchase initiated.
 - Revenue priority: verify billing price IDs against the active Stripe account (Upgrade still contains older IDs), close known bank-token/security blockers, verify the paid entitlement lifecycle, and measure activation/retention in a small variable-income pilot before acquisition spending. Trial and AI claims must match funded/configured behavior. No pricing change in this release.
+
+## 2026-09-10 06:41 UTC — Honest native purchase confirmation
+- iOS purchase handler now requires result.isPro before welcoming the customer and navigating to Settings. A completed SDK call without a Pro entitlement stays on the screen with Restore Purchases guidance rather than falsely saying access is active. Cancellation remains silent.
+- Added regression coverage that executes the actual screen handler with mocked purchase results: active Pro, missing entitlement, cancellation, and error. Existing RevenueCat initialization/restore tests also pass; strict lint passed. No real purchase, bank call, or paid build invoked.
+- Reviewed Capacitor config, Codemagic workflow, and historical APP_STORE_READINESS.md. That September 5 checklist is historical, not a fresh live verification. Current native signing/device testing and paid entitlement lifecycle remain unverified. Existing billing price references and legacy Plaid token storage remain separate blockers.
+- Reference: https://www.revenuecat.com/docs/customers/customer-info — access is checked through active entitlements, not merely completion of a purchase SDK call.
+- Production build passed. Remote master verified at 428517a before release; this web release does not produce or submit an iOS binary.

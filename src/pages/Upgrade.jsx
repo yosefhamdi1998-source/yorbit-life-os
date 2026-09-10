@@ -117,9 +117,11 @@ export default function Upgrade() {
     setLoading(false);
     if (result.error) {
       toast({ title: "Purchase failed", description: result.error, variant: 'destructive' });
-    } else if (!result.cancelled) {
+    } else if (!result.cancelled && result.isPro) {
       toast({ title: "Welcome to Yorbit Pro! 🎉", description: "Your subscription is now active." });
       navigate('/settings');
+    } else if (!result.cancelled) {
+      toast({ title: "Pro access not confirmed", description: "We couldn't confirm your Pro access yet. Try Restore Purchases before buying again." });
     }
   };
 
