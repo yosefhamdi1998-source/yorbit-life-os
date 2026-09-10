@@ -198,7 +198,8 @@ export default function Upgrade() {
             <button
               key={p}
               onClick={() => setPlan(p)}
-              className={`flex-1 rounded-xl py-3.5 flex flex-col items-center transition-all relative ${plan === p ? 'bg-white shadow-md' : 'hover:bg-white/40'}`}
+              aria-pressed={plan === p}
+              className={`flex-1 rounded-xl py-3.5 flex flex-col items-center transition-colors relative border-2 ${plan === p ? 'bg-card border-primary shadow-md' : 'border-transparent hover:bg-card'}`}
             >
               {PRICES[p].badge && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full whitespace-nowrap">
@@ -208,7 +209,7 @@ export default function Upgrade() {
               <span className="text-lg font-black text-foreground">{PRICES[p].amount}</span>
               <span className="text-xs text-muted-foreground">{PRICES[p].period}</span>
               {PRICES[p].annual && (
-                <span className="text-[10px] text-emerald-600 font-bold mt-0.5">{PRICES[p].annual} billed</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">{PRICES[p].annual} billed</span>
               )}
               <span className="text-[10px] text-muted-foreground mt-0.5">{PRICES[p].note}</span>
             </button>
