@@ -243,3 +243,13 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Failed Add Transaction saves now retain an announced inline message after the parent toast disappears. Wording says the save could not be confirmed and advises checking transactions before retrying; does not claim an ambiguous network failure means no insert happened.
 - Added dev-only save-retry fixture: first create throws before insert. Browser confirmed retained description/amount and alert; Cancel works. Subsequent browser retry did not close the form and remains unresolved; no claim of end-to-end retry success. Isolated fixture create test failed once and then returned one synthetic row as designed.
 - Strict lint and production build passed. No production records written or financial functions invoked.
+
+## 2026-09-10 04:37 UTC — Save retry follow-up
+- Reproduced synthetic pre-insert failure with temporary local diagnostics, then retried using keyboard Enter on Save Transaction. Form closed and one Food expense for 12.34 appeared in the sample transaction list. Entries were preserved across the failure.
+- Earlier pointer-driven retry did not produce a second handler error or successful activation; it is not evidence of a broken save handler. Pointer retry coverage remains uncertain. Keyboard recovery is now verified.
+- Removed temporary diagnostic logging; production application code unchanged. No real financial record or bank operation touched. No deployment required for this verification-only follow-up.
+
+## 2026-09-10 05:39 UTC — Transaction dialog keyboard access
+- Replaced the custom sheet visibility/backdrop logic with the existing Radix modal primitive, keeping the bottom-sheet layout and pinned actions. Added linked dialog title/description, modal focus containment, Escape dismissal, and focus restoration to the opener. Removed the custom exit timer and manual root overflow override; closed content unmounts immediately.
+- Fixture browser checks: initial focus on Close; Tab from final enabled Cancel wraps to Close; Escape closes and returns to Add; desktop category selection works; 390px phone layout retains native category picker and visible actions. Synthetic failed save preserves entries/alert; keyboard retry closes and returns focus to Add. No real records touched.
+- Strict lint passed. Production build passed with approved expanded filesystem access after sandbox denied config resolution. Remote master verified at 40872f8 before release. Daily/weekly review schedules are newly configured; first daily review is due after 9 AM Eastern, weekly Monday after 10 AM.

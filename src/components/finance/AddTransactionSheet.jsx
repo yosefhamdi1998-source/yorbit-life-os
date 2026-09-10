@@ -1,5 +1,6 @@
 import { validateTransactionForm } from '@/lib/transactionValidation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,39 +46,11 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
   const { saving, runGuarded } = useSubmitLock();
   const [error, setError] = useState('');
 
-  // Mount/visibility are tracked explicitly and torn down on a timer rather
-  // than relying on an exit animation to finish. An exit that never completes
-  // used to leave the full-screen backdrop mounted and eating every tap,
-  // which read as the whole app freezing.
-  const [mounted, setMounted] = useState(open);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const raf = requestAnimationFrame(() => setShown(true));
-      return () => cancelAnimationFrame(raf);
-    }
-    setShown(false);
-    const t = setTimeout(() => setMounted(false), 260);
-    return () => clearTimeout(t);
-  }, [open]);
+  const returnFocusRef = useRef(null);
 
   // Reset form when sheet opens
   useEffect(() => {
     if (open) { setForm(DEFAULT_FORM()); setError(''); }
-  }, [open]);
-
-  // Lock body scroll when open — overflow hidden avoids iOS touch-event issues
-  useEffect(() => {
-    if (open) {
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.documentElement.style.overflow = '';
-    }
-    return () => {
-      document.documentElement.style.overflow = '';
-    };
   }, [open]);
 
   const catOptions = getCatOptions(form.type);
@@ -107,17 +80,20 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
     }
   });
 
-  if (!mounted) return null;
-
   return (
-    <>
-      <div
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 ${shown ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
+    <Dialog.Root open={open} onOpenChange={nextOpen => { if (!nextOpen) onClose(); }}>
+      <Dialog.Portal>
+      <Dialog.Overlay
+        className="fixed inset-0 bg-black/40 z-40"
       />
 
-      <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out flex flex-col ${shown ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+      <Dialog.Content
+        onOpenAutoFocus={() => { returnFocusRef.current = document.activeElement; }}
+        onCloseAutoFocus={event => {
+          event.preventDefault();
+          if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
+        }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl shadow-2xl flex flex-col"
             // flex column + min-h-0 on the scrollable middle section (below)
             // is what makes that section shrink to exactly whatever space
             // header+footer don't use, automatically — no pixel math to get
@@ -133,8 +109,8 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
             {/* Header — outside scroll area so close button is always tappable */}
             <div className="flex items-center justify-between px-5 pt-2 pb-3 shrink-0">
               <div>
-                <h3 className="text-lg font-black">New Transaction</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Log income or an expense</p>
+                <Dialog.Title className="text-lg font-black">New Transaction</Dialog.Title>
+                <Dialog.Description className="text-xs text-muted-foreground mt-0.5">Log income or an expense</Dialog.Description>
               </div>
               <button
                 onClick={onClose}
@@ -259,7 +235,8 @@ export default function AddTransactionSheet({ open, onClose, onSave }) {
                 {saving ? 'Saving…' : <><Plus className="w-4 h-4" /> Save Transaction</>}
               </Button>
             </div>
-      </div>
-    </>
+      </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
