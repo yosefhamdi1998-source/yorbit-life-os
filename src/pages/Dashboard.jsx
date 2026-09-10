@@ -453,7 +453,7 @@ export default function Dashboard() {
               <DollarSign className="w-9 h-9 text-primary/30 mx-auto mb-3" />
               <p className="text-sm font-semibold mb-1 text-foreground">No transactions yet</p>
               <p className="text-xs text-muted-foreground mb-4">Add your first to start tracking.</p>
-              <Link to="/finance">
+              <Link to="/finance?add=1">
                 <Button size="sm" className="gap-1 bg-primary text-white">
                   <Plus className="w-3.5 h-3.5" /> Add Transaction
                 </Button>

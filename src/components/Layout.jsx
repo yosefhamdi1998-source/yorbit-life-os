@@ -1,6 +1,6 @@
 import { PRIMARY_NAV, PLAN_NAV, navIsActive } from '@/lib/navigation';
 import PlanNavigation from '@/components/PlanNavigation';
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useOutlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -84,6 +84,8 @@ export default function Layout() {
     return stored ? stored === 'dark' : false;
   });
   const location = useLocation();
+  // Capture this route's element so the exiting animation cannot mount the next route.
+  const outlet = useOutlet();
   const navigate = useNavigate();
   // Remember last path visited under each tab root
   const tabHistory = useRef(Object.fromEntries(TAB_PATHS.map(p => [p, p])));
@@ -290,7 +292,7 @@ export default function Layout() {
             <div className="w-full max-w-3xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <ErrorBoundary key={location.pathname}>
                 {PLAN_NAV.some(item => item.path === location.pathname) && <PlanNavigation />}
-                <Outlet />
+                {outlet}
               </ErrorBoundary>
             </div>
           </motion.div>

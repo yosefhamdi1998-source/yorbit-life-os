@@ -265,3 +265,8 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - Reviewed Capacitor config, Codemagic workflow, and historical APP_STORE_READINESS.md. That September 5 checklist is historical, not a fresh live verification. Current native signing/device testing and paid entitlement lifecycle remain unverified. Existing billing price references and legacy Plaid token storage remain separate blockers.
 - Reference: https://www.revenuecat.com/docs/customers/customer-info — access is checked through active entitlements, not merely completion of a purchase SDK call.
 - Production build passed. Remote master verified at 428517a before release; this web release does not produce or submit an iOS binary.
+
+## 2026-09-10 — Home Add opens on the first click
+- Reproduced live: Home Add navigated to Money and consumed add=1 without leaving the form open. Local first-load success concealed it; revisiting the already-loaded Money route reproduced the failure.
+- Layout now captures the current useOutlet() element for the keyed page transition instead of letting the exiting Outlet mount the next page prematurely and consume its one-shot Add request. Corrected the remaining Home empty-activity Add link to include add=1.
+- Local repeated Home→Add navigation opens the transaction dialog on each attempt; Cancel and refresh keep it closed afterward. No transactions saved. Viewport override did not take effect (actual width remained 897), so no new phone-size verification is claimed. Strict lint, production build and final diff review passed; remote master was dbe03d7.
