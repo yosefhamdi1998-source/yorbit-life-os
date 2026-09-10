@@ -18,8 +18,9 @@
 #        APP_STORE_CONNECT_KEY_IDENTIFIER
 #        APP_STORE_APPLE_ID (numeric app ID from App Store Connect)
 #        APP_STORE_CONNECT_PRIVATE_KEY
-#      Codemagic can also auto-generate/manage signing certificates for you
-#      via that same API key — see "Automatic code signing" in their docs.
+#      Upload a matching Apple Distribution certificate and App Store profile
+#      in Codemagic Code signing identities; ios_signing fetches those files.
+#      This file does not create certificates or sign up for services.
 #   5. For Android: a Google Play Console account + a service account JSON
 #      key, added in Codemagic as group `google_play_credentials` with
 #      GCLOUD_SERVICE_ACCOUNT_CREDENTIALS.
@@ -46,13 +47,10 @@ workflows:
         BUNDLE_ID: "app.yorbit"
       node: 22
       xcode: latest
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: master
-          include: true
-      cancel_previous_builds: true
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.yorbit
+    # Start native releases manually in Codemagic; hourly web pushes must not spend build minutes or submit binaries.
     scripts:
       - name: Install npm dependencies
         script: npm ci
@@ -90,7 +88,9 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         # Flip to true once you're ready for a real App Store review, not just TestFlight:
         submit_to_app_store: false
@@ -106,13 +106,7 @@ workflows:
         PACKAGE_NAME: "app.moneyglow"
       node: 22
       java: 17
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: master
-          include: true
-      cancel_previous_builds: true
+    # Start native releases manually in Codemagic; hourly web pushes must not spend build minutes or submit binaries.
     scripts:
       - name: Install npm dependencies
         script: npm ci

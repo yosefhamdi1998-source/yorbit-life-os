@@ -10,9 +10,9 @@
  *      - app.yorbit.pro.monthly  ($4.99/mo)
  *      - app.yorbit.pro.yearly   ($29.99/yr)
  *   4. In RevenueCat, create an entitlement called "pro" and link both products to it.
- *   5. In RevenueCap, create an offering with monthly ($rc_monthly) and annual ($rc_annual) packages.
+ *   5. In RevenueCat, create an offering with monthly ($rc_monthly) and annual ($rc_annual) packages.
  *
- * Without REVENUECAT_API_KEY, iOS subscribe/restore buttons will show "Loading…" indefinitely.
+ * Without REVENUECAT_API_KEY, subscriptions show an unavailable state with retry; restore reports an error.
  */
 export const APP_STORE_ID = ''; // e.g. '1234567890'
 export const REVENUECAT_API_KEY = ''; // e.g. 'appl_xxxxxxxxxxxxxxxxxxxx'

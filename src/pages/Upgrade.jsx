@@ -131,8 +131,14 @@ export default function Upgrade() {
       return;
     }
     setLoading(true);
-    const result = await purchasePackage(pkg);
-    setLoading(false);
+    let result;
+    try {
+      result = await purchasePackage(pkg);
+    } catch {
+      result = { error: "We couldn't confirm the purchase. Check Restore Purchases before trying again." };
+    } finally {
+      setLoading(false);
+    }
     if (result.error) {
       toast({ title: "Purchase failed", description: result.error, variant: 'destructive' });
     } else if (!result.cancelled && result.isPro) {
@@ -145,8 +151,14 @@ export default function Upgrade() {
 
   const handleRestore = async () => {
     setRestoring(true);
-    const result = await restorePurchases();
-    setRestoring(false);
+    let result;
+    try {
+      result = await restorePurchases();
+    } catch {
+      result = { error: "Could not restore purchases. Please try again." };
+    } finally {
+      setRestoring(false);
+    }
     if (result.error) {
       toast({ title: "Restore failed", description: result.error, variant: 'destructive' });
     } else if (result.isPro) {
@@ -161,7 +173,7 @@ export default function Upgrade() {
     <div className="min-h-screen pb-16">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-6 pb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="min-h-[44px] min-w-[44px] shrink-0">
+        <Button aria-label="Go back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="min-h-[44px] min-w-[44px] shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>

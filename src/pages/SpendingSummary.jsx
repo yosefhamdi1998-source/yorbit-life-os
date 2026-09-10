@@ -356,7 +356,7 @@ export default function SpendingSummary() {
                 key={p.key}
                 onClick={() => switchPeriod(p.key)}
                 aria-pressed={!explicitRange && period === p.key}
-                className={`flex-1 min-h-[44px] text-[11px] font-semibold py-1.5 rounded-full border transition-all ${!explicitRange && period === p.key ? 'bg-white text-primary border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
+                className={`flex-1 min-h-[44px] text-[11px] font-semibold py-1.5 rounded-full border transition-all ${!explicitRange && period === p.key ? 'bg-white text-slate-900 border-white' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/15'}`}
               >
                 {p.label}
               </button>

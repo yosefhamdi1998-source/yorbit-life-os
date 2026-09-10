@@ -286,3 +286,25 @@ Revision 07d35bc was verified Ready in Vercel deployment 5qPehuSHrrdcktLuFZDpgcK
 - iOS now resolves Swift packages against the checked-in App.xcodeproj instead of running pod install without a Podfile. IPA build targets that project instead of a nonexistent top-level workspace.
 - This is source configuration preparation only: no cloud build, signing, submission, or purchase was triggered. Signing setup and the current build-number command (bundle ID where a numeric Apple application ID is required) remain explicitly unverified/unfinished.
 - Follow-up in the same change: build numbering now requires the numeric APP_STORE_APPLE_ID, stops on failed/invalid lookup, and runs agvtool inside ios/App. First-ever upload without a returned build number needs an explicitly configured initial build; no fallback silently invents one. Signing remains unfinished. YAML parsing and checked-in path checks passed; no Xcode execution available on this Windows host.
+
+## 2026-09-10 08:44 UTC — Native release preparation and customer recovery
+Four useful improvements completed, rather than forcing five: (1) coherent manual native signing/publishing configuration, (2) native purchase/restore SDK-rejection recovery, (3) accessible Upgrade Back control, (4) readable selected report periods. Remaining launch work depends on verified signing/device/account configuration or coordinated sensitive backend changes; no speculative fifth change added.
+- Codemagic now references uploaded App Store signing identities and the same Apple environment credentials documented for setup. Removed push triggers from both native workflows so routine Vercel releases do not automatically initiate native builds/submissions. No cloud build invoked. This also publishes the prior local Node/SPM/build-number corrections.
+- Purchase and restore handlers release busy state after unexpected SDK rejection and show recovery guidance. Purchase uncertainty directs users to restore before trying again. Mock tests cover active/no entitlement, returned errors, thrown errors, no incorrect success navigation, and unlocked controls.
+- Upgrade's icon-only back button now has an accessible name, verified returning to the report.
+- Report's selected period no longer uses theme primary text on a white background; verified RGB 15/23/42 on white in light and dark themes.
+- Validation: native regression tests and report-average tests passed; strict lint passed; YAML parsing plus runtime/project/signing/publishing/manual-trigger assertions passed. Production build status recorded after completion.
+
+### Coverage checkpoint — 2026-09-10 08:44 UTC
+| Area | Status | Evidence / next gap |
+|---|---|---|
+| Upgrade native SDK exception, purchase and restore | Tested, synthetic | Clicked both actions; visible error; controls re-enabled; no real purchases |
+| Upgrade Back | Tested, synthetic | Accessible Go back returns to Spending Summary |
+| Report monthly/yearly/previous/next | Tested, synthetic | Periods update; current Next disabled correctly; earlier Next enabled |
+| Report selected period light/dark | Tested, 897px viewport | Computed colors verified; screenshot inspected; no horizontal overflow |
+| Report chart rendering | Partial | Donut and report layout rendered; chart keyboard/drill-down coverage remains pending |
+| Phone viewport, Simple mode, remaining settings | Not re-tested this run | Prior coverage does not certify all controls |
+| Native signing, physical device and Apple payments | Blocked/unverified | No macOS build or configured-account verification here |
+- Daily 9 AM and Monday review are not due at this 04:44 Eastern run.
+- Configuration references: https://docs.codemagic.io/yaml-code-signing/signing-ios/ and https://docs.codemagic.io/yaml-publishing/app-store-connect/ . This is source configuration validation, not a signed-build certification.
+- Final combined production build exited 0; strict lint and targeted tests passed. Pre-publish remote master was 8fe9cd1.

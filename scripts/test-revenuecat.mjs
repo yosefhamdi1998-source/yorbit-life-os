@@ -79,3 +79,26 @@ async function offeringEffectCase(cleanupFirst) {
 await offeringEffectCase(false);
 await offeringEffectCase(true);
 console.log('PASS: late successful offerings clear timeout errors; disposed requests cannot overwrite current state');
+
+// Unexpected bridge rejections must release the screen lock without claiming payment failed definitively.
+const rejectedMessages=[];
+const rejectedLoading=[];
+await runPurchase(availableOffering,'yearly',m=>rejectedMessages.push(m),v=>rejectedLoading.push(v),async()=>{throw new Error('Bridge unavailable');},()=>{throw new Error('Unexpected navigation');},getNativePlan);
+assert.deepEqual(rejectedLoading,[true,false]);
+assert.match(rejectedMessages[0].description,/Restore Purchases/);
+const restoreBody=upgradeSource.match(/const handleRestore = async \(\) => \{([\s\S]*?)\n  \};/);
+assert.ok(restoreBody);
+const runRestore=new AsyncFunction('setRestoring','restorePurchases','toast','navigate',restoreBody[1]);
+for(const [result,title,route] of [
+  [{isPro:true,error:null},'Pro restored! 🎉','/settings'],
+  [{isPro:false,error:null},'No purchases found',null],
+  [{error:'Synthetic error'},'Restore failed',null],
+  [null,'Restore failed',null],
+]) {
+  const states=[],messages=[],routes=[];
+  await runRestore(v=>states.push(v),async()=>{if(result===null)throw new Error('Bridge unavailable');return result;},m=>messages.push(m),r=>routes.push(r));
+  assert.deepEqual(states,[true,false]);
+  assert.equal(messages[0].title,title);
+  assert.deepEqual(routes,route?[route]:[]);
+}
+console.log('PASS: purchase and restore bridge rejections release controls; restore confirms only active entitlement');
