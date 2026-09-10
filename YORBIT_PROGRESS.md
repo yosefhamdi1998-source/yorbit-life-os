@@ -330,3 +330,24 @@ One complete customer-flow improvement this run: report category drill-down and 
 | Native signing and real payment lifecycle | Unverified | No native build or financial operation invoked |
 - Daily 9 AM and Monday checkpoint not due at this 05:46 Eastern run.
 - Final combined production build exited 0; remote master verified e7a1710 before publishing.
+- Production verification: 3b679880638e94f4077f21aa8056333944dee88c Ready in 27s, Vercel CxaYgsDBuxFuCeJkvdFampstTGx8. Reloaded canonical live report; Other link opened /finance with original 2025-01-01 through 2026-09-08 range, type=expense, category=other, visible selected category and Matching spending label. Read-only verification; no records changed. Evidence retained locally for next coordinated commit.
+
+## 2026-09-10 10:47 UTC — Empty-period recovery and Money chart accuracy
+Four verified improvements: empty-period recovery; correct chart period/monthly-budget scope; complete imported/uncategorized expense buckets; uncapped textual budget usage. No arbitrary fifth change: the remaining launch/security items need the documented coordinated configuration or native validation, and this run closed the findings actually reproduced during the walkthrough.
+- Existing accounts with an empty selected period now get an accurate explanation plus View all history. Truly empty accounts retain Add Transaction. Both actions meet 44px minimum height.
+- Spending chart caption follows selected dates/range instead of always saying This month. Monthly budget comparisons appear only for an explicit complete calendar month and use that month's budget. Rolling/multi-month/all-history totals are not compared to a monthly cap.
+- Money chart now uses the same expense grouping as reports, including null/empty categories as Other and unknown imported categories.
+- Budget usage text reports actual overrun, rather than capping the label at 100%.
+- Targeted date tests cover leap-month, full month, partial month and multi-month windows; category reconciliation tests passed. Strict lint and production build exited 0. Added synthetic category-accuracy fixture, then lint passed again.
+
+### Coverage checkpoint — 2026-09-10 10:47 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Existing history / empty dates | Tested, synthetic | Jan 2024 empty; View all history restores 919 records |
+| New account / Add / Cancel | Tested, synthetic | No-history copy; form opens; Cancel closes without saving |
+| Spending tab and period label | Tested, synthetic | All-history caption, no inappropriate budget comparisons |
+| Exact monthly budget / overrun | Tested, synthetic | Sep 1–30 food displays 181% of $100, not 100% |
+| Unknown and empty categories | Tested, synthetic | Imported $15 and Other $5 rendered |
+| Light/dark layout | Tested at 897px | Screenshot inspected; no horizontal overflow; not a phone-size claim |
+| Other settings / Simple mode / physical iPhone | Not tested this run | Remain pending rotating coverage |
+- Daily and Monday reviews not due at this 06:47 Eastern run. No real financial operations or native cloud builds invoked.

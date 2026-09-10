@@ -1,4 +1,4 @@
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, endOfMonth } from 'date-fns';
 import { getPeriodBounds } from './periods.js';
 
 export function reportLink(period, anchor, transactions, type = 'expense') {
@@ -16,4 +16,11 @@ export function readReportRange(search) {
 
 export function categoryReportLink(category, start, end) {
   return `/finance?${new URLSearchParams({ start: format(start, 'yyyy-MM-dd'), end: format(end, 'yyyy-MM-dd'), type: 'expense', category })}`;
+}
+
+// A monthly limit is comparable only to its complete calendar-month window.
+export function monthlyBudgetKey(range) {
+  if (!range || format(range.start, 'dd') !== '01') return null;
+  if (format(range.end, 'yyyy-MM-dd') !== format(endOfMonth(range.start), 'yyyy-MM-dd')) return null;
+  return format(range.start, 'yyyy-MM');
 }

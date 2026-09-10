@@ -48,3 +48,10 @@ for(const category of ['other','food','Imported & unusual / category']) {
  assert.equal(link.searchParams.get('end'),'2026-09-08');
 }
 console.log('PASS: category links preserve custom report boundaries and encode imported category names');
+
+const {monthlyBudgetKey}=await import('../src/lib/reportRange.js');
+for(const [start,end,expected] of [['2026-09-01','2026-09-30','2026-09'],['2024-02-01','2024-02-29','2024-02'],['2026-08-10','2026-09-08',null],['2026-09-01','2026-09-08',null],['2026-01-01','2026-12-31',null]]) {
+ assert.equal(monthlyBudgetKey(readReportRange('?start='+start+'&end='+end)),expected);
+}
+assert.equal(monthlyBudgetKey(null),null);
+console.log('PASS: only exact calendar-month report windows receive monthly budget comparisons');

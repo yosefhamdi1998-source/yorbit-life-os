@@ -95,6 +95,14 @@ const base = {
 
 export const SCENARIOS = {
   default: base,
+  'category-accuracy': {
+    ...base,
+    transactions: [...base.transactions,
+      {id:'qa-other',type:'expense',category:null,amount:5,date:'2026-09-05',title:'Uncategorized fixture'},
+      {id:'qa-imported',type:'expense',category:'imported-category',amount:15,date:'2026-09-05',title:'Imported fixture'},
+    ],
+    budgets: [{id:'qa-budget',category:'food',monthly_limit:100,month:'2026-09'}],
+  },
   starter: { ...base, budgets: [] },
   // No overdue bills, so Home's recommendation falls through to the
   // spending tip and its own destination.

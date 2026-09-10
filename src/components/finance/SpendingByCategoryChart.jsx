@@ -16,7 +16,7 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function SpendingByCategoryChart({ catData, totalExpenses }) {
+export default function SpendingByCategoryChart({ catData, totalExpenses, periodLabel }) {
   if (!catData || catData.length === 0) return null;
 
   const sorted = [...catData].sort((a, b) => b.spent - a.spent);
@@ -25,7 +25,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses }) {
     <div className="sky-card rounded-2xl overflow-hidden mb-4">
       <div className="px-4 pt-4 pb-2">
         <p className="font-bold text-sm text-foreground">Spending by Category</p>
-        <p className="text-xs text-muted-foreground font-medium">This month · ${fmt(totalExpenses)} total</p>
+        <p className="text-xs text-muted-foreground font-medium">{periodLabel} · ${fmt(totalExpenses)} total</p>
       </div>
 
       {/* Donut chart — a bare ring with nothing else on the card read as
@@ -80,7 +80,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses }) {
       <div className="px-4 pb-4 space-y-4">
         {sorted.map(({ name, spent, budget }) => {
           const pct = totalExpenses > 0 ? Math.round((spent / totalExpenses) * 100) : 0;
-          const budgetPct = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : null;
+          const budgetPct = budget > 0 ? Math.round((spent / budget) * 100) : null;
           const over = budget > 0 && spent > budget;
           const close = budget > 0 && !over && budgetPct >= 80;
           const color = CAT_COLORS[name] || '#94A3B8';

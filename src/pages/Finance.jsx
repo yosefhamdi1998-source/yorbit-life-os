@@ -1,7 +1,7 @@
-import { transactionCategory } from '@/lib/spendingCategories';
+import { transactionCategory, spendingCategories } from '@/lib/spendingCategories';
 import { CategoryBadge } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
-import { readReportRange } from '@/lib/reportRange';
+import { readReportRange, monthlyBudgetKey } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { DollarSign, Plus, X, Trash2, Search, TrendingUp, TrendingDown, PiggyBank, Percent, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
@@ -27,7 +27,6 @@ import { filterByPeriod, getLatestTransactionDate, rangeLabel, savingsRate } fro
 import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
-const EXPENSE_CATS = ['housing', 'food', 'transport', 'entertainment', 'health', 'shopping', 'education', 'savings', 'investment', 'other'];
 const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 
 const NW_TYPE_OPTIONS = [
@@ -183,7 +182,7 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
 }
 
 // ─── Transaction List ─────────────────────────────────────────────────────────
-function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRange }) {
+function TransactionList({ transactions, hasHistory, onShowHistory, onDelete, onAdd, onUpdateNote, dateRange }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState(() => {
     const type = new URLSearchParams(window.location.search).get('type');
@@ -328,9 +327,10 @@ function TransactionList({ transactions, onDelete, onAdd, onUpdateNote, dateRang
     return (
       <div className="bg-card border border-dashed border-border rounded-2xl p-8 text-center">
         <DollarSign className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm font-semibold mb-1">No transactions yet</p>
-        <p className="text-xs text-muted-foreground mb-4">Add your first transaction to unlock charts, budgets, and AI insights.</p>
-        <Button size="sm" onClick={onAdd} className="gap-1"><Plus className="w-3.5 h-3.5" /> Add Transaction</Button>
+        <p className="text-sm font-semibold mb-1">{hasHistory ? 'No transactions in this period' : 'No transactions yet'}</p>
+        <p className="text-xs text-muted-foreground mb-4">{hasHistory ? 'Your history is still here. Choose different dates or view all history.' : 'Add your first transaction to start tracking your money.'}</p>
+        {hasHistory && <Button size="sm" variant="outline" onClick={onShowHistory} className="mr-2 min-h-[44px]">View all history</Button>}
+        <Button size="sm" onClick={onAdd} className="gap-1 min-h-[44px]"><Plus className="w-3.5 h-3.5" /> Add Transaction</Button>
       </div>
     );
   }
@@ -658,7 +658,6 @@ export default function Finance() {
     }
     return latest ? parseISO(latest) : new Date();
   }, [transactions]);
-  const thisMonth = format(latestTxDate, 'yyyy-MM');
 
   // Live bank balances + manual entries, with the label deciding itself.
   const worth = composeNetWorth(accounts, netWorth);
@@ -710,11 +709,11 @@ export default function Finance() {
   // into a five-figure percentage.
   const summarySavingsRate = savingsRate(summaryIncome, summaryExpenses);
 
-  const catData = EXPENSE_CATS.map(cat => ({
-    name: cat,
-    spent: summaryTx.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + (t.amount || 0), 0),
-    budget: budgets.find(b => b.category === cat && b.month === thisMonth)?.monthly_limit || 0,
-  })).filter(d => d.spent > 0);
+  const budgetMonth = monthlyBudgetKey(explicitRange);
+  const catData = spendingCategories(summaryTx).map(row => ({
+    ...row,
+    budget: budgetMonth ? budgets.find(b => b.category === row.name && b.month === budgetMonth)?.monthly_limit || 0 : 0,
+  }));
 
   if (loadFailed) return <DataLoadError onRetry={() => loadData(true)} />;
 
@@ -794,13 +793,13 @@ export default function Finance() {
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions">
-          <TransactionList transactions={summaryTx} dateRange={summaryPeriod} setDateRange={setSummaryPeriod} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
+          <TransactionList transactions={summaryTx} hasHistory={transactions.length > 0} onShowHistory={() => { setExplicitRange(null); setSummaryPeriod('all'); }} dateRange={summaryPeriod} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
         </TabsContent>
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
           {catData.length > 0 ? (
-            <SpendingByCategoryChart catData={catData} totalExpenses={summaryExpenses} />
+            <SpendingByCategoryChart catData={catData} totalExpenses={summaryExpenses} periodLabel={explicitRange?.label || rangeLabel(summaryPeriod)} />
           ) : (
             <div className="sky-card border border-dashed border-blue-200 rounded-2xl p-8 text-center mb-4">
               <DollarSign className="w-10 h-10 text-primary/30 mx-auto mb-3" />
