@@ -219,6 +219,7 @@ export const RANGE_LABELS = {
 // rather than "undefined" - a missing label should look wrong in review,
 // not blank in production.
 export function rangeLabel(key) {
+  if (/^year-\d{4}$/.test(key)) return key.slice(5);
   return RANGE_LABELS[key] || String(key || '').toUpperCase();
 }
 

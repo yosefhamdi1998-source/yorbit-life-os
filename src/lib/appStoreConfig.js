@@ -2,9 +2,9 @@
  * App Store configuration.
  *
  * ACTION REQUIRED before submitting to App Store:
- *   1. Set APP_STORE_ID to your Apple App Store numeric ID
+ *   1. Set VITE_APP_STORE_ID to your Apple App Store numeric ID
  *      (App Store Connect → App Information → Apple ID)
- *   2. Set REVENUECAT_API_KEY to your RevenueCat PUBLIC API key for Apple
+ *   2. Set VITE_REVENUECAT_APPLE_API_KEY to your RevenueCat PUBLIC API key for Apple
  *      (RevenueCat dashboard → Project Settings → API Keys → Apple public key)
  *   3. In App Store Connect, create two auto-renewable subscriptions:
  *      - app.yorbit.pro.monthly  ($4.99/mo)
@@ -14,8 +14,8 @@
  *
  * Without REVENUECAT_API_KEY, subscriptions show an unavailable state with retry; restore reports an error.
  */
-export const APP_STORE_ID = ''; // e.g. '1234567890'
-export const REVENUECAT_API_KEY = ''; // e.g. 'appl_xxxxxxxxxxxxxxxxxxxx'
+export const APP_STORE_ID = (import.meta.env.VITE_APP_STORE_ID || '').trim();
+export const REVENUECAT_API_KEY = (import.meta.env.VITE_REVENUECAT_APPLE_API_KEY || '').trim();
 
 export const APP_STORE_URL = APP_STORE_ID
   ? `https://apps.apple.com/app/id${APP_STORE_ID}`

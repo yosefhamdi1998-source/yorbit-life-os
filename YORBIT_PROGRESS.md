@@ -378,3 +378,21 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Original preference restoration | Completed | Simple Mode turned back off in preview |
 | Phone, physical iOS and live purchases | Not tested | No native certification claimed |
 - September 11 daily checkpoint not due yet (04:32 Eastern). Production verification recorded after deploy.
+- Production verification: Vercel deployment STuqCpGnoH9LJrWYwDytDKgwEaY1 Ready in 22s for exact commit 4354e0f15d91911220c58dc697ecd0bc5795187f. Direct local-filename asset comparison was inconclusive (HTML fallback), so no byte-for-byte match claimed. Native restore behavior verified only with SDK mocks/browser fixture, not real Apple restore. Evidence retained locally for next commit.
+
+## 2026-09-11 10:36 UTC — Native configuration gate and readable annual chart caption
+- Two substantive improvements completed: native release configuration wiring/preflight, and the reproduced annual chart caption fix. Did not inflate these into five; real native account/signing and restricted backend work remain unverified and were not bypassed.
+- App Store ID and RevenueCat Apple public SDK key read build environment configuration. iOS CI checks presence/format before installing/building and maps APP_STORE_APPLE_ID into VITE_APP_STORE_ID. Missing/secret/other-platform/example keys fail without printing their values. No keys supplied, accounts authenticated, paid build started or native binary produced. Format success is not credential validity. Reference: https://www.revenuecat.com/docs/projects/authentication (public SDK keys only; secret keys remain server-side).
+- Browser walkthrough found the year selector exposed YEAR-2026 in the spending caption. Shared formatter now displays 2026; rechecked after editing.
+- Native preflight and RevenueCat targeted tests passed; date-range regressions and strict lint passed on combined code. Production build exited 0.
+
+### Coverage checkpoint — 2026-09-11 10:36 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Native paywall load failure and Retry | Tested, synthetic | Initially unavailable; retry restores localized 5,99 EUR monthly price; absent annual remains disabled |
+| Paywall to Money navigation | Tested, synthetic | Money renders transaction history |
+| Money Spending tab and annual selector | Tested, synthetic | 2026 selected, totals/chart update and caption is readable year |
+| Desktop light/dark chart layout | Tested at 1280px | Dark screenshot inspected, no horizontal overflow in light layout |
+| Physical iOS, phone viewport, Simple mode | Not re-tested this run | Native signing/purchase and phone claims not made |
+| Real financial mutations | Not performed | Synthetic/read-only checks only |
+- September 11 daily reliability checkpoint is not due until 9 AM Eastern; weekly Monday checkpoint not due. Prior preserved release evidence included. Production verification follows push.

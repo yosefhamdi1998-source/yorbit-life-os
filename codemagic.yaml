@@ -17,6 +17,7 @@
 #        APP_STORE_CONNECT_ISSUER_ID
 #        APP_STORE_CONNECT_KEY_IDENTIFIER
 #        APP_STORE_APPLE_ID (numeric app ID from App Store Connect)
+#        VITE_REVENUECAT_APPLE_API_KEY (public Apple SDK key, never a secret key)
 #        APP_STORE_CONNECT_PRIVATE_KEY
 #      Upload a matching Apple Distribution certificate and App Store profile
 #      in Codemagic Code signing identities; ios_signing fetches those files.
@@ -52,10 +53,12 @@ workflows:
         bundle_identifier: app.yorbit
     # Start native releases manually in Codemagic; hourly web pushes must not spend build minutes or submit binaries.
     scripts:
+      - name: Verify native subscription configuration
+        script: node scripts/check-native-release.mjs
       - name: Install npm dependencies
         script: npm ci
       - name: Build the web app
-        script: npm run build
+        script: VITE_APP_STORE_ID="$APP_STORE_APPLE_ID" npm run build
       - name: Sync Capacitor iOS project
         script: |
           npx cap sync ios
