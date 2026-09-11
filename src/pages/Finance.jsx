@@ -1,6 +1,6 @@
 import { validateNetWorthEntry } from '@/lib/netWorthValidation';
 import { transactionCategory, spendingCategories } from '@/lib/spendingCategories';
-import { CategoryBadge } from '@/lib/categoryVisuals';
+import { CategoryBadge, CategoryIcon } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
 import { readReportRange, monthlyBudgetKey } from '@/lib/reportRange';
 import { useState, useEffect, useMemo } from 'react';
@@ -28,7 +28,6 @@ import { filterByPeriod, getLatestTransactionDate, rangeLabel, savingsRate } fro
 import { NET_WORTH_CATEGORIES } from '@/lib/enums';
 import { composeNetWorth, freshnessLabel } from '@/lib/netWorth';
 
-const CAT_ICONS = { housing: '🏠', food: '🍔', transport: '🚗', entertainment: '🎬', health: '💊', shopping: '🛍️', education: '📚', savings: '💰', salary: '💵', freelance: '💻', investment: '📈', other: '💸' };
 
 const NW_TYPE_OPTIONS = [
   { value: 'asset', label: '✅ Asset' },
@@ -472,7 +471,7 @@ function TransactionList({ transactions, hasHistory, onShowHistory, onDelete, on
                 aria-pressed={categoryFilter === cat}
                 className={`text-xs min-h-[44px] px-3 py-1.5 rounded-full border capitalize transition-all flex items-center gap-1 ${categoryFilter === cat ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-border text-muted-foreground'}`}
               >
-                <span>{CAT_ICONS[cat] || '💸'}</span>{cat}
+                <span aria-hidden="true"><CategoryIcon category={cat} /></span>{cat}
               </button>
             ))}
           </div>

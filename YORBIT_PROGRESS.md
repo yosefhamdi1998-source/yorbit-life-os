@@ -563,3 +563,17 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - Transaction merchant/amount area now toggles an inline read-only detail panel showing full original description, date, type, category, exact amount, and full notes. Visible Details/Hide details hint and accessible expanded state. Selection uses a real button with pressed state; edit/delete stay separate.
 - Synthetic browser verified Chipotle expense details ($26.13), Enter collapse, selection total, note editor Cancel, delete confirmation Cancel, and dark desktop layout at 1280px without overflow. No records changed. Physical phone viewport remains untested. Income/spending chart placement unchanged per user.
 - Strict lint and production build passed. Backend bank exchange fix from previous commit still awaits Supabase permission/deployment; this website release does not deploy Edge Functions.
+- Production verification: 21a332bcf607b9196abc595046fa5964ee7f2f7d Ready in 17s, Vercel Cdb6NojXDEcLMGvfz4B5hzng91L2. Interaction checks performed in synthetic preview; no production financial writes. Post-deploy evidence retained locally.
+
+## 2026-09-11 21:44 UTC — Hourly transaction/chart regression coverage
+- Preserved existing post-deploy evidence and generated CLI temp change. No concurrent implementation/deployment observed in working tree; no new release needed.
+- Targeted report-range, spending-category reconciliation, prior-period comparison and transaction-validation suites passed.
+- Synthetic browser: Money Income filter returned two matching income records and $6,400.00 matching total; Spending tab rendered seven category rows and donut; Home navigation rendered its chart. Light desktop at 1280px had no horizontal overflow. No financial writes.
+- Zero code improvements: the covered interactions passed; no five-change claim or arbitrary edits. Remaining Money category chart drill-down opportunity noted for a separate range-preserving implementation; current chart rows are display-only. Mobile/native device, real subscription/bank lifecycle and blocked backend deployment remain unverified.
+- Daily checkpoint already completed September 11 at 13:39 UTC; weekly review not due Friday. No new actionable blocker or notification; retain coverage with next code commit.
+
+## 2026-09-11 22:45 UTC — Category filter icon consistency
+- Replaced the last Money category-filter emoji map with shared vector CategoryIcon components. Accessible names remain category text; decorative icons hidden from assistive technology. One concrete improvement, not five artificial changes; other launch blockers remain unchanged.
+- CSV round-trip, export pagination (51,025 records), native configuration preflight, strict lint and production build passed. Native preflight is format validation only, not a signed build.
+- Synthetic browser: import page rendered; Back to transactions returned to Money; Filters opened; Food selected five matching transactions; selected dark icons readable; Spending donut rendered after navigation. Desktop 1280px without overflow; restored light mode. No files imported/financial writes. Mobile, physical device and real bank/payment lifecycle remain untested.
+- Daily checkpoint completed earlier today; weekly review not due. Prior coverage and deployment notes retained. Backend deployment permission blocker unchanged.
