@@ -703,6 +703,7 @@ export default function Finance() {
 
   const summaryTx = useMemo(() => explicitRange ? transactions.filter(t => t.date && parseISO(t.date) >= explicitRange.start && parseISO(t.date) <= explicitRange.end) : filterByPeriod(transactions, summaryPeriod, latestTxDate), [transactions, summaryPeriod, latestTxDate, explicitRange]);
   const summaryIncome = summaryTx.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  const hasSpendingHistory = transactions.some(t => t.type === 'expense');
   const summaryExpenses = summaryTx.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const summaryNetSaved = summaryIncome - summaryExpenses;
   // >= 1 not > 0: a fraction-of-a-cent "income" row shouldn't blow this up
@@ -803,9 +804,10 @@ export default function Finance() {
           ) : (
             <div className="sky-card border border-dashed border-blue-200 rounded-2xl p-8 text-center mb-4">
               <DollarSign className="w-10 h-10 text-primary/30 mx-auto mb-3" />
-              <p className="text-sm font-semibold mb-1">No spending data yet</p>
-              <p className="text-xs text-muted-foreground mb-4">Add a few transactions to see your spending breakdown.</p>
-              <Button size="sm" onClick={() => setShowTxForm(true)} className="gap-1 bg-primary text-white shadow-sm shadow-primary/20">
+              <p className="text-sm font-semibold mb-1">{hasSpendingHistory ? 'No spending in this period' : 'No expenses recorded yet'}</p>
+              <p className="text-xs text-muted-foreground mb-4">{hasSpendingHistory ? 'Choose different dates or view all history to see your spending breakdown.' : 'Add an expense to start your spending breakdown.'}</p>
+              {hasSpendingHistory && <Button size="sm" variant="outline" className="mr-2 min-h-[44px]" onClick={() => { setExplicitRange(null); setSummaryPeriod('all'); }}>View all history</Button>}
+              <Button size="sm" onClick={() => setShowTxForm(true)} className="gap-1 min-h-[44px] bg-primary text-primary-foreground shadow-sm shadow-primary/20">
                 <Plus className="w-3.5 h-3.5" /> Add Transaction
               </Button>
             </div>

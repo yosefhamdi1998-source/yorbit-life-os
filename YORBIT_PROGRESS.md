@@ -351,3 +351,12 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Light/dark layout | Tested at 897px | Screenshot inspected; no horizontal overflow; not a phone-size claim |
 | Other settings / Simple mode / physical iPhone | Not tested this run | Remain pending rotating coverage |
 - Daily and Monday reviews not due at this 06:47 Eastern run. No real financial operations or native cloud builds invoked.
+- Production verification: 828af0aedd5685e2ff2b088f8a36e4c5c49068db Ready in 21s, Vercel 4SEJA8KzHoWQXofJ4QiXZ2NqZXd2. Canonical live Money all-history Spending tab shows All caption, no This month caption, and no monthly budget comparison. No records changed. Evidence retained locally for next commit.
+
+## 2026-09-11 07:32 UTC — Restart recovery and Spending empty-state completion
+- Restored synthetic preview after shutdown; saved source HEAD 828af0a and previous release evidence intact. No conflicting remote changes observed.
+- One verified improvement: Spending tab now distinguishes an empty date period from no expense history and offers View all history when appropriate. New accounts get expense-specific guidance. Buttons use theme foreground and 44px targets. No artificial fifth change added; restart recovery and hands-on verification were completed before publishing this bounded correction.
+- Browser checks: empty Jan 2024 period → Spending → View all history restores chart; truly empty fixture shows no-expense guidance; Add opens the expense form, Cancel closes without writes. Desktop viewport 1280, screenshot inspected, no horizontal overflow. Mobile/dark/Simple mode not re-tested this run.
+- Daily reliability catch-up for missed September 10 checkpoint: consolidated preceding tested report drill-down, category reconciliation, period-budget scope and empty-state checks. Current run verifies restart and desktop recovery. Existing native signing, real billing lifecycle, bank-token security and physical-device evidence remain unverified; no blanket all-controls pass. September 11 daily checkpoint remains due after 9 AM Eastern.
+- Strict lint passed; build completion recorded before release. No financial record changes, purchases, cloud native builds or account operations.
+- Production build exited 0 on the final source tree; strict lint passed.
