@@ -432,3 +432,41 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - One improvement counted because the related validation changes close one data-entry issue; five unrelated edits were not manufactured. Restricted backend and native account work remains untouched. No production writes or costs.
 - Daily reliability review not due yet at 08:38 Eastern; September 11 checkpoint remains due after 9 AM. Weekly checkpoint not due.
 - Final strict lint and production build exited 0. Additional synthetic selector coverage: Asset to Liability selection works and Cancel closes without another record.
+- Production verification: exact commit ef8283add3e160cd4fa824a230870859f86ad4d0 Ready in 20s, Vercel BP2YCiSKJ215moHiz9KbzQwunywm. Validation and corrected-save interaction verified with synthetic data only; no production entry-save attempted. Post-deploy evidence retained locally for next coordinated commit.
+
+## Daily reliability checkpoint — 2026-09-11 (13:39 UTC / 09:39 Eastern)
+- Completed today's first eligible daily review; Monday launch review not due. Current HEAD ef8283a; preserved previous post-deploy evidence and unrelated CLI temp modification.
+- All six targeted suites passed: RevenueCat, report ranges, CSV, starter budgets, Net Worth validation, native release configuration. These are local regression checks, not real authenticated bank/payment/device tests.
+- Consolidated today's verified native restore recovery, annual chart labeling, Net Worth validation and accessible entry controls. Historical deployment evidence remains scoped to each recorded SHA; no new code release this run.
+
+### Coverage checkpoint — 2026-09-11 13:39 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Settings Home chart style | Tested, synthetic | Line selection appears pressed on Home after navigation |
+| Home chart Split/Bars controls | Tested, synthetic | Both switch; Bars restored and verified selected in Settings |
+| Explore chart month | Tested, synthetic | August dialog opens with dates and totals |
+| Next period and terminal boundary | Tested, synthetic | September opens; Next disabled at last available month |
+| Month dialog Close | Tested, synthetic | Closes and Home controls usable |
+| Light/dark desktop layout | Tested at 1280px | Dark screenshot inspected, no horizontal overflow; light preference restored |
+| Phone viewport / physical iPhone | Not tested | No mobile or signing certification inferred |
+| Real payments, bank lifecycle, production financial mutations | Not performed | Existing restricted/owner-dependent work untouched |
+- Zero new code improvements this run: the daily regression sweep and rotated chart/settings walkthrough found no new failing behavior in covered controls. Five arbitrary changes were not manufactured. Native device, production billing and restricted security checks remain distinct unresolved work, not silently passed.
+- Original preview preferences restored: Bars, light mode, Larger Text on; Simple mode unchanged off. No new deployment triggered for a coverage-only note. Keep this checkpoint with the next coordinated code commit.
+
+## 2026-09-11 14:39 UTC — Goals loading recovery and accessible forms
+- Two improvements: persistent loading-error state with retry instead of a misleading empty goal list; accessible names for goal category, target/saved amounts, target date and contribution amount.
+- Reused the existing DataLoadError component. Loading state is reset on every retry/refresh; failure no longer enables a new-goal flow based on an unknown count. Synthetic goals-retry fixture fails once before returning existing goals.
+- Strict lint, final production build and diff check passed. Browser tests exercised the actual failure/retry path and form naming; no production failures or financial writes induced.
+
+### Coverage checkpoint — 2026-09-11 14:39 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Goals loading failure | Tested, synthetic | Persistent alert and Try again; no false empty state |
+| Goals retry | Tested, synthetic | Existing Emergency Fund returns with 36% progress |
+| Edit goal and Cancel | Tested, synthetic | Fields named; Cancel returns to saved goal |
+| Add Money and Cancel | Tested, synthetic | Contribution input named; Cancel closes without contribution |
+| Goals to Money navigation | Tested, synthetic | Money route renders |
+| Weekly spending chart | Tested, synthetic | Last 7 days caption and chart render |
+| Desktop light layout | Tested at 1280px | No horizontal overflow |
+| Mobile, dark, Simple mode, real bank/payment flows | Not re-tested | No complete launch claim |
+- Daily checkpoint already completed 2026-09-11 at 13:39 UTC; not repeated. Weekly Monday review not due. Two findings addressed rather than inventing five changes; sensitive blocked work remains untouched. Previous daily checkpoint/evidence preserved in this commit.

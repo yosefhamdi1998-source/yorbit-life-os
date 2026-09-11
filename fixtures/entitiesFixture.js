@@ -24,7 +24,13 @@ class FixtureEntity {
     this.table = table;
     this.rows = (DATA[table] || []).map((r, i) => ({ id: r.id ?? `${table}-${i}`, created_date: r.created_date ?? '2026-01-01', ...r }));
   }
-  async list(sort, limit) { const r = applySort(this.rows, sort); return limit ? r.slice(0, limit) : r; }
+  async list(sort, limit) {
+    if (this.table === 'savings_goals' && scenarioName === 'goals-retry' && !this.failureShown) {
+      this.failureShown = true;
+      throw new Error('Synthetic goal load failure');
+    }
+    const r = applySort(this.rows, sort); return limit ? r.slice(0, limit) : r;
+  }
   async filter(q = {}, sort, limit) {
     const matched = this.rows.filter(r => Object.entries(q).every(([k, v]) => r[k] === v));
     const r = applySort(matched, sort);

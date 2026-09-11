@@ -1,3 +1,4 @@
+import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays, parseISO, format, addYears } from 'date-fns';
@@ -66,10 +67,13 @@ export default function Goals() {
   const contribRef = useRef(false);
   useAutoOpenForm(() => { setEditingId(null); setForm(EMPTY_FORM); setShowForm(true); });
 
+  const [loadError, setLoadError] = useState(false);
   const loadGoals = () => {
+    setLoading(true);
+    setLoadError(false);
     base44.entities.SavingsGoal.list('-created_date')
       .then(setGoals)
-      .catch(() => toast({ title: "Couldn't load your goals", description: 'Please try again in a moment.', variant: 'destructive' }))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   };
   useEffect(loadGoals, []);
@@ -203,6 +207,8 @@ export default function Goals() {
     );
   }
 
+  if (loadError) return <DataLoadError onRetry={loadGoals} />;
+
   return (
     <div className="py-4 pb-8">
       <PageHeader
@@ -226,15 +232,15 @@ export default function Goals() {
             </button>
           </div>
           <div className="space-y-3">
-            <MobileSelect value={form.preset} onValueChange={v => setForm(f => ({ ...f, preset: v }))} options={PRESET_OPTIONS} />
+            <MobileSelect ariaLabel="Goal category" value={form.preset} onValueChange={v => setForm(f => ({ ...f, preset: v }))} options={PRESET_OPTIONS} />
             <Input placeholder="Goal name (e.g. Down Payment)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <div className="grid grid-cols-2 gap-3">
-              <Input type="number" placeholder="Target amount ($)" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} min="1" />
-              <Input type="number" placeholder="Already saved ($)" value={form.current_amount} onChange={e => setForm(f => ({ ...f, current_amount: e.target.value }))} min="0" />
+              <Input aria-label="Target amount ($)" type="number" placeholder="Target amount ($)" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} min="1" />
+              <Input aria-label="Already saved ($)" type="number" placeholder="Already saved ($)" value={form.current_amount} onChange={e => setForm(f => ({ ...f, current_amount: e.target.value }))} min="0" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Target date (optional — we'll show a weekly/monthly plan if set)</label>
-              <Input type="date" value={form.target_date} onChange={e => setForm(f => ({ ...f, target_date: e.target.value }))} />
+              <label htmlFor="goal-target-date" className="text-xs text-muted-foreground font-medium mb-1 block">Target date (optional — we'll show a weekly/monthly plan if set)</label>
+              <Input id="goal-target-date" type="date" value={form.target_date} onChange={e => setForm(f => ({ ...f, target_date: e.target.value }))} />
             </div>
           </div>
           <div className="flex gap-2 mt-4">
@@ -316,7 +322,7 @@ export default function Goals() {
                 {contributingId === goal.id ? (
                   <div className="flex gap-2">
                     <Input
-                      type="number" placeholder="Amount ($)" autoFocus
+                      aria-label="Contribution amount ($)" type="number" placeholder="Amount ($)" autoFocus
                       value={contributionAmt} onChange={e => setContributionAmt(e.target.value)}
                       className="flex-1" min="0.01"
                     />
