@@ -502,3 +502,19 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Phone, dark theme, Simple mode, live financial writes | Not tested this run | Remain outside this run's evidence |
 - Two related findings fixed rather than manufacturing five edits. Daily reliability checkpoint already completed today; Monday review not due. No production financial mutations or paid native build. Final checks and deploy evidence follow.
 - Final strict lint, production build and diff check passed.
+- Production verification: 24a622ee3d20f8c86f4663f7374455b36f52cc49 Ready in 21s, Vercel Fc43aTuQJXpG7mpX8KmfmZJ5HkHA. Budget retry timing and form behavior verified in synthetic preview; no live financial mutations. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-11 17:40 UTC — Goal amount validation
+- One accuracy fix: goal save now validates complete finite amounts, positive target and nonnegative saved amount before any create/update. Keeps legitimate zero savings and savings beyond the target valid. Existing plan limit and synchronous save guard remain in place.
+- Targeted validation tests passed for negative, blank, partial, overflow and valid amounts. Browser edits rejected negative saved/target values, preserved the original goal, and succeeded after correction in the synthetic fixture.
+
+### Coverage checkpoint — 2026-09-11 17:40 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Edit goal, invalid saved amount | Tested, synthetic | Error shown; existing 4300/12000 goal unchanged |
+| Invalid target then correction | Tested, synthetic | Error shown; corrected values save and form closes |
+| Goals to Money | Tested, synthetic | Navigation works |
+| Money spending chart and layout | Tested at 1280px, light | Chart present; no horizontal overflow |
+| Phone, dark, Simple mode, real financial operations | Not tested | No global readiness claim |
+- One coherent validation fix counted, not five unrelated edits. Daily checkpoint already completed; weekly review not due. No real financial records changed. Final lint/build and production evidence follow.
+- Final strict lint, production build and diff check passed.

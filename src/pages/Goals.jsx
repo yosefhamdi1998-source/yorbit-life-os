@@ -1,3 +1,4 @@
+import { validateGoalAmounts } from '@/lib/goalValidation';
 import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -93,7 +94,12 @@ export default function Goals() {
   };
 
   const save = async () => {
-    if (!form.name.trim() || !form.target_amount || parseFloat(form.target_amount) <= 0) return;
+    if (!form.name.trim()) return;
+    const amountError = validateGoalAmounts(form);
+    if (amountError) {
+      toast({ title: 'Check goal amounts', description: amountError, variant: 'destructive' });
+      return;
+    }
     // Synchronous re-entry guard — see Bills.saveBill for why the
     // `disabled={saving}` state alone doesn't stop a fast double-tap.
     if (savingRef.current) return;
@@ -115,8 +121,8 @@ export default function Goals() {
       name: form.name.trim(),
       icon: preset.icon,
       color: preset.color,
-      target_amount: parseFloat(form.target_amount),
-      current_amount: parseFloat(form.current_amount) || 0,
+      target_amount: Number(form.target_amount),
+      current_amount: Number(form.current_amount),
       target_date: form.target_date || null,
     };
     try {
