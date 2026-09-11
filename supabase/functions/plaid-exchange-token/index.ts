@@ -1,3 +1,4 @@
+import { PUBLIC_ACCOUNT_COLUMNS, publicConnectedAccount } from '../_shared/publicConnectedAccount.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
@@ -55,16 +56,12 @@ Deno.serve(async (req) => {
         balance_limit: acct.balances?.limit ?? null,
         currency: acct.balances?.iso_currency_code || 'USD',
         balance_updated_at: acct.balances ? new Date().toISOString() : null,
-      }).select().single();
+      }).select(PUBLIC_ACCOUNT_COLUMNS).single();
 
       if (error) throw error;
 
-      // Write the credential to the vault as well. plaid_credentials has RLS
-      // on with no policies, so it is unreadable by any ordinary role; the
-      // copy still written to connected_accounts.access_token_ref above is
-      // transitional and is blanked by 20260907160000 once sync is verified
-      // against the vault. New links are protected from the moment they are
-      // created rather than waiting for a backfill.
+      // Maintain the vault copy while legacy sync/delete dependencies remain.
+      // Legacy credential retirement requires a separately verified migration.
       if (data?.id) {
         const { error: vaultErr } = await admin.from('plaid_credentials').upsert({
           user_id: user.id,
@@ -80,7 +77,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      created.push(data);
+      created.push(publicConnectedAccount(data));
     }
 
     return jsonResponse({ success: true, accounts: created }, 200, {}, req);
