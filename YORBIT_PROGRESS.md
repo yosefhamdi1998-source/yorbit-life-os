@@ -518,3 +518,18 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Phone, dark, Simple mode, real financial operations | Not tested | No global readiness claim |
 - One coherent validation fix counted, not five unrelated edits. Daily checkpoint already completed; weekly review not due. No real financial records changed. Final lint/build and production evidence follow.
 - Final strict lint, production build and diff check passed.
+- Production verification: 85ad96427edefc9f45c5601cbc2dc81231cc7178 Ready in 22s, Vercel 3yAxkg26WbT9iK7CGLyPF2T5Expz. Invalid/corrected goal saves exercised only with synthetic data. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-11 18:41 UTC — Remove viewport zoom restriction
+- One accessibility improvement: removed maximum-scale=1 and user-scalable=no from the HTML viewport. Device width, initial scale and viewport-fit=cover remain. Inspected Capacitor config and current readiness note before editing. This removes a web-level restriction; physical iOS/WKWebView pinch behavior remains untested.
+
+### Coverage checkpoint — 2026-09-11 18:41 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Preview viewport metadata | Verified | No maximum-scale/user-scalable restriction, notch cover retained |
+| Home Add navigation | Tested, synthetic | New Transaction opens directly |
+| Cancel transaction | Tested, synthetic | Dialog closes without save |
+| Home/Money charts and layout | Tested at 1280px | Charts render, no horizontal overflow |
+| Actual phone pinch zoom, native signing/device | Untested | Metadata verification is not physical-device testing |
+- One concrete access issue addressed; no arbitrary five changes. Daily checkpoint already completed; weekly review not due. No financial mutations. HTML-only change; build and diff validation recorded before release.
+- Production build and diff check passed.
