@@ -377,14 +377,7 @@ export default function Upgrade() {
           >
             {restoring ? 'Restoring…' : 'Restore Purchases'}
           </button>
-        ) : (
-          <button
-            onClick={() => window.open('https://apps.apple.com/account/subscriptions', '_blank')}
-            className="w-full mt-2 py-3 text-xs text-muted-foreground font-medium text-center"
-          >
-            Restore Purchases
-          </button>
-        )}
+        ) : null}
 
         {/* APPLE REQUIREMENT, and a standard rejection when absent.
             Guideline 3.1.2 requires auto-renewal terms, and links to the

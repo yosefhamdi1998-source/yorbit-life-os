@@ -899,15 +899,19 @@ export default function Finance() {
                 <button onClick={() => setShowNWForm(false)} aria-label="Close" className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
               </div>
               <div className="space-y-3">
-                <Input placeholder="Name (e.g. Savings Account)" value={nwForm.name} onChange={e => setNwForm(f => ({ ...f, name: e.target.value }))} />
-                <Input type="number" placeholder="Value ($)" value={nwForm.value} onChange={e => setNwForm(f => ({ ...f, value: e.target.value }))} />
+                <label htmlFor="net-worth-name" className="block text-xs font-medium">Name</label>
+                <Input id="net-worth-name" placeholder="Name (e.g. Savings Account)" value={nwForm.name} onChange={e => setNwForm(f => ({ ...f, name: e.target.value }))} />
+                <label htmlFor="net-worth-value" className="block text-xs font-medium">Value ($)</label>
+                <Input id="net-worth-value" type="number" placeholder="Value ($)" value={nwForm.value} onChange={e => setNwForm(f => ({ ...f, value: e.target.value }))} />
                 <div className="grid grid-cols-2 gap-3">
                   <MobileSelect
+                    ariaLabel="Entry type"
                     value={nwForm.type}
                     onValueChange={v => setNwForm(f => ({ ...f, type: v }))}
                     options={NW_TYPE_OPTIONS}
                   />
                   <MobileSelect
+                    ariaLabel="Entry category"
                     value={nwForm.category}
                     onValueChange={v => setNwForm(f => ({ ...f, category: v }))}
                     options={NW_CAT_OPTIONS}

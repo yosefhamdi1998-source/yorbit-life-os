@@ -396,3 +396,20 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Physical iOS, phone viewport, Simple mode | Not re-tested this run | Native signing/purchase and phone claims not made |
 | Real financial mutations | Not performed | Synthetic/read-only checks only |
 - September 11 daily reliability checkpoint is not due until 9 AM Eastern; weekly Monday checkpoint not due. Prior preserved release evidence included. Production verification follows push.
+- Production verification: 684ec3597b40a45bc5ed2f78de569b09f6796c1d Ready in 20s on Vercel deployment 4z4BUS1ZsSzS5zjhL65wkxZk3ScP. Canonical live Money > Spending > 2026 shows the corrected annual caption and no YEAR-2026 label. Read-only production check; native preflight remains code/test verified, not a signed iOS build. Post-deploy evidence retained locally for the next coordinated commit.
+
+## 2026-09-11 11:37 UTC — Platform-appropriate restore and accessible Net Worth entry
+- Two useful fixes, not five: removed the web paywall's misleading Restore Purchases button (it merely opened Apple subscription settings); native restore remains available. Labeled Net Worth name/value and both selectors so assistive technology can identify every entry field. No billing backend or purchase behavior changed.
+- RevenueCat regression suite passed, strict lint and final production build exited 0; diff check passed. Remote baseline verified at 684ec35.
+
+### Coverage checkpoint — 2026-09-11 11:37 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Web paywall | Tested, synthetic | No misleading Apple Restore button; no checkout invoked |
+| Native restore | Tested, synthetic SDK rejection | Restore remains visible; error appears and button unlocks |
+| Paywall to Money | Tested, synthetic | Navigation renders transaction history |
+| Net Worth Add Entry / Cancel | Tested, synthetic | Form opens; empty Save disabled; labels identify name, value, type, category; Cancel closes |
+| Money Spending chart | Tested, synthetic | Settled donut and category legend inspected after animation |
+| Light desktop layout | Tested at 1280px | No horizontal overflow |
+| Phone, dark theme, Simple mode, real billing | Not re-tested this run | Remain explicitly pending coverage; no full launch certification |
+- Five changes not forced: this run closed the two concrete walkthrough findings and preserved restricted/unverified launch work. Daily reliability review not due until 9 AM Eastern; weekly checkpoint not due. No real financial mutations or payments performed.
