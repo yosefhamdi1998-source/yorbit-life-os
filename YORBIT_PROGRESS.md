@@ -360,3 +360,21 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - Daily reliability catch-up for missed September 10 checkpoint: consolidated preceding tested report drill-down, category reconciliation, period-budget scope and empty-state checks. Current run verifies restart and desktop recovery. Existing native signing, real billing lifecycle, bank-token security and physical-device evidence remain unverified; no blanket all-controls pass. September 11 daily checkpoint remains due after 9 AM Eastern.
 - Strict lint passed; build completion recorded before release. No financial record changes, purchases, cloud native builds or account operations.
 - Production build exited 0 on the final source tree; strict lint passed.
+- Production verification: fda0855 pushed after remote race check; canonical live Finance Spending empty-period view displays new message and View all history successfully restores chart. No real records changed. Post-deploy evidence retained locally for next commit.
+
+## 2026-09-11 08:32 UTC — Settings subscription restore and Simple mode coverage
+- One substantive fix: Settings native Restore now releases its busy state on unexpected SDK rejection and displays recoverable feedback. Reproduced before editing using native-sdk-error: button stuck Restoring. After fix: Restore failed message and Restore enabled again. No actual store call or payment.
+- Tests execute the actual Settings handler for active entitlement, no entitlement, returned error and thrown rejection. RevenueCat regressions, strict lint and production build passed.
+- Did not force five changes: the reproduced subscription bug was fixed and verified while expanding previously pending Simple mode coverage. Native setup and sensitive backend launch work remain separately unverified.
+
+### Coverage checkpoint — 2026-09-11 08:32 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Settings native Restore exception | Tested, synthetic | Failed before fix; message and unlocked button after fix |
+| Simple Mode switch | Tested, synthetic | Reload applies Home/Money/Plan/More navigation |
+| Simple Home → Money | Tested, synthetic | Short Home renders; Money navigation works |
+| Money Spending chart in Simple mode | Tested, synthetic | Chart renders with Last 30 days caption |
+| Desktop layout | Tested at 1280px | No horizontal overflow |
+| Original preference restoration | Completed | Simple Mode turned back off in preview |
+| Phone, physical iOS and live purchases | Not tested | No native certification claimed |
+- September 11 daily checkpoint not due yet (04:32 Eastern). Production verification recorded after deploy.

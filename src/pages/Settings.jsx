@@ -106,8 +106,14 @@ export default function Settings() {
 
   const handleRestoreIOS = async () => {
     setRestoring(true);
-    const result = await rcRestorePurchases();
-    setRestoring(false);
+    let result;
+    try {
+      result = await rcRestorePurchases();
+    } catch {
+      result = { error: 'Could not restore purchases. Please try again.' };
+    } finally {
+      setRestoring(false);
+    }
     if (result.error) {
       toast({ title: 'Restore failed', description: result.error, variant: 'destructive' });
     } else if (result.isPro) {

@@ -102,3 +102,15 @@ for(const [result,title,route] of [
   assert.deepEqual(routes,route?[route]:[]);
 }
 console.log('PASS: purchase and restore bridge rejections release controls; restore confirms only active entitlement');
+
+const settingsSource=fs.readFileSync('src/pages/Settings.jsx','utf8');
+const settingsRestoreBody=settingsSource.match(/const handleRestoreIOS = async \(\) => \{([\s\S]*?)\n  \};/);
+assert.ok(settingsRestoreBody);
+const runSettingsRestore=new AsyncFunction('setRestoring','rcRestorePurchases','toast',settingsRestoreBody[1]);
+for(const [result,title] of [[{isPro:true,error:null},'Pro restored! 🎉'],[{isPro:false,error:null},'No purchases found'],[{error:'Returned error'},'Restore failed'],[null,'Restore failed']]) {
+ const states=[],messages=[];
+ await runSettingsRestore(v=>states.push(v),async()=>{if(result===null)throw new Error('SDK rejection');return result;},m=>messages.push(m));
+ assert.deepEqual(states,[true,false]);
+ assert.equal(messages[0].title,title);
+}
+console.log('PASS: Settings restore releases controls for returned and thrown errors, and only confirms active Pro');
