@@ -72,12 +72,18 @@ function dateHeading(dateStr) {
 // carries its own date since there's no header to lean on).
 function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, confirmId, setConfirmId, editingNoteId, noteDraft, setNoteDraft, savingNoteId, startEditNote, cancelEditNote, saveNote, onDelete }) {
   const isTemp = tx.id?.startsWith('temp-');
+  const [detailsOpen, setDetailsOpen] = useState(false);
   return (
     <div className={`${isTemp ? 'opacity-50' : ''} ${selectMode && selected ? 'bg-primary/5' : ''}`}>
       <div
         className={`flex items-center gap-3 px-4 py-3 group ${selectMode ? 'cursor-pointer' : ''}`}
-        onClick={selectMode ? () => onToggleSelect(tx.id) : undefined}
+
       >
+        <button type="button" className="flex flex-1 min-w-0 items-center gap-3 text-left rounded-lg min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-secondary/50"
+          onClick={() => selectMode ? onToggleSelect(tx.id) : setDetailsOpen(open => !open)}
+          aria-expanded={selectMode ? undefined : detailsOpen}
+          aria-pressed={selectMode ? selected : undefined}
+          aria-label={selectMode ? `Select ${prettyMerchant(tx.title)}` : `${detailsOpen ? 'Hide' : 'View'} details for ${prettyMerchant(tx.title)}`}>
         {selectMode && (
           <div
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${selected ? 'bg-primary border-primary' : 'border-border'}`}
@@ -90,12 +96,13 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{prettyMerchant(tx.title)}</p>
           <p className="text-xs text-muted-foreground capitalize truncate">
-            {tx.category}{showDate ? ` · ${dateHeading(tx.date)}` : ''}
+            {tx.category}{showDate ? ` · ${dateHeading(tx.date)}` : ''}{!selectMode && <span className="normal-case"> · {detailsOpen ? 'Hide details' : 'Details'}</span>}
           </p>
         </div>
         <span className={`font-bold text-sm shrink-0 tabular-nums ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
           {tx.type === 'income' ? '+' : '−'}${tx.amount?.toFixed(2)}
         </span>
+        </button>
         {!isTemp && !selectMode && (
           <>
             {/* 44x44 minimum touch target, per Apple's HIG. These measured
@@ -123,6 +130,17 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
           </>
         )}
       </div>
+
+      {detailsOpen && !selectMode && (
+        <dl className="mx-4 mb-3 rounded-xl border border-border bg-secondary/30 p-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="col-span-2 min-w-0"><dt className="text-xs text-muted-foreground">Original description</dt><dd className="mt-1 break-words">{tx.title || 'No description'}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-1">{tx.date || 'Not recorded'}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Type</dt><dd className="mt-1 capitalize">{tx.type || 'Not recorded'}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Category</dt><dd className="mt-1 capitalize break-words">{tx.category || 'Uncategorized'}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-1 font-semibold tabular-nums">${tx.amount?.toFixed(2)}</dd></div>
+          {tx.notes && <div className="col-span-2 min-w-0"><dt className="text-xs text-muted-foreground">Note</dt><dd className="mt-1 whitespace-pre-wrap break-words">{tx.notes}</dd></div>}
+        </dl>
+      )}
 
       {/* Existing note, shown as a second line — tap to edit (disabled while selecting, so a tap there selects the row instead). */}
       {tx.notes && editingNoteId !== tx.id && (
