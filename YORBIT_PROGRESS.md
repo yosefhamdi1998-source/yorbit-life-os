@@ -470,3 +470,19 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Desktop light layout | Tested at 1280px | No horizontal overflow |
 | Mobile, dark, Simple mode, real bank/payment flows | Not re-tested | No complete launch claim |
 - Daily checkpoint already completed 2026-09-11 at 13:39 UTC; not repeated. Weekly Monday review not due. Two findings addressed rather than inventing five changes; sensitive blocked work remains untouched. Previous daily checkpoint/evidence preserved in this commit.
+- Production verification: 15ffd18aff561eab2a51db568cdc0ff5b568191d Ready in 29s, Vercel AucXz6qX8XEkkfZZmXbcj1grdD6s. Failure/retry and accessible field behavior verified in synthetic browser preview; no live failure induced or goal changed. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-11 15:40 UTC — Recurring loading recovery
+- One reliability improvement: a failed bills/transactions load now shows a persistent error with retry instead of looking like an empty recurring list. Retry resets loading state and fetches both sources together. Reused shared error component and extended in-memory failure fixture.
+
+### Coverage checkpoint — 2026-09-11 15:40 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Recurring load failure | Tested, synthetic | Alert and Try again shown; no empty-state claim |
+| Retry | Tested, synthetic | Four tracked recurring bills and detection suggestions return |
+| Recurring to Home | Tested, synthetic | Navigation succeeds |
+| Home 1M chart control | Tested, synthetic | Pressed state, daily caption and date options confirmed |
+| Desktop light layout | Tested at 1280px | No horizontal overflow |
+| Phone, dark theme, Simple mode, real bank/payment operations | Not tested this run | No broad readiness claim |
+- One concrete issue fixed rather than manufacturing five changes. Daily review already completed September 11; weekly review not due. No real records changed, financial operations or native build costs incurred. Checks and deployment evidence recorded below when complete.
+- Strict lint, final production build and diff check passed. Shared fixture regression: Goals still fails once and recovers to Emergency Fund on Try again.

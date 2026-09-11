@@ -1,3 +1,4 @@
+import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -21,15 +22,19 @@ export default function Recurring() {
   const [addingKey, setAddingKey] = useState(null);
   const addingRef = useRef(new Set());
 
-  useEffect(() => {
+  const [loadError, setLoadError] = useState(false);
+  const loadRecurring = () => {
+    setLoading(true);
+    setLoadError(false);
     Promise.all([
       base44.entities.Bill.list('due_date', 100),
       base44.entities.Transaction.list('-date', 50000),
     ])
       .then(([b, tx]) => { setBills(b); setTransactions(tx); })
-      .catch(() => toast({ title: "Couldn't load your recurring bills", description: 'Please try again in a moment.', variant: 'destructive' }))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(loadRecurring, []);
 
   // Real detection from transaction history — a merchant charged
   // repeatedly at a consistent amount and a regular interval — instead of
@@ -73,6 +78,8 @@ export default function Recurring() {
       </div>
     );
   }
+
+  if (loadError) return <DataLoadError onRetry={loadRecurring} />;
 
   const recurring = bills.filter(b => b.is_recurring).sort((a, b) => (b.amount || 0) - (a.amount || 0));
   const monthlyTotal = recurring.reduce((s, b) => s + (b.amount || 0), 0);
