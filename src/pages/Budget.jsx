@@ -76,6 +76,7 @@ export default function Budget() {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
+    setLoading(true);
     setLoadFailed(false);
     try {
       const [tx, b] = await Promise.all([
@@ -267,7 +268,7 @@ export default function Budget() {
         <div className="sky-card rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold text-sm">Set Monthly Budget</p>
-            <button onClick={() => setShowForm(false)} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
+            <button aria-label="Close budget form" onClick={() => setShowForm(false)} className="p-2.5 -m-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-secondary active:bg-secondary/70 transition-colors"><X className="w-5 h-5 text-muted-foreground" /></button>
           </div>
           <p className="text-xs text-muted-foreground mb-2">Quick suggestions</p>
           <div className="flex gap-2 flex-wrap mb-3">
@@ -283,12 +284,12 @@ export default function Budget() {
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Budget category"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {EXPENSE_CATS.map(c => <SelectItem key={c} value={c}>{CAT_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Input type="number" placeholder="Monthly limit ($)" value={form.monthly_limit} onChange={e => setForm(f => ({ ...f, monthly_limit: e.target.value }))} min="1" max="10000000" />
+            <Input aria-label="Monthly limit ($)" type="number" placeholder="Monthly limit ($)" value={form.monthly_limit} onChange={e => setForm(f => ({ ...f, monthly_limit: e.target.value }))} min="1" max="10000000" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancel</Button>

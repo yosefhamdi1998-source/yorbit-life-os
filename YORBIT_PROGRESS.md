@@ -486,3 +486,19 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Phone, dark theme, Simple mode, real bank/payment operations | Not tested this run | No broad readiness claim |
 - One concrete issue fixed rather than manufacturing five changes. Daily review already completed September 11; weekly review not due. No real records changed, financial operations or native build costs incurred. Checks and deployment evidence recorded below when complete.
 - Strict lint, final production build and diff check passed. Shared fixture regression: Goals still fails once and recovers to Emergency Fund on Try again.
+- Production verification: b9ce18a64de69f582e1987fded759c6e99cd945d Ready in 30s, Vercel CYg83XhEN9iwY8JLnWtXbABy7iz2. Actual failure/retry exercised with synthetic fixtures only; no production outage induced. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-11 16:40 UTC — Budget retry loading and form accessibility
+- Two improvements: Budget now re-enters loading state on retry/refresh, preventing a temporary empty/interactive budget screen before data arrives; category, monthly-limit and close controls have accessible names.
+- Starter-budget regression tests passed. Synthetic report-retry fixture verified error → loading with no budget actions → restored totals and chart. Form opens, named fields are exposed and Close dismisses without saving.
+
+### Coverage checkpoint — 2026-09-11 16:40 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Budget failure/retry | Tested, synthetic | No form/actions during delayed retry; existing data returns |
+| Set Budget / Close | Tested, synthetic | Labels present; close works; empty Save disabled |
+| Budget chart | Tested, synthetic | Spent vs. Budget and existing category totals return |
+| Light desktop layout | Tested at 1280px | No horizontal overflow |
+| Phone, dark theme, Simple mode, live financial writes | Not tested this run | Remain outside this run's evidence |
+- Two related findings fixed rather than manufacturing five edits. Daily reliability checkpoint already completed today; Monday review not due. No production financial mutations or paid native build. Final checks and deploy evidence follow.
+- Final strict lint, production build and diff check passed.
