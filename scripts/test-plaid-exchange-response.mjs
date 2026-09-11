@@ -46,7 +46,7 @@ async function run({ vaultFails = false, authenticated = true } = {}) {
     handleOptions: () => null,
     getUser: async () => authenticated ? { id: 'synthetic-user' } : null,
     serviceClient: () => admin,
-    enforceRateLimit: async () => null, identityFromRequest: () => 'synthetic-user', RULES: { sync: {} },
+    enforceRateLimit: async (_bucket, _identity, _rule, message, request) => { assert.equal(message, undefined); assert.equal(typeof request.json, 'function'); return null; }, identityFromRequest: () => 'synthetic-user', RULES: { sync: {} },
     Configuration: class {}, PlaidEnvironments: { production: 'unused' },
     PlaidApi: class { async itemPublicTokenExchange() { return { data: { access_token: syntheticToken, item_id: 'synthetic-item' } }; } },
     jsonResponse: (body, status) => ({ body, status }),

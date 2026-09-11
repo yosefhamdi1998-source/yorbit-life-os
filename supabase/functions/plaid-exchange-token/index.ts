@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
     const limited = await enforceRateLimit(
       'plaid-exchange', identityFromRequest(req, user.id), RULES.sync,
-      req,
+      undefined, req,
     );
     if (limited) return limited;
 
