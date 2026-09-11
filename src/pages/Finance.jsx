@@ -1,3 +1,4 @@
+import { validateNetWorthEntry } from '@/lib/netWorthValidation';
 import { transactionCategory, spendingCategories } from '@/lib/spendingCategories';
 import { CategoryBadge } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
@@ -607,20 +608,15 @@ export default function Finance() {
 
   const [nwSaving, setNwSaving] = useState(false);
   const saveNW = async () => {
-    if (!nwForm.name || !nwForm.value) return;
-    // Value is always positive — `type` (asset/liability) is what decides
-    // whether it adds or subtracts from net worth, the same way
-    // budgets.monthly_limit and bills.amount are always positive. A typo
-    // like "-5000" used to be accepted silently and would subtract from
-    // assets or add to liabilities depending on which side it landed on —
-    // backwards either way, and nothing told the user it happened.
-    if (parseFloat(nwForm.value) <= 0) {
-      toast({ title: 'Enter a positive amount', description: `Use the ${nwForm.type === 'liability' ? 'Liability' : 'Asset'} type to control whether it adds or subtracts — the amount itself should be positive.`, variant: 'destructive' });
+    if (nwSaving) return;
+    const validationError = validateNetWorthEntry(nwForm);
+    if (validationError) {
+      toast({ title: 'Check this entry', description: validationError, variant: 'destructive' });
       return;
     }
     setNwSaving(true);
     try {
-      await base44.entities.NetWorthEntry.create({ ...nwForm, value: parseFloat(nwForm.value) });
+      await base44.entities.NetWorthEntry.create({ ...nwForm, name: nwForm.name.trim(), value: Number(nwForm.value) });
       setShowNWForm(false);
       setNwForm({ name: '', type: 'asset', value: '', category: 'cash' });
       toast({ title: 'Entry added' });

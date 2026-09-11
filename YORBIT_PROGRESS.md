@@ -413,3 +413,22 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Light desktop layout | Tested at 1280px | No horizontal overflow |
 | Phone, dark theme, Simple mode, real billing | Not re-tested this run | Remain explicitly pending coverage; no full launch certification |
 - Five changes not forced: this run closed the two concrete walkthrough findings and preserved restricted/unverified launch work. Daily reliability review not due until 9 AM Eastern; weekly checkpoint not due. No real financial mutations or payments performed.
+- Production verification: 9f10650976da37888d5b81aaaed5d0df9cd9779d Ready in 21s, Vercel 5Jqv2zL99FRD1NqfnLUxouZWZEAC. Canonical live Upgrade renders its web checkout control with no Restore Purchases button. Native restore and Net Worth form labels verified in synthetic preview; no live payment or record write. Evidence retained locally for the next coordinated commit.
+
+## 2026-09-11 12:38 UTC — Net Worth entry validation
+- One coherent accuracy fix: reject whitespace-only names and incomplete/non-finite/nonpositive amounts before creating entries; trim accepted names, use complete numeric conversion, validate Asset/Liability, and avoid starting another save while busy. No arbitrary cap added.
+- Added focused validation regressions for empty names, partial numbers, infinity/overflow, zero/negative values, and valid assets/liabilities. Validation and existing net-worth composition tests passed. Final strict lint/build result recorded below before release.
+
+### Coverage checkpoint — 2026-09-11 12:38 UTC
+| Flow | Status | Evidence |
+|---|---|---|
+| Net Worth whitespace name | Tested, synthetic empty account | Save rejected; form retained, no entry appeared |
+| Net Worth negative value | Tested, synthetic | Error describes positive amount; editable fields retained |
+| Correct and save valid entry | Tested, synthetic | Padded name normalized; one manual asset appears; form closes |
+| Spending empty state | Tested, synthetic | No-expense guidance and Add Transaction remain visible |
+| Desktop light layout | Tested at 1280px | No horizontal overflow |
+| NaN/Infinity/partial numeric inputs | Tested in unit suite | Browser number-input restrictions are not relied on for validation |
+| Phone, dark theme, Simple mode, native billing | Not re-tested this run | Remain on rotating coverage; no universal pass claimed |
+- One improvement counted because the related validation changes close one data-entry issue; five unrelated edits were not manufactured. Restricted backend and native account work remains untouched. No production writes or costs.
+- Daily reliability review not due yet at 08:38 Eastern; September 11 checkpoint remains due after 9 AM. Weekly checkpoint not due.
+- Final strict lint and production build exited 0. Additional synthetic selector coverage: Asset to Liability selection works and Cancel closes without another record.

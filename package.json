@@ -15,7 +15,7 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config",
+    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config && npm run test:net-worth-validation",
     "test:lint-config": "node scripts/test-lint-config.js",
     "test:animated-number": "node scripts/test-animated-number.mjs",
     "test:ai-context": "node scripts/test-ai-context.js",
@@ -42,7 +42,8 @@
     "test:pdf-rows": "node scripts/test-pdf-rows.mjs",
     "test:service-bearer": "node scripts/test-service-bearer.mjs",
     "test:transaction-validation": "node scripts/test-transaction-validation.mjs",
-    "test:native-release-config": "node scripts/test-native-release-config.mjs"
+    "test:native-release-config": "node scripts/test-native-release-config.mjs",
+    "test:net-worth-validation": "node scripts/test-net-worth-validation.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
