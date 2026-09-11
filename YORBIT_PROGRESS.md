@@ -533,3 +533,14 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 | Actual phone pinch zoom, native signing/device | Untested | Metadata verification is not physical-device testing |
 - One concrete access issue addressed; no arbitrary five changes. Daily checkpoint already completed; weekly review not due. No financial mutations. HTML-only change; build and diff validation recorded before release.
 - Production build and diff check passed.
+- Production verification: d5becf2ff472d803b64ed1900f0a75c61f5cad24 Ready in 17s, Vercel 7vNdZoub7FoJQtP3mPiSzLHJSGCP. Canonical live HTML viewport verified as width=device-width, initial-scale=1.0, viewport-fit=cover. Physical pinch zoom remains untested. Evidence retained locally for next coordinated commit.
+
+## 2026-09-11 19:41 UTC — Simple mode coverage rotation
+- Current local/remote release d5becf2 unchanged. Report-range and starter-budget suites passed. No newly reproduced defect in this walkthrough; zero arbitrary code improvements or deploys.
+- Synthetic browser coverage: Simple Mode enabled; navigation reduces to Home/Money/Plan/More. Home omits advanced charts and keeps its shorter summary/activity. Plan sections reduce to Budget/Bills. Money Spending chart remains available. Dark layout checked at 1280px with no horizontal overflow.
+- Restored original preferences: light mode and Simple Mode off; full navigation confirmed. No financial records changed.
+- Phone viewport, actual device zoom, real native purchase/bank lifecycle remain untested; this is not a launch-readiness certification. No five-change claim: the covered controls worked and restricted/native work remains separately unresolved. Daily checkpoint already completed; Monday review not due. Coverage note retained for next coordinated code commit.
+
+## 2026-09-11 — Resumed user-requested work: Bills recovery
+- Added persistent error/retry for failed initial Bills load. Synthetic recurring-retry fixture confirmed failure screen then restored four bills, totals, overdue count and category breakdown. No real records changed.
+- Strict lint, production build and diff check passed. Existing background-refresh behavior preserved. Daily checkpoint and prior Simple-mode coverage retained. Paid launch/App Store readiness not claimed.

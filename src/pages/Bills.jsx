@@ -1,3 +1,4 @@
+import DataLoadError from '@/components/DataLoadError';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Receipt, Plus, X, CheckCircle, Clock, AlertTriangle, Pencil, Trash2, Search, ArrowUpDown, PieChartIcon } from 'lucide-react';
@@ -46,12 +47,15 @@ export default function Bills() {
   const [sortDir, setSortDir] = useState('asc'); // 'asc' = earliest first, 'desc' = latest first
   const initialLoadDone = useRef(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadBills = async (showSkeleton = false) => {
+    setLoadFailed(false);
     if (showSkeleton) setLoading(true);
     try {
       const data = await base44.entities.Bill.list('due_date', 50);
       setBills(data);
     } catch {
+      if (showSkeleton) setLoadFailed(true);
       toast({ title: "Couldn't load bills", description: "Please check your connection and try again.", variant: 'destructive' });
     } finally {
       if (showSkeleton) setLoading(false);
@@ -253,6 +257,8 @@ export default function Bills() {
     }, {})
   ).map(([cat, total]) => ({ cat, total })).sort((a, b) => b.total - a.total);
   const categoryTotalSum = categoryTotals.reduce((s, c) => s + c.total, 0);
+
+  if (loadFailed) return <DataLoadError onRetry={() => loadBills(true)} />;
 
   if (loading) return (
     <div className="py-6 space-y-4">
