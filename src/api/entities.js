@@ -60,9 +60,14 @@ function unwrap({ data, error }) {
 // it's transparent to every caller, none of which need to change.
 const SERVER_MAX_PAGE = 1000;
 
+// Explicit public account fields prevent normal app responses from carrying bank credentials.
+// This is data minimization, not a substitute for database access controls.
+const ACCOUNT_COLUMNS = 'id,user_id,provider,institution_name,account_name,account_type,account_mask,provider_account_id,provider_item_id,last_synced_at,sync_status,error_message,created_date,updated_date,history_start_date,history_backfilled_at,current_balance,available_balance,balance_limit,currency,balance_updated_at';
+
 class Entity {
   constructor(table) {
     this.table = table;
+    this.columns = table === 'connected_accounts' ? ACCOUNT_COLUMNS : '*';
   }
 
   // The first page is fetched with an exact count, so we know up front how
@@ -99,7 +104,7 @@ class Entity {
   // base44: entities.X.list(sort?, limit?)
   async list(sort, limit) {
     return this._paginated((from, to, withCount) => {
-      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      let query = supabase.from(this.table).select(this.columns, withCount ? { count: 'exact' } : undefined);
       query = applySort(query, sort || '-created_date');
       return query.range(from, to);
     }, limit);
@@ -108,7 +113,7 @@ class Entity {
   // base44: entities.X.filter(queryObj, sort?, limit?)
   async filter(queryObj = {}, sort, limit) {
     return this._paginated((from, to, withCount) => {
-      let query = supabase.from(this.table).select('*', withCount ? { count: 'exact' } : undefined);
+      let query = supabase.from(this.table).select(this.columns, withCount ? { count: 'exact' } : undefined);
       for (const [key, value] of Object.entries(queryObj)) {
         query = query.eq(key, value);
       }
@@ -121,7 +126,7 @@ class Entity {
   async create(payload) {
     const user_id = await getUserId();
     const result = unwrap(
-      await supabase.from(this.table).insert({ ...payload, user_id }).select().single()
+      await supabase.from(this.table).insert({ ...payload, user_id }).select(this.columns).single()
     );
     return result;
   }
@@ -129,7 +134,7 @@ class Entity {
   // base44: entities.X.update(id, data)
   async update(id, payload) {
     const result = unwrap(
-      await supabase.from(this.table).update(payload).eq('id', id).select().single()
+      await supabase.from(this.table).update(payload).eq('id', id).select(this.columns).single()
     );
     return result;
   }

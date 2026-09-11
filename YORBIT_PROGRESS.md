@@ -544,3 +544,11 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 ## 2026-09-11 — Resumed user-requested work: Bills recovery
 - Added persistent error/retry for failed initial Bills load. Synthetic recurring-retry fixture confirmed failure screen then restored four bills, totals, overdue count and category breakdown. No real records changed.
 - Strict lint, production build and diff check passed. Existing background-refresh behavior preserved. Daily checkpoint and prior Simple-mode coverage retained. Paid launch/App Store readiness not claimed.
+- Production verification: 7a0597ad148336c096691b34296a26d9e21badc1 Ready in 18s, Vercel 3SNViiyJB3vgA2KzdAZk39i9jnjz. Failure recovery verified synthetically; no production records changed. Evidence retained locally.
+
+## 2026-09-11 — Bank credential exposure reduction (partial mitigation)
+- Reviewed Supabase skill and current column-access documentation. Changelog markdown fetch unsupported by web reader; no new Supabase API/schema feature introduced.
+- Confirmed static source still dual-writes Plaid tokens to connected_accounts and plaid_credentials; vault failures are non-fatal. Shared sync helper retains legacy fallback; delete-account still uses legacy tokens. Do not remove legacy copies until these dependencies and live vault completeness are verified.
+- Supabase MCP read-only aggregate verification denied permission. Supabase CLI not on PATH. No credential values read/output, no token migration or connection mutation performed; full bank-token launch blocker remains open.
+- Implemented explicit non-secret ConnectedAccount projection for list/filter/create/update response selection. Normal app requests no longer select access_token_ref. Other entities preserve their projections. This is client data minimization only, not database authorization, and does not prevent a separate authorized caller requesting a still-readable column or fix exchange-function response exposure.
+- Actual entity query tests cover all four response paths, preserved balance/history fields, and unchanged other entities. 51,025-row export regression, strict lint, production build and diff check passed. Fields verified against checked-in schema/migrations. Live normal account loading must be verified after deployment.
