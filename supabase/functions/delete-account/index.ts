@@ -1,3 +1,4 @@
+import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
 
     const limited = await enforceRateLimit(
       'delete-account', identityFromRequest(req, user.id), RULES.destructive,
-      req,
+      undefined, req,
     );
     if (limited) return limited;
 
@@ -57,20 +58,21 @@ Deno.serve(async (req) => {
       if (plaidClientId && plaidSecret) {
         const { data: accounts } = await admin
           .from('connected_accounts')
-          .select('*')
+          .select('id')
           .eq('user_id', userId)
-          .eq('provider', 'plaid')
-          .not('access_token_ref', 'is', null);
+          .eq('provider', 'plaid');
 
         for (const account of accounts || []) {
           try {
+            const { token } = await getPlaidAccessToken(admin, account.id);
+            if (!token) continue;
             const res = await fetch('https://production.plaid.com/item/remove', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 client_id: plaidClientId,
                 secret: plaidSecret,
-                access_token: account.access_token_ref,
+                access_token: token,
               }),
             });
             const data = await res.json();
@@ -104,7 +106,7 @@ Deno.serve(async (req) => {
     const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId);
     if (authDeleteError) {
       console.error('[delete-account] Failed to delete auth user:', authDeleteError.message);
-      return errorResponse("We couldn't complete your account deletion. Please try again or contact support.", 500, { internal: error, fn: 'delete-account', req });
+      return errorResponse("We couldn't complete your account deletion. Please try again or contact support.", 500, { internal: authDeleteError, fn: 'delete-account', req });
     }
 
     console.log(`[delete-account] Full deletion complete for user ${userId}`);

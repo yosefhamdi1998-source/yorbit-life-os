@@ -583,3 +583,9 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - Fixed rate-limit wrapper call to pass request as fifth argument, preserving the default message and correct origin handling. Extended actual handler mock to assert argument positions. Initial regression caught incomplete CRLF-sensitive edit; corrected and rerun passed. Service-bearer regression and strict lint passed. One additional code correction plus deployment of the already prepared fix; not five fabricated improvements.
 - Live function source now uses current checked-in shared helpers, including hardened service guard. Native, actual purchase/bank lifecycle remain untested. Daily checkpoint already completed; weekly review not due.
 - Prior website icon release eab3f5e was verified Ready in 17s on Vercel HF1E8XZrgCAxHKUQXpwi3CqWeJbp. No new frontend behavior in this backend release.
+
+## 2026-09-12 — Account deletion vault dependency
+- Read-only live aggregate: one legacy credential and one matching vault copy; no token values retrieved. No legacy records blanked.
+- Account deletion now selects account IDs and reads tokens through the existing vault-first helper, removing its legacy-only filter. Corrected rate-limit request argument and undefined error reference in auth-deletion failure response.
+- Actual-handler synthetic test passed for vault-only unlink and auth failure. No real delete/unlink/payment invoked. Added regression to npm test.
+- Supabase delete-account version 8 ACTIVE with JWT verification enabled; read-back all six bundled files match local. Full lint started but still running at release verification; no pass claimed. No frontend files changed. Existing nonfatal upstream cancellation/revocation behavior and full end-to-end account deletion remain unverified.
