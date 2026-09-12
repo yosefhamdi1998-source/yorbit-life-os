@@ -6,6 +6,8 @@
 
 @layer base {
   :root {
+    /* Keep native date pickers and form controls aligned with the app theme. */
+    color-scheme: light;
     /* A near-neutral ground with the faintest cool bias, white cards on
        top. This used to be 38% saturation — a genuine blue-violet wash —
        which made every screen feel busy before a single number was drawn
@@ -54,6 +56,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 20% 9%;
     --foreground: 210 26% 93%;
     --card: 222 17% 13%;
