@@ -44,7 +44,7 @@ export default function Support() {
               },
               {
                 q: 'How do I restore my Pro subscription?',
-                a: 'Go to Settings inside the app and tap "Restore Purchases". This will restore any active subscription linked to your Apple ID or account.'
+                a: 'In the Yorbit iPhone/iPad app, open Settings and tap Restore in the Restore Purchases section. Use the Apple account that made the purchase; only an active subscription restores Pro. The website has no Restore button. If your paid access is missing, contact support with the email used for your subscription.'
               },
               {
                 q: 'How do I delete my account?',

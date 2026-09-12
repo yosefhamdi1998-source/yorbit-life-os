@@ -682,3 +682,35 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - Synthetic verification: total becomes $470.06/month, $5,640.72/year, five bills; saved entry appears. Manage all bills navigation and chart at desktop width pass with no overflow. No production bill created. Range and category reconciliation regressions pass; final lint/build/deployment evidence follows.
 - One coherent improvement rather than five arbitrary changes. Daily checkpoint already complete; weekly review not due. Legacy bank/security/native/payment blockers unchanged. Included accumulated prior coverage notes in this coordinated release.
 - Strict lint, production build and diff check passed.
+- Production verified: ecf0ecee01b3778b2a766dbcaa9444c6772737f7 Ready in 18s, Vercel 9T3J2rJS4opzyGJKzbunPrS5PoP1, canonical domain Current. Add behavior verified with synthetic data only; no live bill added. Evidence retained locally for next coordinated commit.
+
+## 2026-09-12 18:04 UTC — Post-release read-only walkthrough
+- HEAD ecf0ece unchanged; preserved post-deploy note/temp. RevenueCat and report-range regressions passed.
+- Fresh live Recurring loads existing totals and bills. Manage all bills opens Bills with chart; Money navigation and Spending tab render chart at 1280px without horizontal overflow. No suggestions added, financial records changed or bank/payment actions triggered.
+- Zero new code edits: post-release paths passed. Detection suggestions still require user review; no automatic subscription truth claim. Daily checkpoint already completed; weekly Monday review not due. Native/device and full financial lifecycle limitations unchanged. Coverage retained for next coordinated commit.
+
+## 2026-09-12 19:06 UTC — Transaction note save coverage
+- HEAD ecf0ece unchanged; preserved pending progress/temp. Transaction validation and CSV regressions passed.
+- Synthetic Money search isolates Chipotle; Add note opens editor, Save persists the note and changes action to Edit note. Expanded details show exact saved text and original amount/date/type. Spending chart navigation renders without desktop overflow. Only fixture memory changed; no real transaction edited.
+- Zero new code improvements because covered editor/details/navigation paths passed. No artificial five-change claim or release. Daily checkpoint already complete; Monday review not due. Other launch blockers unchanged; coverage retained for next coordinated commit.
+
+## 2026-09-12 20:08 UTC — Budget quick suggestion save
+- HEAD ecf0ece unchanged; pending notes/temp preserved. Starter-budget and spending-category regressions passed.
+- Synthetic Set Budget > Food $400 > Save updates existing food limit from $700 to $400; total budget falls $1,120 to $820 and remaining $789 to $489 while spending stays unchanged. Form closes; chart renders without desktop overflow; Bills navigation works. Only fixture data changed.
+- Zero new code changes: tested save/calculation/navigation paths passed. No arbitrary five-change count or deployment. Daily checkpoint already complete; Monday review not due. Physical-device and real financial lifecycle limitations unchanged. Coverage retained for next coordinated commit.
+
+## 2026-09-12 21:08 UTC — Phone goal editor coverage
+- HEAD ecf0ece unchanged; existing notes/temp preserved. Goal validation and elapsed report average regressions passed.
+- Synthetic 390x844 Goals editor opens with labeled prefilled values; no horizontal overflow; Cancel closes without saving. Money navigation and Spending chart render without overflow. Viewport override reset. Light mode; no real data/preferences changed.
+- Zero new implementation changes: covered responsive editor/navigation worked. No five-change claim or unnecessary deploy. Physical keyboard/device, dark Goal editor and native lifecycle remain distinct untested items. Daily checkpoint completed; Monday review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 22:10 UTC — Support route coverage
+- HEAD ecf0ece unchanged; preserved pending notes/temp. Checkout and 51,025-row export pagination regressions passed.
+- Synthetic More > Help & support opens Support; Go back returns Home with chart and no desktop overflow. Email link not sent/activated; no data changed.
+- Support restore FAQ currently gives an unqualified Settings > Restore Purchases instruction; web users do not have that native restore control. Flagged copy correction for platform-specific verification; no claim that support guidance is fully accurate. No implementation changes this run, no five-change count or release. Daily checkpoint complete; weekly review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 23:11 UTC — Platform-specific restore support guidance
+- Verified Settings source: Restore section is native iOS only and action is labeled Restore. Corrected Support FAQ which previously sent web users to a nonexistent Restore control and implied any account subscription could be restored there. New wording specifies original Apple account, active entitlement and support route for missing web access.
+- One copy correction, no purchase logic change. Synthetic Support at 390px has no overflow; Go back returns Home chart without overflow. Viewport reset. RevenueCat regression and diff check passed; no payments or real account changes. Final build/release evidence follows.
+- Daily checkpoint complete; Monday review not due. Remaining security/native/billing lifecycle work unchanged. No arbitrary five-change claim; one supported issue resolved.
+- Strict lint and production build passed.
