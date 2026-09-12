@@ -55,9 +55,10 @@ export default function Recurring() {
     addingRef.current.add(d.key);
     setAddingKey(d.key);
     try {
-      await base44.entities.Bill.create({
+      const createdBill = await base44.entities.Bill.create({
         name: d.name, amount: d.amount, due_date: d.nextDate, category: d.category, is_recurring: true, is_paid: false,
       });
+      setBills(prev => [...prev, createdBill]);
       setAddedKeys(prev => new Set(prev).add(d.key));
       toast({ title: 'Added to Bills', description: `${d.name} · $${fmt(d.amount)} ${d.intervalLabel.toLowerCase()}` });
     } catch {

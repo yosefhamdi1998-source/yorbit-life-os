@@ -602,3 +602,83 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - Synthetic Bills at 390px: both themes checked visually with no overflow. Keyboard date change to September 19 filters to the single matching bill; October returns recoverable empty results; Clear filters restores the list. Date fill alone did not dispatch the expected React update in the automation adapter, so keyboard interaction was used to verify real behavior. Theme restored to light in fixtures and browser viewport override reset. Production theme unchanged.
 - Report-range, starter-budget, checkout and RevenueCat regressions passed. Strict lint, production build and diff check passed. One supported improvement rather than five arbitrary edits; bank credential retirement and real native/payment lifecycle still require separate coordinated work. No signed-device or complete security certification.
 - Daily reliability checkpoint already completed for September 11 local date; weekly review not due. Deployment evidence follows.
+- Production verified: 1a9c58a9668500a5e7477d8ac25d44db831dc22a Ready in 19s, Vercel 6y7ZBf56buMLAApidQvKNKsNDmD8, canonical domain assigned. Fresh live Bills input computes color-scheme dark with dark theme; desktop has no overflow. No live financial mutations. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-12 03:54 UTC — Subscription recovery at phone width
+- Current HEAD 1a9c58a; only prior deployment evidence and generated CLI temp file dirty. No competing code edits observed. Native configuration, RevenueCat, spending category reconciliation and previous-period comparison regressions passed.
+- Synthetic native-retry preview at 390x844: initially unavailable offers disable subscription, Retry restores localized monthly pricing and selects the available monthly package while annual remains disabled. Mock purchase and restore without entitlement leave the subscription screen available and do not grant Pro. Actual StoreKit/payment calls are replaced by local fixture functions; no charge or real entitlement mutation.
+- Privacy Policy link opens its page; its Go back control returns Home. Home chart and Money Spending chart render at 390px without horizontal overflow. Both light/dark subscription styling inspected; restored fixture light preference and reset viewport. Physical iPhone, actual purchase/restore and legal disclosure accuracy remain separately unverified.
+- Zero implementation changes: covered recovery/navigation paths passed, and no safe additional defect was reproduced. No arbitrary five-change claim or unnecessary deploy. Daily reliability checkpoint already completed for September 11 local date; Monday review not due. Existing launch blockers unchanged; retain coverage for next coordinated code commit.
+
+## 2026-09-12 04:55 UTC — Report recovery and annual drill-down
+- HEAD 1a9c58a unchanged; preserved progress and generated temp changes. CSV round-trip, transaction validation and report-range suites passed.
+- Synthetic report-retry scenario: persistent load failure shown, Retry recovers report. Yearly selection renders three charts at 1280px without horizontal overflow. Food category link retains January 1–December 31, expense type and food filter; resulting 81 matching transactions total $3,959.25, exactly matching the category report amount. No real data changed.
+- Zero new code changes: exercised recovery, period and category navigation worked. No five-change claim and no unnecessary production release. Prior phone/light/dark coverage retained; Simple mode and physical native lifecycle not re-tested this run.
+- September 12 daily checkpoint is not due until 9 AM Eastern; weekly Monday review not due. Bank credential retirement and real payment/native verification remain engineering/owner work as previously recorded. No new actionable failure; coverage retained for next coordinated commit.
+
+## 2026-09-12 05:56 UTC — Goals recovery and contribution coverage
+- HEAD 1a9c58a unchanged; preserved existing notes and generated CLI temp change. Goal validation, net-worth validation and starter-budget regressions passed.
+- Synthetic goals-retry scenario shows persistent load failure; Try again restores Emergency Fund. Add Money opens labeled contribution field; synthetic $25 save updates $4,300 to $4,325 and remaining $7,700 to $7,675, closes form and shows confirmation. This is in-memory fixture data only; no production record changed.
+- Money navigation and Spending tab render chart at 1280px without horizontal overflow. Prior responsive/theme coverage retained; no new physical-device or full lifecycle claim.
+- Zero new code improvements because covered recovery/contribution/navigation paths passed. No arbitrary five edits or unnecessary deployment. Daily checkpoint due after 9 AM Eastern; Monday review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 06:56 UTC — Net worth entry coverage
+- Current HEAD 1a9c58a; preserved progress and generated temp changes. Export pagination (51,025 rows plus rejection on page failure), net-worth calculations and RevenueCat regressions passed.
+- Synthetic Money > Net Worth > Add Entry: empty Save disabled; entered QA cash asset $125 and saved. Form closes, total and assets show $125, history renders. Spending tab navigation renders one chart; desktop width 1280px has no horizontal overflow. All writes were fixture memory only.
+- Fixture begins with an older manual entry that is not counted as an asset/liability; no inference about production data made. Physical native testing, Simple mode and phone coverage not repeated this run.
+- Zero new implementation changes: covered form/calculation/navigation paths passed. No arbitrary five-change claim or unnecessary release. Daily September 12 review due after 9 AM Eastern; Monday review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 07:57 UTC — Simple mode and bank regression coverage
+- HEAD 1a9c58a unchanged; preserved pending evidence and generated CLI temp file. Service guard, public account projection, exchange response and account deletion suites passed with synthetic dependencies. These do not prove production credential retirement or complete authenticated isolation.
+- Synthetic Settings Simple Mode toggle reduces navigation to Home/Money/Plan/More. Home Add transaction opens New Transaction immediately, empty Save disabled; Cancel closes. Spending chart remains accessible with no horizontal overflow at 1280px. Returned to Settings and restored Simple Mode off; no real data/preferences changed.
+- Zero implementation changes: covered controls passed. No five-change claim or unnecessary deploy. Phone, physical device and actual bank/payment lifecycle not repeated. September 12 daily checkpoint due after 9 AM Eastern; Monday review not due. Coverage retained for next coordinated release.
+
+## 2026-09-12 08:58 UTC — Import entry and transaction search coverage
+- HEAD 1a9c58a unchanged; pending progress and generated temp preserved. CSV, report trend-label and elapsed-average regressions passed.
+- Synthetic Upload Statement screen renders; Back to transactions returns Money. Pasted search with surrounding spaces finds one Chipotle record; details reveal exact $26.13/date/type/category. Clear search control and Spending navigation exercised; chart renders at 1280px without overflow. File selection and full import were not exercised this run. No production records changed.
+- Zero new implementation changes because covered paths passed. No arbitrary five edits or deploy. Daily checkpoint due after 9 AM Eastern; Monday review not due. User requested a polished demo tomorrow; continue prioritizing visible demo flows without adding unverified features or claiming launch readiness.
+
+## 2026-09-12 09:58 UTC — Duplicate provenance investigation and pagination
+- HEAD 1a9c58a unchanged; preserved pending notes/temp file. Provider-ID dedup tests passed, including distinct identical-looking trades and idempotent resync.
+- Read-only Supabase aggregate for the previously observed same-date/merchant/amount group returned three Plaid-source rows, only one carrying a provider transaction ID. This supports further investigation of legacy imports; it does not establish which rows are duplicates or justify deletion. No IDs, credentials or record contents exported; no rows modified. Original statements/provider provenance still needed for conclusive reconciliation.
+- Synthetic Money Load more adds the final row (60 to 61), removes control; Spending chart renders without desktop overflow. Switching tabs remounts list and resets its display page; no data loss observed.
+- Zero implementation changes: pagination works; duplicate remediation requires evidence beyond appearance. No arbitrary five changes or production mutation. Daily checkpoint due after 9 AM Eastern; weekly Monday review not due. Coverage retained for next coordinated release.
+
+## 2026-09-12 10:59 UTC — Transaction save recovery
+- HEAD 1a9c58a unchanged; existing notes/temp preserved. Checkout, native release configuration and transaction validation regressions passed. Native checks remain synthetic/format validation, not actual StoreKit or signing.
+- Synthetic save-retry: first transaction create fails before writing; form retains description and $12.34, displays persistent warning to check records before retrying, and releases Save. Retrying this known pre-write fixture failure succeeds and closes form; new record visible. Spending chart renders at 1280px without overflow. No production transaction or payment created.
+- Zero implementation edits: covered save recovery and navigation worked. No arbitrary five changes or unnecessary deploy. Daily reliability checkpoint due after 9 AM Eastern, Monday review not due. Remaining launch engineering unchanged; coverage retained for next release.
+
+## 2026-09-12 12:00 UTC — Totals month/amount navigation
+- HEAD 1a9c58a unchanged; pending progress/temp preserved. Comparison, spending category reconciliation and wrapped PDF row regression tests passed.
+- Synthetic Totals year expansion reveals month, income, spending and net links. August income link opens exact August range with Income filter; two matching records total $6,400.00, matching Totals. Year chart renders at 1280px without overflow. No financial writes or exports triggered.
+- Zero new implementation edits: tested amount navigation works. No arbitrary five changes or unnecessary release. September 12 daily reliability checkpoint is due on first run after 9 AM Eastern (this run began 8 AM); Monday review not due. Native/payment/bank lifecycle remains separately unverified. Coverage retained for next coordinated commit.
+
+## 2026-09-12 13:02 UTC — Daily reliability checkpoint completed (September 12)
+- HEAD 1a9c58a unchanged; preserved pending coverage notes and generated temp file. Checkout, RevenueCat, report-range, CSV and account-deletion synthetic regressions passed today.
+- Fresh live Home loaded; chart rendered at 1280px without overflow. Add transaction opens dialog directly; empty Save disabled; Cancel closes without writing. Money Spending chart renders. No production financial operation or preference changed.
+- Consolidated overnight coverage: report failure/retry, exact annual/monthly drill-down totals, goal contribution, net-worth asset entry, transaction save failure/retry, Simple mode navigation, pagination, import entry/back, and native offerings retry all exercised with synthetic writes. Phone width and dark/light coverage recorded earlier; not a physical-device pass.
+- Unresolved: legacy credential retirement, conclusive duplicate reconciliation, real payment/bank lifecycle, native signing/device/StoreKit, AI availability. Existing owner prerequisites unchanged. No new release or implementation changes: tested paths passed; no artificial five-change claim. Weekly Monday review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 14:02 UTC — Amount filter validation and sorting
+- HEAD 1a9c58a unchanged; preserved pending notes/temp. CSV and spending category reconciliation regressions passed.
+- Synthetic Money Filters: minimum 100 / maximum 50 produces explicit range alert and corrective empty state. Corrected maximum 200 restores matches; Amount descending shows 178.57, 175.30, 151.81, 132.24 in order. Clear filters and Spending navigation exercised; chart at 1280px without overflow. No production writes.
+- Zero new implementation edits because covered controls passed; no fabricated five-change count or deploy. Daily checkpoint completed September 12 at 13:02 UTC; weekly review not due. Phone/native and real financial lifecycle evidence unchanged. Coverage retained for next coordinated commit.
+
+## 2026-09-12 15:02 UTC — Chart style preference coverage
+- HEAD 1a9c58a unchanged; preserved pending evidence/temp. RevenueCat and report trend-label regressions passed.
+- Synthetic Settings chart style changed from Bars to Line; Home renders Line selected with chart and no desktop overflow. Split control renders income/expense shares; restored original Bars preference. No real account preference changed.
+- Settings native restore browser check was not available in this fixture (no restore control rendered); automated restore regression passed, but no browser/native restore success claimed. Zero code edits: covered chart preference paths passed and fixture limitation requires separate coverage. No artificial five changes or release. Daily checkpoint already completed today; Monday review not due.
+
+## 2026-09-12 16:02 UTC — Recurring recovery and Bills navigation
+- HEAD 1a9c58a unchanged; pending notes/temp preserved. Report-range and goal-validation regressions passed.
+- Synthetic recurring-retry shows failure; Try again restores four recurring bills and monthly/annual totals. Manage all bills opens Bills and category chart at 1280px without overflow. No suggested bill added and no production data changed.
+- Synthetic suggestions include multiple amount clusters for a merchant and ordinary shopping merchants; treat these as candidates, not verified subscriptions. Detection precision remains a review opportunity; no conclusion about real subscriptions or safe automatic additions.
+- Zero code changes: recovery/navigation passed; suggestion algorithm needs separate targeted evidence before change. No arbitrary five-change claim or release. Daily checkpoint already completed September 12; Monday review not due. Coverage retained for next coordinated commit.
+
+## 2026-09-12 17:03 UTC — Update recurring totals after adding a suggestion
+- Reproduced a real stale-state defect: adding synthetic $171.39 suggestion removed its card but left total $298.67/four bills and omitted the saved bill from the list until reload.
+- One correction: append the confirmed create response with a functional state update. Totals/list update immediately and existing name-based detection excludes other candidates for the added merchant. Existing synchronous duplicate-click guard and failure handling preserved.
+- Synthetic verification: total becomes $470.06/month, $5,640.72/year, five bills; saved entry appears. Manage all bills navigation and chart at desktop width pass with no overflow. No production bill created. Range and category reconciliation regressions pass; final lint/build/deployment evidence follows.
+- One coherent improvement rather than five arbitrary changes. Daily checkpoint already complete; weekly review not due. Legacy bank/security/native/payment blockers unchanged. Included accumulated prior coverage notes in this coordinated release.
+- Strict lint, production build and diff check passed.
