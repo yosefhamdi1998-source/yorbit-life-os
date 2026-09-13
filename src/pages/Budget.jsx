@@ -311,7 +311,7 @@ export default function Budget() {
           </div>
           <h3 className="text-xl font-black text-white mb-2">Set your first budget</h3>
           <p className="text-white/70 text-sm mb-6 leading-relaxed max-w-xs mx-auto">
-            People who budget save on average $300 more per month. Pick a category to get started.
+            Start with a spending limit for one category. Adjust it as your income and priorities change.
           </p>
           <div className="grid grid-cols-3 gap-2 mb-5 max-w-xs mx-auto">
             {BUDGET_SUGGESTIONS.slice(0, 6).map(s => (
