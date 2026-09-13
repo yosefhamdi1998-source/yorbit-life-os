@@ -714,3 +714,16 @@ Four verified improvements: empty-period recovery; correct chart period/monthly-
 - One copy correction, no purchase logic change. Synthetic Support at 390px has no overflow; Go back returns Home chart without overflow. Viewport reset. RevenueCat regression and diff check passed; no payments or real account changes. Final build/release evidence follows.
 - Daily checkpoint complete; Monday review not due. Remaining security/native/billing lifecycle work unchanged. No arbitrary five-change claim; one supported issue resolved.
 - Strict lint and production build passed.
+- Production verified: dff065994eab9f4cd3c3ea86305a8bdb1d6fa8cb Ready in 19s, Vercel BJgDH9Zz5S9fJa7Lyr7vPC9GHoZB, canonical domain assigned. Post-deploy evidence retained locally for next coordinated commit.
+
+## 2026-09-13 — Empty-account walkthrough (01:12 UTC scheduled run, resumed after delay)
+- HEAD dff0659 unchanged; preserved progress notes and generated Supabase temp file. Starter-budget and RevenueCat regressions passed.
+- Synthetic empty Home shows zero activity with explicit missing-history explanation. Add your first bill opens the bill form directly; empty Add Bill disabled, Cancel closes. Home navigation and 1Y chart range work, showing honest no-data state; 1280px layout has no horizontal overflow. No production financial records or preferences changed.
+- Coverage is authenticated synthetic empty state, not real signup, user isolation, populated chart QA, physical-device or StoreKit testing. Zero implementation changes: these paths passed; no arbitrary five-change claim or deployment. Nested link/button markup in Home next steps remains a source-review candidate, not fixed in this run.
+- September 12 daily checkpoint already completed; current run resumed before September 13 9 AM Eastern. Monday review not due. Remaining launch blockers unchanged. Notes retained for next coordinated code commit.
+
+## 2026-09-13 20:51 UTC — Daily reliability checkpoint and Home action semantics
+- Daily reliability checkpoint completed September 13. Checkout, RevenueCat, report-range, CSV and account-deletion synthetic regressions passed; strict lint and production build exit 0.
+- One coherent accessibility correction: four Home actions rendered buttons nested inside links. Use the existing Button asChild API so each is one styled link with one interactive target. Preserved destinations and flex layout; no new feature or financial logic changes.
+- Synthetic empty Home: keyboard Enter on Add Transaction opens New Transaction directly; Cancel closes. Budget and Goals links reach their correct empty states. Desktop and 390px mobile have no horizontal overflow; rendered Home has zero nested a/button elements. Empty chart state/range coverage retained from prior run. Viewport reset. No production financial writes.
+- Not a real signup/isolation/native StoreKit/device pass. Paid launch and bank lifecycle limitations unchanged. Budget empty-state savings statistic surfaced during review and needs source verification or neutral wording; no verified numeric benefit claim from this audit. One change rather than five unsupported edits. Weekly Monday review not due. Deployment verification follows.

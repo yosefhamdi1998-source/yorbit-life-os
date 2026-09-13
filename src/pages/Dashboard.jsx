@@ -333,17 +333,17 @@ export default function Dashboard() {
             <p className="font-bold text-sm text-foreground mb-0.5">Build your money picture</p>
             <p className="text-xs text-muted-foreground mb-3">Add a transaction to unlock insights.</p>
             <div className="flex gap-2 flex-wrap">
-              <Link to="/finance?add=1" className="flex-1 min-w-0">
-                <Button className="w-full bg-primary text-white gap-1 h-9 text-sm">
+              <Button asChild className="bg-primary text-white gap-1 h-9 text-sm">
+                <Link to="/finance?add=1" className="flex-1 min-w-0">
                   <Plus className="w-3.5 h-3.5" /> Add Transaction
-                </Button>
-              </Link>
-              <Link to="/budget">
-                <Button variant="outline" className="h-9 px-3 text-sm">Budget</Button>
-              </Link>
-              <Link to="/goals">
-                <Button variant="outline" className="h-9 px-3 text-sm">Goals</Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-9 px-3 text-sm">
+                <Link to="/budget">Budget</Link>
+              </Button>
+              <Button asChild variant="outline" className="h-9 px-3 text-sm">
+                <Link to="/goals">Goals</Link>
+              </Button>
             </div>
           </div>
         )}
@@ -453,11 +453,11 @@ export default function Dashboard() {
               <DollarSign className="w-9 h-9 text-primary/30 mx-auto mb-3" />
               <p className="text-sm font-semibold mb-1 text-foreground">No transactions yet</p>
               <p className="text-xs text-muted-foreground mb-4">Add your first to start tracking.</p>
-              <Link to="/finance?add=1">
-                <Button size="sm" className="gap-1 bg-primary text-white">
+              <Button asChild size="sm" className="gap-1 bg-primary text-white">
+                <Link to="/finance?add=1">
                   <Plus className="w-3.5 h-3.5" /> Add Transaction
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           )
         )}
