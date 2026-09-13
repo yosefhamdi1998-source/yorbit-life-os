@@ -484,9 +484,10 @@ export default function Settings() {
               </button>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-sm">Bank credentials</span>
+              <span className="text-sm">Bank login passwords</span>
               <span className="text-xs font-medium text-emerald-600">Never stored</span>
             </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">Yorbit stores connection tokens to sync linked accounts. These are different from your bank login password.</p>
             <div className="flex items-center justify-between py-1">
               <span className="text-sm">Data sold to third parties</span>
               <span className="text-xs font-medium text-emerald-600">Never</span>
