@@ -5,6 +5,12 @@ const policyCode=(await transform(fs.readFileSync('supabase/functions/_shared/bi
 const policy=await import('data:text/javascript;base64,'+Buffer.from(policyCode).toString('base64'));
 assert.equal(policy.validCheckoutReturn('https://yorbit-life-os.vercel.app/settings?success=1'),true);
 for(const url of ['https://yorbit-life-os.vercel.app.evil.test','javascript:alert(1)','https://evil.test','https://yosefhamdi1998-source.github.io/other-app/','https://user:pass@yorbit-life-os.vercel.app']) assert.equal(policy.validCheckoutReturn(url),false);
+// Frontend offerings must be accepted by the server mapping, not drift to another account.
+const upgradeSource=fs.readFileSync('src/pages/Upgrade.jsx','utf8');
+const offeredPrices=[...upgradeSource.matchAll(/id: '(price_[^']+)'/g)].map(m=>m[1]);
+assert.deepEqual(offeredPrices.sort(),Object.keys(policy.PRICE_TO_PLAN).sort());
+assert.equal(policy.PRICE_TO_PLAN.price_1UDXISA4mvP1HWCKCxoL3PcL,'pro_monthly');
+assert.equal(policy.PRICE_TO_PLAN.price_1UDXJiA4mvP1HWCKDQ18B5bX,'pro_yearly');
 let handler, user=null, calls=0, shouldFail=false;
 globalThis.__checkoutTest={
  ...policy,

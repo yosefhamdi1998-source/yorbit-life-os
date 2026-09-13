@@ -31,8 +31,8 @@ const FREE_LIMITS = [
 ];
 
 const PRICES = {
-  monthly: { id: 'price_1Tp0ZJCvjMbso8E2tQSWOW8X', amount: '$4.99', period: '/month', annual: null, badge: null, note: 'Billed monthly' },
-  yearly:  { id: 'price_1Tp0ZMCvjMbso8E2xyERKi7E', amount: '$29.99', period: '/year', annual: '$2.50/mo', badge: 'BEST VALUE · Save 50%', note: 'Billed annually' },
+  monthly: { id: 'price_1UDXISA4mvP1HWCKCxoL3PcL', amount: '$4.99', period: '/month', annual: null, badge: null, note: 'Billed monthly' },
+  yearly:  { id: 'price_1UDXJiA4mvP1HWCKDQ18B5bX', amount: '$29.99', period: '/year', annual: '$2.50/mo', badge: 'BEST VALUE · Save 50%', note: 'Billed annually' },
 };
 
 export default function Upgrade() {

@@ -1,7 +1,7 @@
 // Keep the web checkout and webhook on the same product mapping.
 export const PRICE_TO_PLAN: Record<string, string> = {
-  price_1Tp0ZJCvjMbso8E2tQSWOW8X: 'pro_monthly',
-  price_1Tp0ZMCvjMbso8E2xyERKi7E: 'pro_yearly',
+  price_1UDXISA4mvP1HWCKCxoL3PcL: 'pro_monthly',
+  price_1UDXJiA4mvP1HWCKDQ18B5bX: 'pro_yearly',
 };
 
 export function validCheckoutReturn(value: unknown): boolean {
