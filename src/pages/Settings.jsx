@@ -655,6 +655,9 @@ export default function Settings() {
                   <AlertDialogTitle>Delete your account?</AlertDialogTitle>
                   <AlertDialogDescription>
                     This will permanently delete all your financial data and your account. Type <strong>DELETE</strong> below to confirm.
+                    <span className="block mt-3">If you subscribed through Apple, billing continues until you cancel with Apple. Please cancel before deleting your account.</span>
+                    <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener noreferrer" className="block mt-2 font-semibold underline text-primary">Manage Apple subscription (opens a new window)</a>
+                    <span className="block mt-3">For a web subscription, use Manage Subscription in Settings to confirm cancellation before deleting.</span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <Input
