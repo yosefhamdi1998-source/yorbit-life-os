@@ -24,3 +24,5 @@ for (const description of ['Cafe, Lunch', 'Cafe "Lunch"', 'First\rSecond', 'Firs
 assert.equal(escapeCSVCell(null), '');
 assert.equal(escapeCSVCell(0), '0');
 console.log('CSV export round trips, quoted fields, Venmo alignment, malformed input, and income/expense identity checks passed.');
+
+await import('./test-import-concurrency.mjs');

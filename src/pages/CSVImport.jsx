@@ -171,6 +171,7 @@ export default function CSVImport() {
   const [pendingMapFiles, setPendingMapFiles] = useState([]); // CSVs whose columns couldn't be auto-detected
   const [mapIndex, setMapIndex] = useState(0);
   const [importing, setImporting] = useState(false);
+  const importLock = useRef(false);
   const [importedCount, setImportedCount] = useState(0);
   const [importedRange, setImportedRange] = useState(null);
   const [skippedCount, setSkippedCount] = useState(0);
@@ -358,85 +359,94 @@ export default function CSVImport() {
   };
 
   const doImport = async () => {
+    if (importLock.current || collected.length === 0) return;
+    importLock.current = true;
     setImporting(true);
-    setImportProgress(0);
-    let imported = 0, skipped = 0, failed = 0;
-
-    // Records WHERE these rows came from, so a future sync can tell a
-    // cross-source double import (same event from Plaid and from a CSV)
-    // apart from two genuine transactions. Nothing stored this before.
-    const csvSource = 'csv:upload';
-
-    // COUNT-BASED dedup, not existence-based.
-    //
-    // This used to skip any row whose date|title|amount already existed.
-    // That protects against overlapping statement files, which is a real
-    // case — but it silently destroyed legitimate repeats. This user trades
-    // on Coinbase daily and sends to gambling sites, routinely 10-20 times
-    // a day, frequently for identical amounts. A CSV containing twenty
-    // identical same-day rows imported exactly ONE of them.
-    //
-    // Comparing counts keeps both properties: re-importing the same file
-    // adds nothing (the database already holds as many as the file has),
-    // while a file genuinely containing twenty identical trades imports all
-    // twenty the first time.
-    let existing;
+    setError('');
     try {
-      existing = await base44.entities.Transaction.listAll('-date', 50000);
-    } catch {
-      setError('We could not check your existing transactions. Nothing was imported. Please try again.');
-      setImporting(false);
-      return;
-    }
-    const existingCounts = new Map();
-    for (const t of existing) {
-      const k = statementRowKey(t);
-      existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
-    }
+      setImportProgress(0);
+      let imported = 0, skipped = 0, failed = 0;
 
-    const takenSoFar = new Map();
-    const toImport = [];
-    for (const r of collected) {
-      const key = statementRowKey(r);
-      const already = existingCounts.get(key) || 0;
-      const taken = takenSoFar.get(key) || 0;
-      // Import this occurrence only if the file has more of this key than
-      // the database already does.
-      if (taken < already) { takenSoFar.set(key, taken + 1); skipped++; continue; }
-      takenSoFar.set(key, taken + 1);
-      toImport.push({ ...r, import_source: csvSource });
-    }
+      // Records WHERE these rows came from, so a future sync can tell a
+      // cross-source double import (same event from Plaid and from a CSV)
+      // apart from two genuine transactions. Nothing stored this before.
+      const csvSource = 'csv:upload';
 
-    // Only rows whose create() actually resolved. Building the range from
-    // `toImport` would report the span we ATTEMPTED, which is the number that
-    // already looks fine when an import is quietly failing.
-    const written = [];
-    for (let i = 0; i < toImport.length; i++) {
+      // COUNT-BASED dedup, not existence-based.
+      //
+      // This used to skip any row whose date|title|amount already existed.
+      // That protects against overlapping statement files, which is a real
+      // case — but it silently destroyed legitimate repeats. This user trades
+      // on Coinbase daily and sends to gambling sites, routinely 10-20 times
+      // a day, frequently for identical amounts. A CSV containing twenty
+      // identical same-day rows imported exactly ONE of them.
+      //
+      // Comparing counts keeps both properties: re-importing the same file
+      // adds nothing (the database already holds as many as the file has),
+      // while a file genuinely containing twenty identical trades imports all
+      // twenty the first time.
+      let existing;
       try {
-        await base44.entities.Transaction.create(toImport[i]);
-        imported++;
-        written.push(toImport[i]);
+        existing = await base44.entities.Transaction.listAll('-date', 50000);
       } catch {
-        failed++;
+        setError('We could not check your existing transactions. Nothing was imported. Please try again.');
+        return;
       }
-      setImportProgress(Math.round(((i + 1) / toImport.length) * 100));
-    }
+      const existingCounts = new Map();
+      for (const t of existing) {
+        const k = statementRowKey(t);
+        existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
+      }
 
-    // Range of what was actually WRITTEN, not what was in the file. These
-    // differ precisely when something went wrong, which is the case worth
-    // surfacing.
-    const writtenDates = written.map(r => r.date).filter(Boolean).sort();
-    setImportedRange(writtenDates.length
-      ? { first: writtenDates[0], last: writtenDates[writtenDates.length - 1] }
-      : null);
-    setImportedCount(imported);
-    setSkippedCount(skipped);
-    setFailedCount(failed);
-    setImporting(false);
-    setStep('done');
+      const takenSoFar = new Map();
+      const toImport = [];
+      for (const r of collected) {
+        const key = statementRowKey(r);
+        const already = existingCounts.get(key) || 0;
+        const taken = takenSoFar.get(key) || 0;
+        // Import this occurrence only if the file has more of this key than
+        // the database already does.
+        if (taken < already) { takenSoFar.set(key, taken + 1); skipped++; continue; }
+        takenSoFar.set(key, taken + 1);
+        toImport.push({ ...r, import_source: csvSource });
+      }
+
+      // Only rows whose create() actually resolved. Building the range from
+      // `toImport` would report the span we ATTEMPTED, which is the number that
+      // already looks fine when an import is quietly failing.
+      const written = [];
+      for (let i = 0; i < toImport.length; i++) {
+        try {
+          await base44.entities.Transaction.create(toImport[i]);
+          imported++;
+          written.push(toImport[i]);
+        } catch {
+          failed++;
+        }
+        setImportProgress(Math.round(((i + 1) / toImport.length) * 100));
+      }
+
+      // Range of what was actually WRITTEN, not what was in the file. These
+      // differ precisely when something went wrong, which is the case worth
+      // surfacing.
+      const writtenDates = written.map(r => r.date).filter(Boolean).sort();
+      setImportedRange(writtenDates.length
+        ? { first: writtenDates[0], last: writtenDates[writtenDates.length - 1] }
+        : null);
+      setImportedCount(imported);
+      setSkippedCount(skipped);
+      setFailedCount(failed);
+      setStep('done');
+    } catch {
+      setError('Import could not be completed. Some rows may have been saved. Retry this file to check existing rows before adding more.');
+    } finally {
+      importLock.current = false;
+      setImporting(false);
+    }
   };
 
   const reset = () => {
+    if (importLock.current) return;
     setStep('upload'); setCollected([]); setFileSummaries([]); setPendingMapFiles([]); setMapIndex(0); setError('');
   };
 
@@ -489,7 +499,7 @@ export default function CSVImport() {
               <Upload className="w-8 h-8 text-primary/60" />
             </div>
             <p className="font-bold text-base mb-1">Upload your statements</p>
-            <p className="text-sm text-muted-foreground mb-5">Pick one or more files — CSV or PDF, any bank or app</p>
+            <p className="text-sm text-muted-foreground mb-5">Choose CSV or text-based PDF files. Review detected rows before importing.</p>
             <Button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} className="gap-2">
               <Upload className="w-4 h-4" /> Choose Files
             </Button>
@@ -499,9 +509,9 @@ export default function CSVImport() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• <strong>Venmo:</strong> monthly PDF statements, or Settings → Download CSV</li>
               <li>• <strong>Cash App / PayPal:</strong> downloaded statement or activity export</li>
-              <li>• <strong>Any bank:</strong> Chase, Bank of America, Wells Fargo — CSV or PDF</li>
+              <li>• <strong>Bank exports:</strong> CSV or text-based PDF; columns and layouts vary.</li>
             </ul>
-            <p className="text-xs text-muted-foreground mt-3">You can select several files at once — everything gets combined into one review before anything is added.</p>
+            <p className="text-xs text-muted-foreground mt-3">You can select several files at once — everything gets combined into one review before anything is added. Scanned or image-only PDFs need a CSV export instead.</p>
           </div>
         </div>
       )}
@@ -586,7 +596,7 @@ export default function CSVImport() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={reset} className="flex-1">Start Over</Button>
+            <Button variant="outline" onClick={reset} disabled={importing} className="flex-1">Start Over</Button>
             <Button onClick={doImport} disabled={importing || collected.length === 0} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0 gap-1">
               {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> {importProgress}%</> : `Import ${collected.length} Transactions`}
             </Button>
