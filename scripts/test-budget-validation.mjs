@@ -16,3 +16,19 @@ for (const monthly_limit of ['Infinity', '5oops', '10000001', '-1']) {
   assert.equal(messages[0].title, 'Check budget amount');
 }
 console.log('PASS: budget amount bounds and actual page handler reject invalid input before database writes');
+
+{
+  const messages=[], states=[], lock={current:false};
+  const save=new AsyncFunction('scope',`with(scope){${body}}`);
+  await save({form:{monthly_limit:'50',category:'food'},validateBudgetAmount,toast:m=>messages.push(m),savingRef:lock,setSaving:v=>states.push(v),budgets:[],thisMonth:'2026-09',checkingPlan:true});
+  assert.equal(messages[0].title,'Checking your subscription');
+  assert.deepEqual(states,[true,false]); assert.equal(lock.current,false);
+}
+const goalSource=readFileSync(new URL('../src/pages/Goals.jsx',import.meta.url),'utf8');
+const goalBody=goalSource.match(/const save = async \(\) => \{([\s\S]*?)\n  \};/)[1];
+{
+  const messages=[];
+  await new AsyncFunction('scope',`with(scope){${goalBody}}`)({form:{name:'Synthetic goal'},validateGoalAmounts:()=>null,savingRef:{current:false},editingId:null,checkingPlan:true,toast:m=>messages.push(m)});
+  assert.equal(messages[0].title,'Checking your subscription');
+}
+console.log('PASS: pending plan checks stop new budget/goal writes without an upgrade claim and release save locks');

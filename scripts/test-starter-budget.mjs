@@ -13,3 +13,15 @@ const gap = buildStarterBudget([row('2026-05-20','expense',10), row('2026-06-20'
 assert.equal(gap.rows[0].monthly_limit, 300);
 assert.equal(gap.incomeBaseline, 0);
 console.log('Starter budget checks passed: complete-month windows, gaps, excluded transfers, partial history, and variable income.');
+
+const {readFileSync}=await import('node:fs');
+const source=readFileSync('src/components/budget/StarterBudget.jsx','utf8');
+const body=source.match(/const save = async \(\) => \{([\s\S]*?)\n  \};/)[1];
+const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+const save=new AsyncFunction('scope',`with(scope){${body}}`);
+await save({lock:{current:false},invalid:false,checkingPlan:true});
+const lock={current:false}, states=[], messages=[];
+await save({lock,invalid:false,checkingPlan:false,setSaving:v=>states.push(v),setMessage:m=>messages.push(m),base44:{entities:{Budget:{list:async()=>[]}}},month:'2026-09',isPro:true,candidates:[],onSaved:async()=>{throw new Error('Synthetic refresh failure');}});
+assert.equal(lock.current,false); assert.deepEqual(states,[true,false]);
+assert.match(messages.at(-1),/could not be refreshed/);
+console.log('PASS: starter save waits for plan checks and recovers from refresh failure without a stuck lock');

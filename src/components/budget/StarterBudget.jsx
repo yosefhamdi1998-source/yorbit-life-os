@@ -5,7 +5,7 @@ import { FREE_BUDGET_LIMIT } from '@/lib/planLimits';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function StarterBudget({ transactions, budgets, month, isPro, onSaved }) {
+export default function StarterBudget({ transactions, budgets, month, isPro, checkingPlan = false, onSaved }) {
   const suggestion = useMemo(() => buildStarterBudget(transactions, month), [transactions, month]);
   const [edits, setEdits] = useState({});
   const [incomeEdits, setIncomeEdits] = useState({});
@@ -22,7 +22,7 @@ export default function StarterBudget({ transactions, budgets, month, isPro, onS
   const total = candidates.reduce((sum,row) => sum + (Number.isFinite(amount(row)) ? amount(row) : 0), 0);
   const invalid = candidates.some(row => !Number.isFinite(amount(row)) || amount(row) <= 0);
   const save = async () => {
-    if (lock.current || invalid) return;
+    if (lock.current || invalid || checkingPlan) return;
     lock.current = true; setSaving(true); setMessage('');
     let created = 0;
     try {
@@ -38,7 +38,13 @@ export default function StarterBudget({ transactions, budgets, month, isPro, onS
     } catch {
       setMessage(created ? `Saved ${created} categories before the connection failed. Reloaded your budgets; you can retry the remaining ones.` : 'Could not save the starter budget. Please try again.');
     } finally {
-      await onSaved(); lock.current = false; setSaving(false);
+      try {
+        await onSaved();
+      } catch {
+        setMessage('Your budgets could not be refreshed. Some changes may have been saved; reload this page before saving again.');
+      } finally {
+        lock.current = false; setSaving(false);
+      }
     }
   };
   return <section className="rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:p-5 mb-5" aria-label="Starter budget">
@@ -53,7 +59,7 @@ export default function StarterBudget({ transactions, budgets, month, isPro, onS
       {!validIncome && <p role="alert" className="text-sm text-destructive mt-2">Enter a valid amount of zero or more.</p>}
     </div>
     {validIncome && (total + existing.reduce((sum,b) => sum + Number(b.monthly_limit || 0), 0)) > planningIncome && <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">Your category limits are above your planning income. You can still save them; review the difference when planning your month.</p>}
-    <Button disabled={saving || invalid} onClick={save}>{saving ? 'Saving…' : 'Save reviewed starter budget'}</Button>
+    <Button disabled={saving || invalid || checkingPlan} onClick={save}>{saving ? 'Saving…' : checkingPlan ? 'Checking subscription...' : 'Save reviewed starter budget'}</Button>
     {message && <p role="status" className="text-sm mt-3">{message}</p>}
   </section>;
 }

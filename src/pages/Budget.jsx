@@ -55,7 +55,7 @@ function BudgetChartTooltip({ active, payload, label }) {
 
 export default function Budget() {
   const { runGuarded: guardDelete } = useDeleteLock();
-  const { isPro } = useProStatus();
+  const { isPro, loading: checkingPlan } = useProStatus();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +110,10 @@ export default function Budget() {
     setSaving(true);
     try {
       const existing = budgets.find(b => b.category === form.category && b.month === thisMonth);
+      if (!existing && checkingPlan) {
+        toast({ title: 'Checking your subscription', description: 'Please try saving again when the check finishes.' });
+        return;
+      }
       // Advertised on the paywall as "3 categories" free — this is the one
       // place that claim is actually enforced. Editing an existing budget's
       // limit is never blocked, only creating a NEW category past the cap.
@@ -204,7 +208,7 @@ export default function Budget() {
         }
       />
 
-      <StarterBudget transactions={transactions} budgets={budgets} month={thisMonth} isPro={isPro} onSaved={loadData} />
+      <StarterBudget transactions={transactions} budgets={budgets} month={thisMonth} isPro={isPro} checkingPlan={checkingPlan} onSaved={loadData} />
 
       {saved && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
