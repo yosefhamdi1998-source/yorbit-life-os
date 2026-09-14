@@ -1,3 +1,4 @@
+import { readReportSelection, reportSelectionSearch } from '@/lib/reportSelection';
 import { reportTrendLabel } from '@/lib/reportTrendLabel';
 import { previousComparisonCutoff } from '@/lib/reportComparison';
 import { reportAverageWindow } from '@/lib/reportAverage';
@@ -118,13 +119,7 @@ const inRange = (dateStr, start, end) => {
 // showing, instead of always resetting to "this month" regardless of what
 // was tapped.
 function initialStateFromQuery() {
-  const params = new URLSearchParams(window.location.search);
-  const qPeriod = params.get('period');
-  if (qPeriod === 'yearly') {
-    const year = parseInt(params.get('year'), 10);
-    if (year) return { period: 'yearly', cursor: new Date(year, 0, 1) };
-  }
-  return { period: 'monthly', cursor: defaultCursor('monthly') };
+  return readReportSelection(window.location.search) || { period: 'monthly', cursor: defaultCursor('monthly') };
 }
 
 export default function SpendingSummary() {
@@ -284,17 +279,24 @@ export default function SpendingSummary() {
     : period === 'biweekly' ? isAfter(addDays(cursor, 14), now)
     : (isSameYear(cursor, now) || isAfter(cursor, now));
 
-  const goPrev = () => setCursor(c => period === 'monthly' ? subMonths(c, 1) : period === 'biweekly' ? subDays(c, 14) : subYears(c, 1));
-  const goNext = () => { if (nextDisabled) return; setCursor(c => period === 'monthly' ? addMonths(c, 1) : period === 'biweekly' ? addDays(c, 14) : addYears(c, 1)); };
+  const selectPeriod = (nextPeriod, nextCursor) => {
+    setExplicitRange(null);
+    setPeriod(nextPeriod);
+    setCursor(nextCursor);
+    navigate({ search: reportSelectionSearch(window.location.search, nextPeriod, nextCursor) }, { replace: true });
+  };
+  const goPrev = () => selectPeriod(period, period === 'monthly' ? subMonths(cursor, 1) : period === 'biweekly' ? subDays(cursor, 14) : subYears(cursor, 1));
+  const goNext = () => {
+    if (nextDisabled) return;
+    selectPeriod(period, period === 'monthly' ? addMonths(cursor, 1) : period === 'biweekly' ? addDays(cursor, 14) : addYears(cursor, 1));
+  };
 
   // Switching Monthly/Bi-Weekly/Yearly lands on the newest period that has
   // data, not on literal today — otherwise flipping to Monthly at the start
   // of a month drops you on an empty view again.
   const switchPeriod = (p) => {
-    setExplicitRange(null);
-    setPeriod(p);
     const latest = expenses.reduce((max, t) => (t.date && (!max || t.date > max) ? t.date : max), null);
-    setCursor(latest ? parseISO(latest) : defaultCursor(p));
+    selectPeriod(p, latest ? parseISO(latest) : defaultCursor(p));
   };
 
   if (loading) {
