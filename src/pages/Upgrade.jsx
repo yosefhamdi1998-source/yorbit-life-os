@@ -39,6 +39,7 @@ export default function Upgrade() {
   const [plan, setPlan] = useState('yearly');
   const [loading, setLoading] = useState(false);
   const [iframeBlocked, setIframeBlocked] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
   const [iosOfferings, setIosOfferings] = useState(null);
   const [restoring, setRestoring] = useState(false);
   const [offeringsAttempt, setOfferingsAttempt] = useState(0);
@@ -96,6 +97,7 @@ export default function Upgrade() {
 
   const handleCheckout = async () => {
     if (window.self !== window.top) { setIframeBlocked(true); return; }
+    setCheckoutError('');
     setLoading(true);
     // Must include the app's subpath (empty at a root domain, '/yorbit-life-os'
     // on GitHub Pages) — window.location.origin alone drops it, so a checkout
@@ -112,11 +114,12 @@ export default function Upgrade() {
         window.location.href = res.url;
       } else {
         setLoading(false);
-        toast({ title: "Couldn't open checkout", description: "Please try again in a moment.", variant: 'destructive' });
+        setCheckoutError("Checkout couldn't be opened. Please try again later.");
       }
-    } catch {
+    } catch (error) {
       setLoading(false);
-      toast({ title: "Couldn't open checkout", description: "Please try again in a moment.", variant: 'destructive' });
+      // The API client already sanitizes provider errors and preserves support references.
+      setCheckoutError(error?.message || "Checkout couldn't be opened. Please try again later.");
     }
   };
 
@@ -242,7 +245,7 @@ export default function Upgrade() {
               <span className="text-lg font-black text-foreground">{displayPrices[p].amount}</span>
               <span className="text-xs text-muted-foreground">{displayPrices[p].period}</span>
               {displayPrices[p].annual && (
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">{displayPrices[p].annual} billed</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">Equivalent to {displayPrices[p].annual}</span>
               )}
               <span className="text-[10px] text-muted-foreground mt-0.5">{displayPrices[p].note}</span>
             </button>
@@ -353,6 +356,13 @@ export default function Upgrade() {
           </>
         ) : (
           <>
+            {checkoutError && (
+              <div role="alert" className="mb-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm">
+                <p className="font-semibold">Checkout unavailable</p>
+                <p className="mt-1 break-words text-muted-foreground">{checkoutError}</p>
+                <Link to="/support" className="mt-2 inline-flex min-h-[44px] items-center font-semibold text-primary underline underline-offset-2">Contact support</Link>
+              </div>
+            )}
             <Button
               onClick={handleCheckout}
               disabled={loading}
@@ -395,16 +405,16 @@ export default function Upgrade() {
               within 24 hours before the period ends. Manage or cancel anytime
               in Settings &rsaquo; Apple ID &rsaquo; Subscriptions.
             </p>
-            <div className="flex items-center gap-4 mt-3">
-              <Link to="/terms-of-use" className="text-[11px] font-semibold text-primary hover:underline underline-offset-2">
-                Terms of Use
-              </Link>
-              <Link to="/privacy-policy" className="text-[11px] font-semibold text-primary hover:underline underline-offset-2">
-                Privacy Policy
-              </Link>
-            </div>
           </div>
         )}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 mt-3">
+          <Link to="/terms-of-use" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-primary hover:underline underline-offset-2">
+            Terms of Use
+          </Link>
+          <Link to="/privacy-policy" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-primary hover:underline underline-offset-2">
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     </div>
   );
