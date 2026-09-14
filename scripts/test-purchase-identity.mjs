@@ -82,9 +82,9 @@ for (const native of [false,true]) {
   let stored=null, effect, auth={user:{id:'account-a'},isAuthenticated:true};
   const pending=[];
   const request=()=>new Promise(resolve=>pending.push(resolve));
-  const hook=new Function('useState','useEffect','useAuth','base44','isNativeIOS','checkProEntitlement',hookSource+'; return useProStatus;')(
+  const hook=new Function('useState','useEffect','useAuth','base44','isNativeIOS','checkProEntitlement','window','SUBSCRIPTION_CHANGED',hookSource+'; return useProStatus;')(
     ()=>[stored,value=>{stored=value;}], callback=>{effect=callback;}, ()=>auth,
-    {entities:{Subscription:{list:request}}}, ()=>native,request,
+    {entities:{Subscription:{list:request}}}, ()=>native,request,{addEventListener(){},removeEventListener(){}},'yorbit:subscription-changed',
   );
   const response=pro=>native?{isPro:pro,plan:pro?'pro_yearly':'free'}:pro?[{status:'active',plan:'pro_yearly'}]:[];
   assert.equal(hook().loading,true);
@@ -100,3 +100,33 @@ for (const native of [false,true]) {
   assert.deepEqual(hook(),{isPro:false,plan:'free',loading:false});
 }
 console.log('PASS: web and native Pro hook masks account changes immediately and discards disposed results');
+
+for (const native of [false,true]) {
+  let stored=null, effect;
+  const listeners=new Map(), pending=[];
+  const request=()=>new Promise((resolve,reject)=>pending.push({resolve,reject}));
+  const fakeWindow={addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name,fn)=>{if(listeners.get(name)===fn)listeners.delete(name);}};
+  const hook=new Function('useState','useEffect','useAuth','base44','isNativeIOS','checkProEntitlement','window','SUBSCRIPTION_CHANGED',hookSource+'; return useProStatus;')(
+    ()=>[stored,value=>{stored=value;}], callback=>{effect=callback;}, ()=>({user:{id:'account-a'},isAuthenticated:true}),
+    {entities:{Subscription:{list:request}}}, ()=>native,request,fakeWindow,'yorbit:subscription-changed',
+  );
+  const response=pro=>native?{isPro:pro,plan:pro?'pro_yearly':'free'}:pro?[{status:'active',plan:'pro_yearly'}]:[];
+  hook(); const dispose=effect();
+  pending.shift().resolve(response(false)); await Promise.resolve(); await Promise.resolve();
+  assert.equal(hook().isPro,false);
+  listeners.get('yorbit:subscription-changed')();
+  assert.equal(hook().loading,true);
+  pending.shift().resolve(response(true)); await Promise.resolve(); await Promise.resolve();
+  assert.equal(hook().isPro,true,'Restore notification rechecks access without navigation');
+  listeners.get('focus')();
+  const older=pending.shift();
+  listeners.get('yorbit:subscription-changed')();
+  pending.shift().resolve(response(false)); await Promise.resolve(); await Promise.resolve();
+  older.resolve(response(true)); await Promise.resolve(); await Promise.resolve();
+  assert.equal(hook().isPro,false,'Older request cannot overwrite newer status');
+  listeners.get('focus')(); pending.shift().reject(new Error('Synthetic network failure'));
+  await Promise.resolve(); await Promise.resolve();
+  assert.deepEqual(hook(),{isPro:false,plan:'free',loading:false});
+  dispose(); assert.equal(listeners.size,0,'Listeners removed on disposal');
+}
+console.log('PASS: restore/status retry and window return refresh access; latest request wins and failed checks release loading');

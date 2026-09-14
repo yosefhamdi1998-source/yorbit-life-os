@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { checkProEntitlement } from '@/lib/revenuecat';
 import { useAuth } from '@/lib/AuthContext';
+import { SUBSCRIPTION_CHANGED } from '@/lib/subscriptionEvents';
 
 export function useProStatus() {
   const { user, isAuthenticated } = useAuth();
@@ -12,8 +13,11 @@ export function useProStatus() {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
+    let requestVersion = 0;
 
     async function checkStatus() {
+      const version = ++requestVersion;
+      setStatus({ userId, isPro: false, plan: 'free', loading: true });
       let result = { isPro: false, plan: 'free' };
       try {
         if (isNativeIOS()) {
@@ -27,16 +31,22 @@ export function useProStatus() {
       } catch {
         // A failed check must not retain another account's access.
       }
-      if (!cancelled) setStatus({ ...result, userId });
+      if (!cancelled && version === requestVersion) setStatus({ ...result, userId, loading: false });
     }
 
     checkStatus();
-    return () => { cancelled = true; };
+    window.addEventListener('focus', checkStatus);
+    window.addEventListener(SUBSCRIPTION_CHANGED, checkStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', checkStatus);
+      window.removeEventListener(SUBSCRIPTION_CHANGED, checkStatus);
+    };
   }, [userId]);
 
   // Mask previous-account results immediately, before the effect runs.
   if (!userId || status?.userId !== userId) {
     return { isPro: false, plan: 'free', loading: !!userId };
   }
-  return { isPro: status.isPro, plan: status.plan, loading: false };
+  return { isPro: status.isPro, plan: status.plan, loading: status.loading };
 }

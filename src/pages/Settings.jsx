@@ -1,3 +1,4 @@
+import { refreshSubscriptionStatus } from '@/lib/subscriptionEvents';
 import { useProStatus } from '@/hooks/useProStatus';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -137,8 +138,10 @@ export default function Settings() {
     if (result.error) {
       toast({ title: 'Restore failed', description: result.error, variant: 'destructive' });
     } else if (result.isPro) {
+      refreshSubscriptionStatus();
       toast({ title: 'Pro restored! 🎉', description: 'Your subscription is active again.' });
     } else {
+      refreshSubscriptionStatus();
       toast({ title: 'No purchases found', description: 'No active Pro subscription was found for this Apple ID.' });
     }
   };
@@ -272,7 +275,8 @@ export default function Settings() {
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
               <p className="font-bold text-sm text-emerald-800">{isPro ? 'Yorbit Pro is active' : checkingPlan ? 'Checking your subscription…' : 'Waiting for subscription confirmation'}</p>
-              <p className="text-xs text-emerald-700 mt-0.5">{isPro ? 'Your subscription has been verified.' : 'Returning from checkout does not confirm payment. Refresh this page shortly; contact support if your purchase remains unavailable.'}</p>
+              <p className="text-xs text-emerald-700 mt-0.5">{isPro ? 'Your subscription has been verified.' : 'Returning from checkout does not confirm payment. Check again shortly; contact support if your purchase remains unavailable.'}</p>
+              {!isPro && <Button className="mt-2 bg-emerald-800 text-white hover:bg-emerald-900 hover:text-white" disabled={checkingPlan} onClick={refreshSubscriptionStatus}>{checkingPlan ? 'Checking subscription...' : 'Check subscription again'}</Button>}
             </div>
           </div>
         )}
