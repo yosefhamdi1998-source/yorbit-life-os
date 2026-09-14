@@ -2,43 +2,41 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { checkProEntitlement } from '@/lib/revenuecat';
+import { useAuth } from '@/lib/AuthContext';
 
 export function useProStatus() {
-  const [isPro, setIsPro] = useState(false);
-  const [plan, setPlan] = useState('free');
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated } = useAuth();
+  const userId = isAuthenticated ? user?.id : null;
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
+    if (!userId) return;
     let cancelled = false;
 
     async function checkStatus() {
-      if (isNativeIOS()) {
-        const result = await checkProEntitlement();
-        if (!cancelled) {
-          setIsPro(result.isPro);
-          setPlan(result.plan);
-          setLoading(false);
-        }
-        return;
-      }
-
-      // Web: check Subscription entity (populated by Stripe webhook)
+      let result = { isPro: false, plan: 'free' };
       try {
-        const subs = await base44.entities.Subscription.list();
-        const active = subs.find(s => ['active', 'trialing'].includes(s.status) && s.plan && s.plan !== 'free');
-        if (!cancelled) {
-          setIsPro(!!active);
-          setPlan(active?.plan || 'free');
-          setLoading(false);
+        if (isNativeIOS()) {
+          result = await checkProEntitlement();
+        } else {
+          // Web access is populated by the Stripe webhook and scoped by RLS.
+          const subs = await base44.entities.Subscription.list();
+          const active = subs.find(s => ['active', 'trialing'].includes(s.status) && s.plan && s.plan !== 'free');
+          result = { isPro: !!active, plan: active?.plan || 'free' };
         }
       } catch {
-        if (!cancelled) { setLoading(false); }
+        // A failed check must not retain another account's access.
       }
+      if (!cancelled) setStatus({ ...result, userId });
     }
 
     checkStatus();
     return () => { cancelled = true; };
-  }, []);
+  }, [userId]);
 
-  return { isPro, plan, loading };
+  // Mask previous-account results immediately, before the effect runs.
+  if (!userId || status?.userId !== userId) {
+    return { isPro: false, plan: 'free', loading: !!userId };
+  }
+  return { isPro: status.isPro, plan: status.plan, loading: false };
 }

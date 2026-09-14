@@ -1,21 +1,50 @@
 import { Purchases, PURCHASES_ERROR_CODE } from '@revenuecat/purchases-capacitor';
 import { REVENUECAT_API_KEY, ENTITLEMENT, SUBSCRIPTION_PRODUCTS } from '@/lib/appStoreConfig';
 import { isNativeIOS } from '@/lib/platform';
+import { supabase } from '@/api/supabaseClient';
 
-let initialization;
+let configured = false;
+let configuredUserId;
+let operationQueue = Promise.resolve();
 
-async function ensureInit() {
-  if (!isNativeIOS() || !REVENUECAT_API_KEY) return false;
-  initialization ||= Purchases.configure({ apiKey: REVENUECAT_API_KEY })
-    .then(() => true)
-    .catch(() => { initialization = undefined; return false; });
-  return initialization;
+async function currentUserId() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data?.session?.user?.id) throw new Error('Sign in to your Yorbit account before using purchases.');
+  return data.session.user.id;
+}
+
+// Serialize identity changes with SDK calls: a queued purchase must never run
+// under a different account, and an old result must not unlock a new session.
+async function withCurrentAccount(operation) {
+  if (!isNativeIOS() || !REVENUECAT_API_KEY) throw new Error('Purchases are not available on this device.');
+  const requestedUserId = await currentUserId();
+  const run = operationQueue.then(async () => {
+    const assertSameAccount = async () => {
+      if (await currentUserId() !== requestedUserId) throw new Error('Your account changed. Reopen purchases and try again.');
+    };
+    await assertSameAccount();
+    if (!configured) {
+      await Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID: requestedUserId });
+      configured = true;
+      configuredUserId = requestedUserId;
+    } else if (configuredUserId !== requestedUserId) {
+      // Direct identified-to-identified login avoids creating an anonymous user.
+      configuredUserId = undefined;
+      await Purchases.logIn({ appUserID: requestedUserId });
+      configuredUserId = requestedUserId;
+    }
+    await assertSameAccount();
+    const result = await operation();
+    await assertSameAccount();
+    return result;
+  });
+  operationQueue = run.catch(() => {});
+  return run;
 }
 
 export async function getOfferings() {
-  if (!(await ensureInit())) return null;
   try {
-    const { all, current } = await Purchases.getOfferings();
+    const { all, current } = await withCurrentAccount(() => Purchases.getOfferings());
     return { all, current };
   } catch {
     return null;
@@ -23,9 +52,8 @@ export async function getOfferings() {
 }
 
 export async function checkProEntitlement() {
-  if (!(await ensureInit())) return { isPro: false, plan: 'free' };
   try {
-    const { customerInfo } = await Purchases.getCustomerInfo();
+    const { customerInfo } = await withCurrentAccount(() => Purchases.getCustomerInfo());
     const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan };
@@ -44,11 +72,8 @@ function detectPlanFromPurchases(customerInfo) {
 }
 
 export async function purchasePackage(pkg) {
-  if (!(await ensureInit())) {
-    return { error: 'Purchases are not available on this device.' };
-  }
   try {
-    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+    const { customerInfo } = await withCurrentAccount(() => Purchases.purchasePackage({ aPackage: pkg }));
     const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan, error: null };
@@ -56,16 +81,13 @@ export async function purchasePackage(pkg) {
     if (String(err?.code) === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR || err?.userCancelled === true) {
       return { error: null, cancelled: true };
     }
-    return { error: 'Purchase could not be completed. Please try again.' };
+    return { error: 'Purchase access could not be confirmed for your current account. Sign in again and use Restore Purchases before buying again.' };
   }
 }
 
 export async function restorePurchases() {
-  if (!(await ensureInit())) {
-    return { isPro: false, plan: 'free', error: 'Restore is not available on this device.' };
-  }
   try {
-    const { customerInfo } = await Purchases.restorePurchases();
+    const { customerInfo } = await withCurrentAccount(() => Purchases.restorePurchases());
     const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan, error: null };

@@ -4,7 +4,7 @@ let calls=0;
 const info={entitlements:{active:{pro:{}}},activeSubscriptions:['yearly']};
 globalThis.__revenuecatTest={configure:async()=>{calls++;},getOfferings:async()=>({all:{},current:{id:'test'}}),getCustomerInfo:async()=>({customerInfo:info}),restorePurchases:async()=>({customerInfo:info}),purchasePackage:async()=>({customerInfo:info})};
 const source=fs.readFileSync('src/lib/revenuecat.js','utf8').replace(/^import .*;\r?\n/gm,'');
-const prelude="const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
+const prelude="const supabase={auth:{getSession:async()=>({data:{session:{user:{id:'test-user'}}}})}}; const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
 const api=await import('data:text/javascript;base64,'+Buffer.from(prelude+source).toString('base64'));
 await Promise.all([api.getOfferings(),api.getOfferings()]);
 assert.equal(calls,1,'Concurrent callers configure only once');
@@ -114,3 +114,5 @@ for(const [result,title] of [[{isPro:true,error:null},'Pro restored! 🎉'],[{is
  assert.equal(messages[0].title,title);
 }
 console.log('PASS: Settings restore releases controls for returned and thrown errors, and only confirms active Pro');
+
+await import('./test-purchase-identity.mjs');

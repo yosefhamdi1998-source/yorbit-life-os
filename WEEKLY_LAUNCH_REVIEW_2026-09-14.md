@@ -36,3 +36,10 @@ The remaining nonfatal bank-removal path now stops before local deletion on look
 
 ## Private bank linking follow-up — September 14
 Legacy-write prevention is now deployed in plaid-exchange-token v10. The service-only atomic save writes no token into connected_accounts and rolls account/private rows back together on failure. Provider cleanup is attempted after failed storage; durable cleanup retries still require work. Verified code tests, rolled-back live database transaction/permission tests, exact six-file deployment readback, zero legacy tokens and zero residual test accounts. No new real bank was linked.
+
+## Native purchase identity follow-up - September 14, 2026
+RevenueCat now configures with the signed-in Supabase user UUID, switches identified accounts with logIn, and serializes identity changes with purchase/restore/status calls. Signed-out or stale queued requests cannot reach the purchase SDK; results received after an account change are discarded. A failed native login invalidates the remembered identity so retry cannot assume the old SDK account. The web/native Pro hook masks previous-account results immediately and ignores disposed checks.
+
+Verification: actual source exercised with synthetic SDK/session races, failed identity changes, sign-out during purchase, retry after initialization failure, and controlled hook lifecycle tests. Full npm test passed; final native regression rerun passed after recovery hardening. Strict lint/build and synthetic browser offering-retry/purchase-no-entitlement checks pass. No Apple payment, real account switch, real restore or TestFlight test was performed. This is client identity correctness, not server entitlement enforcement or proof of RevenueCat transfer settings. Server reconciliation, native callbacks and signed-device purchase/restore tests remain open.
+
+Implementation references: https://www.revenuecat.com/docs/customers/identifying-customers and the installed purchases-capacitor logIn({appUserID}) definition. Supabase getSession is used only for client session identity; it does not replace server authorization or purchase verification.
