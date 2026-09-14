@@ -55,43 +55,38 @@ Deno.serve(async (req) => {
     } catch (err) {
       return errorResponse("We couldn't confirm your web subscription cancellation. Your account has not been deleted. Please try again or contact support.", 503, { internal: err, fn: 'delete-account', req });
     }
-    // 2. Revoke Plaid items before deleting local records (no-op safely if bank sync isn't configured yet)
+    // Confirm bank revocation before discarding the credentials needed to retry.
     try {
-      const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-      const plaidSecret = Deno.env.get('PLAID_SECRET');
-      if (plaidClientId && plaidSecret) {
-        const { data: accounts } = await admin
-          .from('connected_accounts')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('provider', 'plaid');
-
-        for (const account of accounts || []) {
-          try {
-            const { token } = await getPlaidAccessToken(admin, account.id);
-            if (!token) continue;
-            const res = await fetch('https://production.plaid.com/item/remove', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                client_id: plaidClientId,
-                secret: plaidSecret,
-                access_token: token,
-              }),
-            });
-            const data = await res.json();
-            if (!data.removed) {
-              console.warn(`[delete-account] Plaid item/remove unexpected response for ${account.id}:`, JSON.stringify(data));
-            }
-          } catch (plaidErr) {
-            console.error(`[delete-account] Plaid item/remove failed for ${account.id} (non-fatal):`, plaidErr.message);
+      const { data: accounts, error: accountError } = await admin.from('connected_accounts')
+        .select('id').eq('user_id', userId).eq('provider', 'plaid');
+      if (accountError || !Array.isArray(accounts)) throw new Error('Bank connection lookup failed');
+      if (accounts.length) {
+        const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
+        const plaidSecret = Deno.env.get('PLAID_SECRET');
+        if (!plaidClientId || !plaidSecret) throw new Error('Bank disconnect is not configured');
+        const removedTokens = new Set<string>();
+        for (const account of accounts) {
+          const { token } = await getPlaidAccessToken(admin, account.id);
+          if (!token) throw new Error('Bank credential unavailable');
+          if (removedTokens.has(token)) continue;
+          const res = await fetch('https://production.plaid.com/item/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ client_id: plaidClientId, secret: plaidSecret, access_token: token }),
+          });
+          const data = await res.json();
+          // Current responses contain request_id, not the legacy removed boolean.
+          // ITEM_NOT_FOUND also covers a successful removal on an earlier attempt.
+          const alreadyRemoved = res.status === 400 && data.error_type === 'ITEM_ERROR' && data.error_code === 'ITEM_NOT_FOUND';
+          if (!alreadyRemoved && (!res.ok || data.error_code || data.removed === false || (!data.request_id && data.removed !== true))) {
+            throw new Error('Bank disconnect not confirmed');
           }
+          removedTokens.add(token);
         }
       }
     } catch (err) {
-      console.error('[delete-account] Plaid revocation error (non-fatal):', err.message);
+      return errorResponse("We couldn't confirm that your bank connections were disconnected. Your account has not been deleted. Please try again or contact support. Any web subscription canceled during this attempt remains canceled.", 503, { internal: err, fn: 'delete-account', req });
     }
-
     // 3. Delete all user-owned rows across every table
     for (const table of ENTITY_TABLES) {
       const { error, count } = await admin.from(table).delete({ count: 'exact' }).eq('user_id', userId);

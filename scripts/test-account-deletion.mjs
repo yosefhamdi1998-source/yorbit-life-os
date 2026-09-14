@@ -7,7 +7,7 @@ const js=(await transform(source.replace(/^import .*;\r?\n/gm,''),{loader:'ts'})
 for(const fails of [false,true]) {
  let handler; const requests=[],lookups=[]; const failure=new Error('synthetic deletion failure');
  const admin={from(table){return {select(columns){if(table==='subscriptions') return {eq:async()=>({data:[],error:null})};assert.equal(table,'connected_accounts');assert.equal(columns,'id');const q={eq(field,value){if(field==='user_id'){assert.equal(value,'fixture-user');return q;}assert.equal(field,'provider');return Promise.resolve({data:[{id:'vault-only'}]});}};return q;},delete(){return {eq:async()=>({error:null,count:0})};}}},auth:{admin:{deleteUser:async id=>{assert.equal(id,'fixture-user');return {error:fails?failure:null};}}}};
- vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:key=>key==='STRIPE_SECRET_KEY'?null:'fixture'}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async(_b,_i,_r,msg,req)=>{assert.equal(msg,undefined);assert.ok(req);return null;},identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async(_admin,id)=>{lookups.push(id);return {token:'synthetic-vault-token',source:'vault'};},fetch:async(_url,opts)=>{requests.push(JSON.parse(opts.body));return {json:async()=>({removed:true})};},jsonResponse:(body,status)=>({body,status}),errorResponse:(msg,status,opts)=>{assert.equal(opts.internal,failure);return {body:{error:msg},status};},console:{log(){},error(){},warn(){}}});
+ vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:key=>key==='STRIPE_SECRET_KEY'?null:'fixture'}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async(_b,_i,_r,msg,req)=>{assert.equal(msg,undefined);assert.ok(req);return null;},identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async(_admin,id)=>{lookups.push(id);return {token:'synthetic-vault-token',source:'vault'};},fetch:async(_url,opts)=>{requests.push(JSON.parse(opts.body));return {ok:true,status:200,json:async()=>({removed:true})};},jsonResponse:(body,status)=>({body,status}),errorResponse:(msg,status,opts)=>{assert.equal(opts.internal,failure);return {body:{error:msg},status};},console:{log(){},error(){},warn(){}}});
  const response=await handler({});assert.equal(response.status,fails?500:200);assert.deepEqual(lookups,['vault-only']);assert.equal(requests[0].access_token,'synthetic-vault-token');
 }
 console.log('PASS: actual deletion handler unlinks vault-only account, preserves auth deletion failure and rate-limit request; all dependencies synthetic');
@@ -33,3 +33,17 @@ for (const scenario of ['lookup-error','missing-key','retrieve-error','cancel-er
   if(['trialing','past_due'].includes(scenario))assert.equal(cancellations,1,scenario);
 }
 console.log('PASS: subscription lookup/config/provider failures preserve all records; trial/past-due cancellation and terminal-status retry are safe');
+
+for (const scenario of ['lookup-error','missing-config','missing-token','network-error','provider-error','unconfirmed','current-success','already-removed','duplicate-token']) {
+  let handler; let deletes=0; let authDeletes=0; let removals=0;
+  const success=['current-success','already-removed','duplicate-token'].includes(scenario);
+  const admin={from(table){return {
+    select(){const q={eq(){if(table==='subscriptions')return Promise.resolve({data:[],error:null});return q;},then(resolve){return Promise.resolve({data:scenario==='duplicate-token'?[{id:'a'},{id:'b'}]:[{id:'a'}],error:scenario==='lookup-error'?new Error('synthetic'):null}).then(resolve);}};return q;},
+    delete(){deletes++;return {eq:async()=>({error:null,count:0})};}
+  };},auth:{admin:{deleteUser:async()=>{authDeletes++;return {error:null};}}}};
+  vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:()=>scenario==='missing-config'?null:'fixture'}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async()=>null,identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async()=>({token:scenario==='missing-token'?null:'synthetic-token'}),fetch:async()=>{removals++;if(scenario==='network-error')throw new Error('synthetic');return {ok:scenario!=='provider-error'&&scenario!=='already-removed',status:scenario==='already-removed'?400:scenario==='provider-error'?500:200,json:async()=>scenario==='already-removed'?{error_type:'ITEM_ERROR',error_code:'ITEM_NOT_FOUND'}:scenario==='unconfirmed'?{}:{request_id:'synthetic-request'}};},jsonResponse:(body,status)=>({body,status}),errorResponse:(message,status)=>({body:{error:message},status}),console:{log(){},error(){},warn(){}}});
+  const result=await handler({});assert.equal(result.status,success?200:503,scenario);assert.equal(authDeletes,success?1:0,scenario);
+  if(!success){assert.equal(deletes,0,scenario);assert.match(result.body.error,/has not been deleted/);}
+  if(scenario==='duplicate-token')assert.equal(removals,1);
+}
+console.log('PASS: bank removal failures preserve records; current success, already-removed retries and shared-token deduplication work');
