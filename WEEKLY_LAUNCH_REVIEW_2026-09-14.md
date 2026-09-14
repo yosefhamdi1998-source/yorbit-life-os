@@ -33,3 +33,6 @@ The Stripe cancellation gap above is now mitigated in deployed code: deletion fi
 
 ## Bank revocation follow-up — September 14
 The remaining nonfatal bank-removal path now stops before local deletion on lookup, configuration, missing-token, network or provider failures. Current success responses and explicit ITEM_NOT_FOUND retries are supported; tokens shared by several account rows are removed once. Synthetic handler checks pass. This does not certify real Plaid lifecycle behavior or finish the legacy-token migration. See [Plaid removal](https://plaid.com/docs/api/items/) and [Item errors](https://plaid.com/docs/errors/item/) for the response contracts used.
+
+## Private bank linking follow-up — September 14
+Legacy-write prevention is now deployed in plaid-exchange-token v10. The service-only atomic save writes no token into connected_accounts and rolls account/private rows back together on failure. Provider cleanup is attempted after failed storage; durable cleanup retries still require work. Verified code tests, rolled-back live database transaction/permission tests, exact six-file deployment readback, zero legacy tokens and zero residual test accounts. No new real bank was linked.
