@@ -1,3 +1,4 @@
+import { validateBudgetAmount } from '@/lib/budgetValidation';
 import { CategoryBadge } from '@/lib/categoryVisuals';
 import StarterBudget from '@/components/budget/StarterBudget';
 import DataLoadError from '@/components/DataLoadError';
@@ -96,7 +97,12 @@ export default function Budget() {
   const monthTx = transactions.filter(t => t.date?.startsWith(thisMonth));
 
   const save = async () => {
-    if (!form.monthly_limit || parseFloat(form.monthly_limit) <= 0) return;
+    const validationError = validateBudgetAmount(form.monthly_limit);
+    if (validationError) {
+      toast({ title: 'Check budget amount', description: validationError, variant: 'destructive' });
+      return;
+    }
+    const monthlyLimit = Number(form.monthly_limit);
     // Synchronous re-entry guard — see Bills.saveBill for why the
     // `disabled={saving}` state alone doesn't stop a fast double-tap.
     if (savingRef.current) return;
@@ -119,10 +125,10 @@ export default function Budget() {
         return;
       }
       if (existing) {
-        await base44.entities.Budget.update(existing.id, { monthly_limit: parseFloat(form.monthly_limit) });
+        await base44.entities.Budget.update(existing.id, { monthly_limit: monthlyLimit });
         toast({ title: 'Budget updated', description: form.category });
       } else {
-        await base44.entities.Budget.create({ category: form.category, monthly_limit: parseFloat(form.monthly_limit), month: thisMonth });
+        await base44.entities.Budget.create({ category: form.category, monthly_limit: monthlyLimit, month: thisMonth });
         toast({ title: 'Budget saved', description: form.category });
       }
       setSaved(true);

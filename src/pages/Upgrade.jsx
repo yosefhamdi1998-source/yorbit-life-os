@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { isNativeIOS } from '@/lib/platform';
 import { getNativePlan } from '@/lib/nativePlans';
 import { getOfferings, purchasePackage, restorePurchases } from '@/lib/revenuecat';
-import { Sparkles, Zap, Check, ArrowLeft, Shield, Brain, TrendingUp, Target, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { Zap, Check, ArrowLeft, Shield, TrendingUp, Target, Lock, Infinity as InfinityIcon } from 'lucide-react';
 // Aliased: importing lucide's `Infinity` under its own name shadows the
 // global numeric Infinity for this whole module. Nothing here divides by
 // zero today, but a plan comparison is exactly the file where an
@@ -16,8 +16,6 @@ import { motion } from 'framer-motion';
 import { FREE_BUDGET_LIMIT, FREE_GOAL_LIMIT } from '@/lib/planLimits';
 
 const FEATURES_LIST = [
-  { icon: Brain, label: 'AI Money Coach', desc: 'Daily personalized advice based on your real spending', pro: true },
-  { icon: Sparkles, label: 'AI Financial Briefings', desc: 'Smart daily summaries of your financial health', pro: true },
   { icon: TrendingUp, label: 'Unlimited Budgets', desc: 'Set limits for every spending category', pro: true },
   { icon: Target, label: 'Unlimited Goals', desc: 'Track as many savings goals as you want', pro: true },
 ];
@@ -26,8 +24,6 @@ const FREE_LIMITS = [
   { label: 'Transaction logging', free: '✓ Unlimited', pro: '✓ Unlimited' },
   { label: 'Budgets', free: `${FREE_BUDGET_LIMIT} categories`, pro: '✓ All categories' },
   { label: 'Savings goals', free: `${FREE_GOAL_LIMIT} goals`, pro: '✓ Unlimited' },
-  { label: 'AI Briefings', free: '✗', pro: '✓ Daily' },
-  { label: 'AI Coach', free: '✗', pro: '✓ Included' },
 ];
 
 const PRICES = {
@@ -181,7 +177,7 @@ export default function Upgrade() {
         </Button>
         <div>
           <h1 className="text-xl font-black leading-none">Yorbit Pro</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">More guidance, budgets, and goals</p>
+          <p className="text-xs text-muted-foreground mt-0.5">More budgets and savings goals</p>
         </div>
       </div>
 
@@ -209,9 +205,8 @@ export default function Upgrade() {
                 {nativeIOS ? 'YORBIT PRO' : '7-DAY FREE TRIAL'}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: '🤖', label: 'AI coaching', value: 'Daily' },
                 { icon: '🎯', label: 'Goals', value: 'Unlimited' },
                 { icon: '📊', label: 'Budgets', value: 'Every category' },
               ].map(({ icon, label, value }) => (
@@ -280,6 +275,8 @@ export default function Upgrade() {
         </div>
       </div>
 
+      <p className="px-4 mb-5 text-xs text-muted-foreground">AI Coach requires your consent and an available AI service. Usage limits apply; a Pro subscription does not guarantee unlimited or daily AI access.</p>
+
       {/* Free vs Pro comparison */}
       <div className="px-4 mb-5">
         <div className="sky-card rounded-2xl overflow-hidden">
@@ -292,7 +289,7 @@ export default function Upgrade() {
             <div key={label} className="grid grid-cols-3 px-4 py-2.5 border-b border-border/40 last:border-0">
               <p className="text-xs text-foreground font-medium">{label}</p>
               <p className="text-xs text-muted-foreground text-center">{free}</p>
-              <p className="text-xs text-emerald-600 font-bold text-center">{pro}</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-bold text-center">{pro}</p>
             </div>
           ))}
         </div>

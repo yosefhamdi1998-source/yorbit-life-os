@@ -287,7 +287,7 @@ export default function Settings() {
               </div>
               <div>
                 <p className="font-bold text-sm text-white">Yorbit Pro</p>
-                <p className="text-xs text-white/70 mt-0.5">Unlock AI Coach, unlimited budgets & more</p>
+                <p className="text-xs text-white/70 mt-0.5">Budget every category and track more savings goals</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1.5">
