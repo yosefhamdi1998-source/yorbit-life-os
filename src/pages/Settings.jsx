@@ -30,8 +30,28 @@ import { CHART_STYLES, getChartStyle, saveChartStyle } from '@/lib/chartPreferen
 
 export default function Settings() {
   const { isPro, loading: checkingPlan } = useProStatus();
+  const handleManageSubscription = async () => {
+    if (portalRef.current) return;
+    portalRef.current = true;
+    setOpeningPortal(true);
+    setPortalError('');
+    try {
+      const appBase = import.meta.env.BASE_URL.replace(/\/$/, '');
+      const result = await base44.functions.invoke('createBillingPortal', { returnUrl: `${window.location.origin}${appBase}/settings` });
+      if (!result?.url) throw new Error("Subscription management couldn't be opened. Please try again later.");
+      window.location.assign(result.url);
+    } catch (error) {
+      setPortalError(error?.message || "Subscription management couldn't be opened. Please try again later.");
+    } finally {
+      portalRef.current = false;
+      setOpeningPortal(false);
+    }
+  };
   const urlParams = new URLSearchParams(window.location.search);
   const purchaseSuccess = urlParams.get('success') === '1';
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [portalError, setPortalError] = useState('');
+  const portalRef = useRef(false);
   const [deleting, setDeleting] = useState(false);
   // Synchronous guards — destructive actions must never run twice from a
   // fast double-tap; React state alone does not prevent that.
@@ -361,6 +381,20 @@ export default function Settings() {
             ⭐ Rate
           </button>
         </div>}
+
+        {!isNativeIOS() && (
+          <div className="sky-card rounded-2xl p-5">
+            <p className="font-bold text-sm">Web subscription</p>
+            <p className="text-xs text-muted-foreground mt-1">Manage your billing details or cancel your web subscription through Stripe.</p>
+            <Button onClick={handleManageSubscription} disabled={openingPortal} variant="outline" className="mt-3 min-h-[44px]">
+              {openingPortal ? 'Opening subscription management…' : 'Manage Subscription'}
+            </Button>
+            {portalError && <div role="alert" className="mt-3 text-sm">
+              <p className="text-muted-foreground break-words">{portalError}</p>
+              <Link to="/support" className="inline-flex min-h-[44px] items-center text-primary underline underline-offset-2">Contact support</Link>
+            </div>}
+          </div>
+        )}
 
         {/* Restore Purchases — Apple requirement */}
         {isNativeIOS() && <div className="sky-card rounded-2xl p-5 flex items-center justify-between">

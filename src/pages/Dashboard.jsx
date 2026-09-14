@@ -3,7 +3,7 @@ import DataLoadError from '@/components/DataLoadError';
 import { billsDueThisWeek } from '@/lib/billWindow';
 import { reportLink } from '@/lib/reportRange';
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
@@ -75,7 +75,21 @@ export default function Dashboard() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [cashFlowPeriod, setCashFlowPeriod] = useState('month'); // 'week' | 'month' | `year-${YYYY}`
+  const [searchParams, setSearchParams] = useSearchParams();
+  const years = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))]
+    .map(Number).filter(Number.isFinite).sort((a, b) => b - a);
+  const YEAR_OPTIONS = years.length ? years : [new Date().getFullYear()];
+  const requestedPeriod = searchParams.get('period');
+  const cashFlowPeriod = ['week', 'month', '3month', '6month', 'all', ...YEAR_OPTIONS.map(y => `year-${y}`)]
+    .includes(requestedPeriod) ? requestedPeriod : 'month';
+  // Keep the selected range when returning from a report, without adding
+  // a browser-history entry for every change of this selector.
+  const setCashFlowPeriod = (period) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (period === 'month') next.delete('period');
+    else next.set('period', period);
+    return next;
+  }, { replace: true });
   const simpleMode = getSimpleMode();
   // Separate from cashFlowPeriod above (that one drives the hero's own
   // Week/Month/Year switcher) — this is just the Cash Flow Trend chart's
@@ -179,20 +193,6 @@ export default function Dashboard() {
   // two-week window - defeating the coverage check entirely.
   const { start: heroPeriodStart, end: heroPeriodEnd } =
     getPeriodBounds(cashFlowPeriod, latestTxDate, transactions);
-  // Same trailing-4-years list as the Yearly picker on Money, so the two
-  // don't quietly offer a different range of history.
-  const thisYearNum = new Date().getFullYear();
-  // Only offer years that actually contain transactions. Listing the last
-  // four years regardless meant picking 2023 or 2024 showed a completely
-  // empty hero, which reads as the app being broken rather than as "you
-  // have no data from then."
-  const YEAR_OPTIONS = (() => {
-    const years = [...new Set(transactions.map(t => t.date?.slice(0, 4)).filter(Boolean))]
-      .map(Number)
-      .sort((a, b) => b - a);
-    return years.length ? years : [thisYearNum];
-  })();
-
   // Months of real history on record — drives which trend ranges are worth
   // offering at all.
   const historyMonths = (() => {

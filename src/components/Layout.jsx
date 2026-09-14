@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { FEATURES } from '@/lib/features';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { recordRoute } from '@/hooks/useGoBack';
 import { getBackgroundTheme, applyBackgroundTheme } from '@/lib/backgroundThemes';
 import { getLargeText, applyTextSize } from '@/lib/textSize';
 import { getSimpleMode } from '@/lib/simpleMode';
@@ -93,7 +92,6 @@ export default function Layout() {
   useEffect(() => {
     const root = TAB_PATHS.find(p => p === '/' ? location.pathname === '/' : location.pathname.startsWith(p));
     if (root) tabHistory.current[root] = location.pathname;
-    recordRoute(location.pathname);
   }, [location.pathname]);
 
   const handleTabPress = (path) => {

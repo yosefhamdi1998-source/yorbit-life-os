@@ -74,6 +74,24 @@ function monthKeyUTC(d = new Date()) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+// Read past the Data API row cap; stop once the cap is already reached.
+// This remains a pre-request check, not an atomic reservation for concurrent requests.
+async function loadMonthlyAiSpend(admin: ReturnType<typeof serviceClient>, monthStart: string) {
+  let total = 0;
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin.from('ai_usage_log').select('estimated_cost_usd')
+      .gte('created_at', monthStart).order('created_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error || !Array.isArray(data)) throw new Error('Could not verify monthly AI usage.');
+    for (const row of data) {
+      const cost = Number(row.estimated_cost_usd);
+      if (row.estimated_cost_usd == null || !Number.isFinite(cost) || cost < 0) throw new Error('Invalid AI usage total.');
+      total += cost;
+    }
+    if (total >= MONTHLY_BUDGET_USD || data.length < pageSize) return total;
+  }
+}
+
 async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId: string) {
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date();
@@ -81,18 +99,18 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
   monthStart.setUTCHours(0, 0, 0, 0);
   const month = monthKeyUTC();
 
-  const [{ count: dailyCount }, { data: monthRows }, { data: profile }, { data: budgetRow }] =
-    await Promise.all([
+  const results = await Promise.all([
       admin.from('ai_usage_log').select('id', { count: 'exact', head: true })
         .eq('user_id', userId).gte('created_at', dayAgo),
-      admin.from('ai_usage_log').select('estimated_cost_usd')
-        .gte('created_at', monthStart.toISOString()),
       admin.from('profiles').select('ai_tier').eq('id', userId).single(),
       admin.from('ai_user_budgets').select('requests, spend_usd')
         .eq('user_id', userId).eq('month', month).maybeSingle(),
     ]);
+  if (results.some(result => result.error)) throw new Error('Could not verify AI usage limits.');
+  const [{ count: dailyCount }, { data: profile }, { data: budgetRow }] = results;
+  if (!Number.isFinite(dailyCount) || dailyCount < 0) throw new Error('Invalid daily AI usage count.');
 
-  if ((dailyCount ?? 0) >= DAILY_REQUEST_LIMIT_PER_USER) {
+  if (dailyCount >= DAILY_REQUEST_LIMIT_PER_USER) {
     return "You've reached today's AI Coach limit. It resets in a few hours — try again later.";
   }
 
@@ -102,6 +120,7 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
   const tier = profile?.ai_tier || 'free';
   const userSpend = Number(budgetRow?.spend_usd ?? 0);
   const userRequests = Number(budgetRow?.requests ?? 0);
+  if (!Number.isFinite(userSpend) || !Number.isFinite(userRequests) || userSpend < 0 || userRequests < 0) throw new Error('Invalid personal AI usage total.');
   const tierUsd = TIER_MONTHLY_USD[tier] ?? TIER_MONTHLY_USD.free;
   const tierRequests = TIER_MONTHLY_REQUESTS[tier] ?? TIER_MONTHLY_REQUESTS.free;
 
@@ -111,7 +130,7 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
       : "You've reached your AI Coach limit for this month. It resets on the 1st.";
   }
 
-  const monthSpend = (monthRows || []).reduce((s, r) => s + (r.estimated_cost_usd || 0), 0);
+  const monthSpend = await loadMonthlyAiSpend(admin, monthStart.toISOString());
   if (monthSpend >= MONTHLY_BUDGET_USD) {
     return "AI Coach has reached this month's usage budget. It'll reset next month.";
   }
@@ -421,6 +440,7 @@ async function handleAdvisorChat(body: any, userId: string, admin: ReturnType<ty
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, {}, req);
 
   try {
     const user = await getUser(req);

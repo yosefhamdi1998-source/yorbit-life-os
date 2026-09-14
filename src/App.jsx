@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ScrollToTop from '@/components/ScrollToTop';
+import RouteHistory from '@/components/RouteHistory';
 import Layout from '@/components/Layout';
 import { FEATURES } from '@/lib/features';
 
@@ -143,6 +144,7 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
             <ScrollToTop />
+            <RouteHistory />
             <AuthenticatedApp />
           </Router>
           <Toaster />

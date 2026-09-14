@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { recordRoute, resetHistory, previousRoute } from '../src/lib/routeHistory.js';
+
+resetHistory();
+recordRoute('/upgrade', 'a', 'POP');
+assert.equal(previousRoute(), null, 'Direct links must not navigate outside the app');
+recordRoute('/privacy-policy', 'b');
+assert.equal(previousRoute(), '/upgrade', 'Public policy pages must return to the paywall');
+recordRoute('/terms-of-use', 'c');
+assert.equal(previousRoute(), '/privacy-policy');
+recordRoute('/privacy-policy', 'b', 'POP');
+assert.equal(previousRoute(), '/upgrade', 'Browser back must not create a phantom visit');
+recordRoute('/upgrade', 'a', 'POP');
+assert.equal(previousRoute(), null);
+recordRoute('/finance?start=2026-08-01&end=2026-08-31&type=income', 'd');
+recordRoute('/spending-summary?start=2026-08-01&end=2026-08-31', 'e');
+assert.equal(previousRoute(), '/finance?start=2026-08-01&end=2026-08-31&type=income');
+recordRoute('/support', 'f', 'REPLACE');
+assert.equal(previousRoute(), '/finance?start=2026-08-01&end=2026-08-31&type=income', 'Replace cannot leave a superseded route in history');
+recordRoute('/support', 'f', 'REPLACE');
+assert.equal(previousRoute(), '/finance?start=2026-08-01&end=2026-08-31&type=income', 'Repeated effects are idempotent');
+recordRoute('/unknown-history', 'g', 'POP');
+assert.equal(previousRoute(), null, 'Unknown browser history must use the safe fallback');
+resetHistory();
+assert.equal(previousRoute(), null);
+console.log('PASS: public-page return, query preservation, POP/REPLACE, repeated effects, and direct-entry fallback');

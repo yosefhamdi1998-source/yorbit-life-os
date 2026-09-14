@@ -1,11 +1,11 @@
 import { parseCSV, statementRowKey } from '@/lib/csv';
+import { parseStatementAmount, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Upload, CheckCircle, AlertTriangle, ArrowLeft, Loader2, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import * as pdfjsLib from 'pdfjs-dist';
 // Vite emits the worker as its own asset and hands back its final URL —
 // pdf.js can't parse on the main thread without pointing at this.
@@ -45,7 +45,7 @@ function resolveP2PTitle(row, mapping, amountRaw) {
   // A leading minus means money LEFT the account, so the counterparty is
   // whoever it went "To". (Getting this backwards titles every row with
   // the account owner's own name instead of the person they paid.)
-  const outgoing = String(amountRaw ?? '').trim().startsWith('-');
+  const outgoing = parseStatementAmount(amountRaw) < 0;
   const to = (row[mapping.p2pTo] || '').trim();
   const from = (row[mapping.p2pFrom] || '').trim();
   const primary = outgoing ? (to || from) : (from || to);
@@ -67,12 +67,6 @@ function sniffColumn(rows, headers, predicate, exclude = []) {
   return bestScore >= 0.6 ? best : '';
 }
 
-function guessType(amount) {
-  const n = parseFloat(String(amount).replace(/[^0-9.-]/g, ''));
-  if (isNaN(n)) return 'expense';
-  return n < 0 ? 'expense' : 'income';
-}
-
 function guessCategory(description) {
   if (!description) return 'other';
   const d = description.toLowerCase();
@@ -92,23 +86,13 @@ function guessCategory(description) {
 // PDF text lines) funnels through this one function so date parsing,
 // amount cleanup, and category guessing only exist in one place.
 function normalizeRow({ date: rawDate, description, amount: rawAmount, p2p = false }) {
-  const rawAmt = String(rawAmount || '').replace(/[^0-9.-]/g, '');
-  const amount = Math.abs(parseFloat(rawAmt)) || 0;
-  if (!amount) return null;
-  const type = guessType(rawAmount);
+  const signedAmount = parseStatementAmount(rawAmount);
+  const date = parseStatementDate(rawDate);
+  if (signedAmount === null || signedAmount === 0 || !date) return null;
+  const amount = Math.abs(signedAmount);
+  const type = signedAmount < 0 ? 'expense' : 'income';
   const desc = (description || '').trim() || 'Transaction';
   const category = guessCategory(desc);
-  let date = (rawDate || '').trim() || format(new Date(), 'yyyy-MM-dd');
-  // Skip re-parsing values already in yyyy-MM-dd — new Date('yyyy-MM-dd')
-  // parses as UTC midnight, which format() then renders in local time,
-  // shifting the date back a day in any timezone behind UTC.
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    try {
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return null;
-      date = format(d, 'yyyy-MM-dd');
-    } catch { return null; }
-  }
   // A P2P export's rows are person-to-person payments regardless of what
   // the note says, so they're excluded from budgeting the same way
   // bank-synced P2P is — otherwise the same payment counts as "spending"
@@ -213,7 +197,7 @@ export default function CSVImport() {
             summaries.push({ name, count: 0, kind: 'pdf', warning: "Couldn't find transaction rows in this PDF — its layout may not be supported yet." });
           } else {
             allNormalized.push(...norm);
-            summaries.push({ name, count: norm.length, kind: 'pdf' });
+            summaries.push({ name, count: norm.length, kind: 'pdf', warning: skippedStatementRows(raw.length, norm.length) });
           }
         } else if (lower.endsWith('.csv')) {
           const text = await file.text();
@@ -305,7 +289,7 @@ export default function CSVImport() {
               amount: isDebitCreditSplit
                 // A row has a value in exactly one of the two columns in a
                 // real debit/credit export. Debit -> money out -> expense
-                // (negative, matching guessType's sign convention); Credit
+                // (negative, matching signed-amount notation); Credit
                 // -> money in -> income (left unsigned/positive).
                 ? (parseFloat(String(row[mapping.debit] || '').replace(/[^0-9.-]/g, '')) > 0
                     ? `-${row[mapping.debit]}`
@@ -317,7 +301,7 @@ export default function CSVImport() {
               p2p: !!p2pFormat,
             })).filter(Boolean);
             allNormalized.push(...norm);
-            summaries.push({ name, count: norm.length, kind: 'csv' });
+            summaries.push({ name, count: norm.length, kind: 'csv', warning: skippedStatementRows(rows.length, norm.length) });
           } else {
             // Couldn't confidently guess the columns — queue for a quick
             // one-time manual match instead of silently dropping the file.
@@ -370,7 +354,7 @@ export default function CSVImport() {
       date: row[current.mapping.date], description: row[current.mapping.description], amount: row[current.mapping.amount],
     })).filter(Boolean);
     setCollected(c => [...c, ...norm]);
-    setFileSummaries(s => [...s, { name: current.file.name, count: norm.length, kind: 'csv' }]);
+    setFileSummaries(s => [...s, { name: current.file.name, count: norm.length, kind: 'csv', warning: skippedStatementRows(current.rawRows.length, norm.length) }]);
     setError('');
     if (mapIndex + 1 < pendingMapFiles.length) {
       setMapIndex(i => i + 1);
@@ -580,7 +564,7 @@ export default function CSVImport() {
           {fileSummaries.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-4">
               {fileSummaries.map((f, i) => (
-                <span key={i} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.warning ? 'bg-amber-500/10 text-amber-600' : 'bg-secondary text-muted-foreground'}`}>
+                <span key={i} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.warning ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'bg-secondary text-muted-foreground'}`}>
                   {f.warning ? <AlertTriangle className="w-3 h-3 inline mr-1 -mt-0.5" /> : null}
                   {f.name} {f.warning ? '— ' + f.warning : `· ${f.count}`}
                 </span>

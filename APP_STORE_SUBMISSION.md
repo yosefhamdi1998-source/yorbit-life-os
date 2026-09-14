@@ -1,8 +1,8 @@
 # Yorbit — App Store submission pack
 
-Everything here is ready to paste into App Store Connect. Placeholders that
-need a value only you can supply are marked **`<<REPLACE>>`** and listed again
-at the bottom, so nothing gets submitted with a gap in it.
+**Draft — not submission-ready (September 14, 2026).** Verify the signed iPhone build, reviewer account, purchases, account deletion, and privacy answers before submitting. Placeholders must be completed; synthetic browser fixtures do not prove a reviewer account exists in production.
+
+Current Apple references: [App Review](https://developer.apple.com/app-store/review/), [Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), and [Privacy and Data Use](https://developer.apple.com/app-store/user-privacy-and-data-use/). Review requires usable account access where sign-in is needed; privacy declarations must cover the app and third parties.
 
 ---
 
@@ -13,13 +13,12 @@ at the bottom, so nothing gets submitted with a gap in it.
 Yorbit
 ```
 
-**Subtitle** (30 char max) — 29 characters:
+**Subtitle** (30 char max):
 ```
-Money tracker & AI insights
+Budget for changing income
 ```
 
-Avoid "budgeting app" in the subtitle; the category already says that and the
-space is better spent on the differentiator.
+The subtitle reflects the chosen niche: personal budgeting for people whose income changes.
 
 ---
 
@@ -36,7 +35,7 @@ enough data to be sure.
 ## Description
 
 ```
-Yorbit turns your real transactions into a clear picture of your money.
+Yorbit helps you plan your personal budget when income changes from month to month. See your recorded income, spending, bills, and goals in one place.
 
 CONNECT YOUR ACCOUNTS
 Link your bank securely through Plaid and your transactions import on their
@@ -59,7 +58,7 @@ monthly commitment and what it adds up to over a year.
 
 INVESTMENTS AND CRYPTO
 Import your exchange history and see realized profit and loss calculated with
-FIFO cost basis — the same method tax reporting uses. Gains and losses are
+FIFO cost basis. Gains and losses are
 broken out by year. Sales with no recorded purchase are reported separately
 and never counted as profit.
 
@@ -75,9 +74,9 @@ rather than showing a confident total built from a handful of transactions.
 
 PRIVACY
 Your financial data is yours. It is never sold, and never shared for
-advertising. Bank credentials are handled by Plaid and never reach Yorbit.
+advertising. Bank login passwords are handled by Plaid. Yorbit stores connection tokens to sync linked accounts.
 
-Yorbit Pro unlocks unlimited AI coaching and advanced reports. Subscriptions
+Yorbit Pro includes AI coaching and briefings, budgets for all categories, and unlimited savings goals. AI availability and usage limits must be confirmed before this draft is published. Subscriptions
 are monthly or yearly and renew automatically unless cancelled at least 24
 hours before the period ends. Manage or cancel anytime in your Apple ID
 settings.
@@ -108,10 +107,7 @@ indexes those separately and duplicates waste the field.
 
 ## Age rating
 
-Answer **No** to every content question. Expected result: **4+**.
-
-One question to answer carefully: *Unrestricted Web Access* — answer **No**.
-Yorbit opens Plaid Link in a controlled flow, not an open browser.
+Complete the current questionnaire against the signed app, including AI-generated content and external links. Do not preselect every answer or assume an age rating from this draft.
 
 ---
 
@@ -141,11 +137,11 @@ WHAT TO LOOK AT
 
 SUBSCRIPTIONS
 Yorbit Pro is offered monthly and yearly via In-App Purchase. The free tier is
-fully usable; Pro raises AI usage limits and unlocks advanced reports. The
+fully usable; Pro adds AI coaching and briefings, budgets for all categories, and unlimited savings goals. The
 paywall is reachable from Settings > Upgrade.
 
 BANK CONNECTIONS
-Bank linking uses Plaid. Yorbit never receives or stores bank credentials.
+Bank linking uses Plaid. Yorbit does not store bank login passwords; it stores connection tokens for syncing.
 The reviewer does not need to link an account — the demo data is already
 present.
 
@@ -182,8 +178,7 @@ and pre-answers the reviewer's privacy question.
 
 ## Privacy nutrition labels
 
-Must match `ios/App/App/PrivacyInfo.xcprivacy` and the Privacy Policy exactly.
-Any disagreement between the three is a rejection.
+Draft inventory only. Reconcile the signed archive privacy report, SDK behavior, server processing, and Privacy Policy before answering App Store Connect. This source manifest alone is not a completed privacy review.
 
 **Data used to track you:** None.
 
@@ -197,10 +192,7 @@ Any disagreement between the three is a rejection.
 | User ID | App Functionality |
 | Crash Data | App Functionality |
 
-**Data not collected:** Location, Contacts, Health, Browsing History,
-Search History, Sensitive Info, Photos, Audio.
-
-Answer **No** to "Do you or your third-party partners use data for tracking?"
+Do not submit blanket "not collected" answers from this draft. Legacy routes, optional notes/forms/health entries, AI inputs, diagnostics and third-party SDK collection still need reconciliation. Confirm tracking behavior in the signed build and provider configuration before answering the tracking question.
 
 ---
 
@@ -225,9 +217,7 @@ Restore button or absent auto-renewal wording is a standard rejection.
 
 ## Export compliance
 
-`ITSAppUsesNonExemptEncryption` is already set to `false` in `Info.plist`, so
-App Store Connect will not prompt per build. Yorbit uses only HTTPS/TLS and
-Apple's platform cryptography, which is exempt.
+`ITSAppUsesNonExemptEncryption` is already set to `false` in `Info.plist`, but the owner must confirm the export-compliance answers against the final signed build and its dependencies. A source flag alone does not establish the correct declaration.
 
 ---
 
@@ -235,12 +225,10 @@ Apple's platform cryptography, which is exempt.
 
 | Placeholder | Where it comes from |
 |---|---|
-| `<<TERMS_URL>>` | your domain, e.g. `https://yorbit.app/terms` |
-| `<<PRIVACY_URL>>` | your domain, e.g. `https://yorbit.app/privacy` |
-| `<<SUPPORT_EMAIL>>` | `support@` on your domain — **not** a personal Gmail |
+| `<<TERMS_URL>>` | `https://yorbit-life-os.vercel.app/terms-of-use` |
+| `<<PRIVACY_URL>>` | `https://yorbit-life-os.vercel.app/privacy-policy` |
+| `<<SUPPORT_EMAIL>>` | Current support: `yosefhamdi1998@gmail.com`; confirm it is monitored |
 | `<<REVIEW_EMAIL>>` | reviewer account you create, e.g. `appreview@yorbit.app` |
 | `<<REVIEW_PASSWORD>>` | you set it; give it to Apple, not to anyone else |
 
-The support address is not cosmetic. A personal Gmail address on a finance
-app's support listing is a credibility problem with reviewers and customers
-alike.
+A branded support address is optional polish. A working, monitored support contact is necessary; buying a domain is not a prerequisite imposed by this checklist.
