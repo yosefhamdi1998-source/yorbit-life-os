@@ -34,23 +34,27 @@ Deno.serve(async (req) => {
     const userId = user.id;
     console.log(`[delete-account] Starting deletion for user ${userId}`);
 
-    // 1. Cancel active Stripe subscription if one exists (no-op safely if billing isn't configured yet)
+    // Keep the identifiers needed to retry until Stripe confirms cancellation.
     try {
-      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-      if (stripeKey) {
+      const { data: subs, error: subscriptionError } = await admin.from('subscriptions')
+        .select('stripe_subscription_id').eq('user_id', userId);
+      if (subscriptionError || !Array.isArray(subs)) throw new Error('Subscription lookup failed');
+      const subscriptionIds = [...new Set(subs.map(sub => sub.stripe_subscription_id).filter(Boolean))];
+      if (subscriptionIds.length) {
+        const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+        if (!stripeKey) throw new Error('Subscription cancellation is not configured');
         const stripe = new Stripe(stripeKey);
-        const { data: subs } = await admin.from('subscriptions').select('*').eq('user_id', userId);
-        for (const sub of subs || []) {
-          if (sub.stripe_subscription_id && sub.status === 'active') {
-            console.log(`[delete-account] Canceling Stripe subscription ${sub.stripe_subscription_id}`);
-            await stripe.subscriptions.cancel(sub.stripe_subscription_id);
-          }
+        for (const id of subscriptionIds) {
+          // A webhook may be delayed; use current provider status, including trials and past-due plans.
+          const subscription = await stripe.subscriptions.retrieve(id);
+          if (['canceled', 'incomplete_expired'].includes(subscription.status)) continue;
+          const canceled = await stripe.subscriptions.cancel(id);
+          if (canceled.status !== 'canceled') throw new Error('Subscription cancellation not confirmed');
         }
       }
     } catch (err) {
-      console.error('[delete-account] Stripe cancellation error (non-fatal):', err.message);
+      return errorResponse("We couldn't confirm your web subscription cancellation. Your account has not been deleted. Please try again or contact support.", 503, { internal: err, fn: 'delete-account', req });
     }
-
     // 2. Revoke Plaid items before deleting local records (no-op safely if bank sync isn't configured yet)
     try {
       const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
