@@ -82,7 +82,8 @@ const base = {
     { id: 'g-1', name: 'Emergency Fund', target_amount: 12000, current_amount: 4300, target_date: '2027-06-01', category: 'emergency' },
   ],
   net_worth_entries: [
-    { id: 'nw-1', date: '2026-09-01', assets: 48200, liabilities: 12400, created_date: '2026-09-01' },
+    { id: 'nw-1', name: 'Savings account', type: 'asset', category: 'cash', value: 48200, created_date: '2026-09-01' },
+    { id: 'nw-2', name: 'Car loan', type: 'liability', category: 'loan', value: 12400, created_date: '2026-09-02' },
   ],
   ai_insight_caches: [],
   notifications: [],
