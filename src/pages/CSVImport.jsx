@@ -1,5 +1,5 @@
 import { parseCSV, statementRowKey } from '@/lib/csv';
-import { parseStatementAmount, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
+import { parseStatementAmount, parseStatementColumns, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Upload, CheckCircle, AlertTriangle, ArrowLeft, Loader2, FileSpreadsheet } from 'lucide-react';
@@ -287,13 +287,7 @@ export default function CSVImport() {
                 ? resolveP2PTitle(row, mapping, row[mapping.amount])
                 : row[mapping.description],
               amount: isDebitCreditSplit
-                // A row has a value in exactly one of the two columns in a
-                // real debit/credit export. Debit -> money out -> expense
-                // (negative, matching signed-amount notation); Credit
-                // -> money in -> income (left unsigned/positive).
-                ? (parseFloat(String(row[mapping.debit] || '').replace(/[^0-9.-]/g, '')) > 0
-                    ? `-${row[mapping.debit]}`
-                    : (row[mapping.credit] || '0'))
+                ? parseStatementColumns(row[mapping.debit], row[mapping.credit])
                 : row[mapping.amount],
               // Flagged from the FILE FORMAT, not from words in the title.
               // Every row in a Venmo/Cash App export is a person-to-person

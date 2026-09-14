@@ -15,6 +15,16 @@ export function parseStatementAmount(raw) {
   return Number.isFinite(amount) ? (parentheses ? -amount : amount) : null;
 }
 
+// Separate debit/credit columns must describe exactly one movement.
+// Never choose one side silently when both are populated or one is malformed.
+export function parseStatementColumns(rawDebit, rawCredit) {
+  const parseColumn = raw => String(raw ?? '').trim() === '' ? 0 : parseStatementAmount(raw);
+  const debit = parseColumn(rawDebit);
+  const credit = parseColumn(rawCredit);
+  if (debit === null || credit === null || (debit !== 0 && credit !== 0)) return null;
+  return debit !== 0 ? -Math.abs(debit) : credit;
+}
+
 export function parseStatementDate(raw) {
   const value = String(raw ?? '').trim();
   if (!value) return null;
@@ -41,5 +51,5 @@ export function parseStatementDate(raw) {
 
 export function skippedStatementRows(total, valid) {
   const skipped = total - valid;
-  return skipped > 0 ? `${valid} ready; ${skipped} skipped (missing/invalid date, invalid amount, or zero amount). Check the statement before importing.` : undefined;
+  return skipped > 0 ? `${valid} ready; ${skipped} skipped (missing/invalid date, invalid/conflicting amount, or zero amount). Check the statement before importing.` : undefined;
 }

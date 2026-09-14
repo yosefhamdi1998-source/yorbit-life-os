@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseStatementAmount, parseStatementDate, skippedStatementRows } from '../src/lib/statementValues.js';
+import { parseStatementAmount, parseStatementColumns, parseStatementDate, skippedStatementRows } from '../src/lib/statementValues.js';
 for (const [raw, expected] of [['($42.50)',-42.5], ['(1,234.56)',-1234.56], ['- $42.50',-42.5], ['$-42.50',-42.5], ['+ $900.00',900], ['1,234.56',1234.56], ['.50',0.5], [0,0], ['0',0]]) assert.equal(parseStatementAmount(raw), expected, raw);
 for (const raw of ['',null,undefined,'12abc34','1,23','1.2.3','Infinity','--42','(-42)','42.999','2026-09-01','$']) assert.equal(parseStatementAmount(raw),null,String(raw));
 for (const [raw,expected] of [['2026-09-01','2026-09-01'], ['2024-02-29','2024-02-29'], ['09/01/2026','2026-09-01'], ['9/1/26','2026-09-01'], ['2026-09-01T00:30:00Z','2026-09-01'], ['2026-09-01 12:00:00','2026-09-01']]) assert.equal(parseStatementDate(raw),expected,raw);
@@ -24,8 +24,8 @@ const helpers = source.slice(source.indexOf('const DATE_VALUE_RE'), source.index
 const processBody = source.slice(source.indexOf('  const processFiles ='), source.indexOf('  const handleFiles ='));
 const states = {};
 const setters = ['setStep','setError','setCollected','setFileSummaries','setPendingMapFiles','setMapIndex'];
-const process = new Function('parseCSV','parseStatementAmount','parseStatementDate','skippedStatementRows',...setters,
- helpers + processBody + ';return processFiles;')(parseCSV,parseStatementAmount,parseStatementDate,skippedStatementRows,...setters.map(name=>value=>{states[name]=value;}));
+const process = new Function('parseCSV','parseStatementAmount','parseStatementColumns','parseStatementDate','skippedStatementRows',...setters,
+ helpers + processBody + ';return processFiles;')(parseCSV,parseStatementAmount,parseStatementColumns,parseStatementDate,skippedStatementRows,...setters.map(name=>value=>{states[name]=value;}));
 await process([{name:'regression.csv',text:async()=> 'Date,Description,Amount\n2026-09-01,Cafe,($42.50)\n2026-09-02,Freelance,900.00\n2026-02-30,Invalid date,25\n,Missing date,25\n2026-09-03,Malformed amount,12abc34'}]);
 assert.equal(states.setStep,'preview');
 assert.equal(states.setCollected.length,2);
@@ -36,3 +36,8 @@ assert.match(states.setFileSummaries[0].warning,/2 ready; 3 skipped/);
 await process([{name:'debit-credit.csv',text:async()=> 'Date,Description,Debit,Credit\n09/01/2026,Cafe,42.50,\n09/02/2026,Freelance,,900.00'}]);
 assert.deepEqual(states.setCollected.map(row=>[row.type,row.amount]),[['expense',42.5],['income',900]]);
 console.log('PASS: actual file-processing handler preserves accounting signs, split debit/credit, and explicit skipped-row counts');
+
+await process([{name:'split-edge-cases.csv',text:async()=> 'Date,Description,Debit,Credit\n09/01/2026,Accounting expense,($42.50),\n09/02/2026,Ambiguous row,20,50\n09/03/2026,Malformed debit,junk,75\n09/04/2026,Valid income,0,900.00'}]);
+assert.deepEqual(states.setCollected.map(row=>[row.type,row.amount]),[['expense',42.5],['income',900]], 'Split columns must preserve accounting debits and reject ambiguous or malformed rows');
+assert.match(states.setFileSummaries[0].warning,/2 ready; 2 skipped/);
+console.log('PASS: split columns reject conflicting/malformed values and preserve accounting debits');
