@@ -387,7 +387,7 @@ export default function Budget() {
                     <div className={`h-full rounded-full ${over ? 'bg-red-500' : close ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No limit set — <button onClick={() => { setForm(f => ({ ...f, category: cat })); setShowForm(true); }} className="text-primary underline">set one</button></p>
+                  <p className="text-xs text-muted-foreground">No limit set — <button aria-label={`Set ${cat} budget limit`} onClick={() => { setForm(f => ({ ...f, category: cat })); setShowForm(true); }} className="text-primary underline min-h-[44px] inline-flex items-center">set one</button></p>
                 )}
               </div>
             );
