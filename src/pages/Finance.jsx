@@ -624,6 +624,8 @@ export default function Finance() {
   });
 
   const [nwSaving, setNwSaving] = useState(false);
+  const nwValidationError = validateNetWorthEntry(nwForm);
+  const showNWValidation = !!nwValidationError && !!(nwForm.name || nwForm.value);
   const saveNW = async () => {
     if (nwSaving) return;
     const validationError = validateNetWorthEntry(nwForm);
@@ -915,7 +917,7 @@ export default function Finance() {
                 <label htmlFor="net-worth-name" className="block text-xs font-medium">Name</label>
                 <Input id="net-worth-name" placeholder="Name (e.g. Savings Account)" value={nwForm.name} onChange={e => setNwForm(f => ({ ...f, name: e.target.value }))} />
                 <label htmlFor="net-worth-value" className="block text-xs font-medium">Value ($)</label>
-                <Input id="net-worth-value" type="number" placeholder="Value ($)" value={nwForm.value} onChange={e => setNwForm(f => ({ ...f, value: e.target.value }))} />
+                <Input id="net-worth-value" aria-describedby={showNWValidation ? "net-worth-error" : undefined} type="number" placeholder="Value ($)" value={nwForm.value} onChange={e => setNwForm(f => ({ ...f, value: e.target.value }))} />
                 <div className="grid grid-cols-2 gap-3">
                   <MobileSelect
                     ariaLabel="Entry type"
@@ -930,10 +932,11 @@ export default function Finance() {
                     options={NW_CAT_OPTIONS}
                   />
                 </div>
+                {showNWValidation && <p id="net-worth-error" role="alert" className="text-sm text-destructive">{nwValidationError}</p>}
               </div>
               <div className="flex gap-2 mt-3">
                 <Button variant="outline" onClick={() => setShowNWForm(false)} className="flex-1">Cancel</Button>
-                <Button onClick={saveNW} disabled={!nwForm.name || !nwForm.value || nwSaving} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+                <Button onClick={saveNW} disabled={!!nwValidationError || nwSaving} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground border-0">
                   {nwSaving ? 'Saving…' : 'Save'}
                 </Button>
               </div>
