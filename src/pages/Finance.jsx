@@ -3,7 +3,7 @@ import { transactionCategory, spendingCategories } from '@/lib/spendingCategorie
 import { CategoryBadge, CategoryIcon } from '@/lib/categoryVisuals';
 import DataLoadError from '@/components/DataLoadError';
 import { readReportRange, monthlyBudgetKey } from '@/lib/reportRange';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { DollarSign, Plus, X, Trash2, Search, TrendingUp, TrendingDown, PiggyBank, Percent, Pencil, StickyNote, ArrowUp, ArrowDown, Check, ListChecks, SlidersHorizontal } from 'lucide-react';
 import { prettyMerchant } from '@/lib/merchantName';
@@ -565,7 +565,7 @@ export default function Finance() {
         base44.entities.Transaction.list('-date', 50000),
         base44.entities.Budget.list(),
         base44.entities.NetWorthEntry.list(),
-        base44.entities.ConnectedAccount.list('-created_date', 50).catch(() => []),
+        base44.entities.ConnectedAccount.list('-created_date', 50),
       ]);
       setTransactions(tx); setBudgets(b); setNetWorth(nw); setAccounts(accts || []);
     } catch {
@@ -624,15 +624,17 @@ export default function Finance() {
   });
 
   const [nwSaving, setNwSaving] = useState(false);
+  const nwSaveLock = useRef(false);
   const nwValidationError = validateNetWorthEntry(nwForm);
   const showNWValidation = !!nwValidationError && !!(nwForm.name || nwForm.value);
   const saveNW = async () => {
-    if (nwSaving) return;
+    if (nwSaveLock.current) return;
     const validationError = validateNetWorthEntry(nwForm);
     if (validationError) {
       toast({ title: 'Check this entry', description: validationError, variant: 'destructive' });
       return;
     }
+    nwSaveLock.current = true;
     setNwSaving(true);
     try {
       await base44.entities.NetWorthEntry.create({ ...nwForm, name: nwForm.name.trim(), value: Number(nwForm.value) });
@@ -643,6 +645,7 @@ export default function Finance() {
     } catch {
       toast({ title: "Couldn't save entry", description: "Please try again in a moment.", variant: 'destructive' });
     } finally {
+      nwSaveLock.current = false;
       setNwSaving(false);
     }
   };
