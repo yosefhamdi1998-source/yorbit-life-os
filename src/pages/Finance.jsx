@@ -200,15 +200,15 @@ function TransactionRow({ tx, showDate, selectMode, selected, onToggleSelect, co
 }
 
 // ─── Transaction List ─────────────────────────────────────────────────────────
-function TransactionList({ transactions, hasHistory, onShowHistory, onDelete, onAdd, onUpdateNote, dateRange }) {
+function TransactionList({ transactions, hasHistory, onShowHistory, onDelete, onAdd, onUpdateNote, dateRange, initialCategory }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState(() => {
-    const type = new URLSearchParams(window.location.search).get('type');
+    const type = initialCategory ? 'expense' : new URLSearchParams(window.location.search).get('type');
     return ['income', 'expense'].includes(type) ? type : 'all';
   });
-  const [categoryFilter, setCategoryFilter] = useState(() => new URLSearchParams(window.location.search).get('category') || 'all');
+  const [categoryFilter, setCategoryFilter] = useState(() => initialCategory || new URLSearchParams(window.location.search).get('category') || 'all');
 
-  const [showAdvanced, setShowAdvanced] = useState(() => !!new URLSearchParams(window.location.search).get('category'));
+  const [showAdvanced, setShowAdvanced] = useState(() => !!initialCategory || !!new URLSearchParams(window.location.search).get('category'));
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
   const [customFrom, setCustomFrom] = useState('');
@@ -540,6 +540,8 @@ function TransactionList({ transactions, hasHistory, onShowHistory, onDelete, on
 
 // ─── Main Finance Page ────────────────────────────────────────────────────────
 export default function Finance() {
+  const [activeTab, setActiveTab] = useState('transactions');
+  const [chartCategory, setChartCategory] = useState(null);
   const { runGuarded: guardDelete } = useDeleteLock();
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -803,7 +805,7 @@ export default function Finance() {
         onSave={saveTx}
       />
 
-      <Tabs defaultValue="transactions">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-5 w-full grid grid-cols-3 text-xs">
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="overview">Spending</TabsTrigger>
@@ -812,13 +814,13 @@ export default function Finance() {
 
         {/* TRANSACTIONS TAB */}
         <TabsContent value="transactions">
-          <TransactionList transactions={summaryTx} hasHistory={transactions.length > 0} onShowHistory={() => { setExplicitRange(null); setSummaryPeriod('all'); }} dateRange={summaryPeriod} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
+          <TransactionList initialCategory={chartCategory} transactions={summaryTx} hasHistory={transactions.length > 0} onShowHistory={() => { setExplicitRange(null); setSummaryPeriod('all'); }} dateRange={summaryPeriod} onDelete={deleteTx} onAdd={() => setShowTxForm(true)} onUpdateNote={updateTxNotes} />
         </TabsContent>
 
         {/* OVERVIEW / SPENDING TAB */}
         <TabsContent value="overview">
           {catData.length > 0 ? (
-            <SpendingByCategoryChart catData={catData} totalExpenses={summaryExpenses} periodLabel={explicitRange?.label || rangeLabel(summaryPeriod)} />
+            <SpendingByCategoryChart onSelectCategory={category => { setChartCategory(category); setActiveTab("transactions"); }} catData={catData} totalExpenses={summaryExpenses} periodLabel={explicitRange?.label || rangeLabel(summaryPeriod)} />
           ) : (
             <div className="sky-card border border-dashed border-blue-200 rounded-2xl p-8 text-center mb-4">
               <DollarSign className="w-10 h-10 text-primary/30 mx-auto mb-3" />

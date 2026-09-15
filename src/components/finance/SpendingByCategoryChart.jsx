@@ -16,7 +16,7 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function SpendingByCategoryChart({ catData, totalExpenses, periodLabel }) {
+export default function SpendingByCategoryChart({ catData, totalExpenses, periodLabel, onSelectCategory }) {
   if (!catData || catData.length === 0) return null;
 
   const sorted = [...catData].sort((a, b) => b.spent - a.spent);
@@ -73,6 +73,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses, period
         </div>
       </div>
 
+      <p className="px-4 pb-2 text-xs text-muted-foreground">Choose a category to see its transactions.</p>
       {/* Category breakdown list. Two clear lines per row instead of four
           numbers crammed onto one — name+total on top (what you'd scan
           for), share-of-spending and budget-progress below in smaller,
@@ -86,7 +87,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses, period
           const color = CAT_COLORS[name] || '#94A3B8';
 
           return (
-            <div key={name} className="flex items-center gap-3">
+            <button type="button" key={name} aria-label={`View ${name} transactions for ${periodLabel}`} onClick={() => onSelectCategory(name)} className="flex items-center gap-3 w-full text-left min-h-[44px] rounded-lg hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary">
               <CategoryBadge category={name} size="w-10 h-10" iconSize="w-[18px] h-[18px]" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
@@ -108,7 +109,7 @@ export default function SpendingByCategoryChart({ catData, totalExpenses, period
                   />
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
