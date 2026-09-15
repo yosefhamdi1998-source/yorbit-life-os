@@ -188,7 +188,7 @@ export default function BankSync() {
     <div className="py-4 pb-8">
       <PageHeader
         title="Connected Accounts"
-        subtitle="Banks, Venmo & Coinbase — kept up to date automatically"
+        subtitle="Bank connections and imported activity"
         icon={Landmark}
         gradient="gradient-primary"
         action={

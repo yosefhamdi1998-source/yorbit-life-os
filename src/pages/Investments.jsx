@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { TrendingUp, ArrowDownLeft, ArrowUpRight, Coins, Wallet } from 'lucide-react';
@@ -293,7 +294,10 @@ export default function Investments() {
         <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-border mt-4">
           <Coins className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm font-semibold text-foreground mb-1">No investing activity yet</p>
-          <p className="text-xs text-muted-foreground">Connect a brokerage or crypto account, or import a Coinbase export, and it'll appear here — separate from your spending.</p>
+          <p className="text-xs text-muted-foreground">Connect a supported account to import available holdings. Your investment activity stays separate from everyday spending.</p>
+          <Link to="/bank-sync" className="inline-flex items-center justify-center min-h-[44px] rounded-xl px-5 py-3 mt-5 bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            Manage connected accounts
+          </Link>
         </div>
       </div>
     );
