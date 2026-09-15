@@ -111,8 +111,9 @@ export default function Recurring() {
         <div className="mb-5">
           <div className="flex items-center gap-1.5 mb-2 px-1">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Detected For You</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Possible recurring payments</p>
           </div>
+          <p className="text-xs text-muted-foreground mb-3 px-1">Similar charges appeared in several months. These may be regular purchases, not subscriptions. Check the amount and timing before adding a bill.</p>
           <div className="sky-card rounded-2xl overflow-hidden">
             <div className="divide-y divide-border/50">
               {detected.map(d => (
@@ -120,12 +121,13 @@ export default function Recurring() {
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0" style={{ backgroundColor: (CAT_COLORS[d.category] || '#94A3B8') + '22' }}>{CAT_ICONS[d.category] || '💸'}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{d.name}</p>
-                    <p className="text-xs text-muted-foreground">${fmt(d.amount)} · {d.intervalLabel} · seen {d.occurrences}×</p>
+                    <p className="text-xs text-muted-foreground">${fmt(d.amount)} · Possible monthly · seen in {d.occurrences} months</p>
                   </div>
                   <button
                     onClick={() => addDetected(d)}
+                    aria-label={`Add ${d.name}, $${fmt(d.amount)}, as a recurring bill`}
                     disabled={addingKey === d.key}
-                    className="shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    className="shrink-0 min-h-[44px] flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add
                   </button>
@@ -142,7 +144,7 @@ export default function Recurring() {
           <p className="text-sm font-semibold text-foreground mb-1">No recurring bills tracked yet</p>
           <p className="text-xs text-muted-foreground mb-4">
             {detected.length > 0
-              ? 'Tap Add on any subscription found above to start tracking it.'
+              ? 'Review the suggestions above, then add the payments you recognize as recurring bills.'
               : "Mark a bill as recurring and it'll show up here, with your real monthly and yearly cost."}
           </p>
           <Link to="/bills" className="text-xs font-bold text-primary underline underline-offset-2">Go to Bills →</Link>
