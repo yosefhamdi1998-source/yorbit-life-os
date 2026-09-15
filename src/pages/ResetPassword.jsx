@@ -24,21 +24,46 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let disposed = false;
+    let version = 0;
+    const checkSession = async (markMissingInvalid = false) => {
+      const request = ++version;
+      try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (disposed || request !== version) return;
+        if (sessionError) throw sessionError;
+        if (data?.session) {
+          setReady(true);
+          setInvalid(false);
+        } else if (markMissingInvalid) {
+          setReady(false);
+          setInvalid(true);
+        }
+      } catch {
+        if (disposed || request !== version) return;
+        setReady(false);
+        setInvalid(true);
+      }
+    };
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+      if (disposed) return;
+      if (event === "PASSWORD_RECOVERY") {
+        ++version;
+        setReady(true);
+        setInvalid(false);
+      } else if (event === "SIGNED_OUT") {
+        ++version;
+        setReady(false);
+        setInvalid(true);
+      }
     });
-    // If a recovery session already exists by the time this mounts (e.g. fast reload),
-    // onAuthStateChange won't re-fire PASSWORD_RECOVERY, so check the session directly too.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) setReady(true);
-    });
-    // Give the link a moment to resolve before showing "invalid link"
-    const timeout = setTimeout(() => {
-      supabase.auth.getSession().then(({ data }) => {
-        if (!data?.session) setInvalid(true);
-      });
-    }, 2500);
+    // Existing sessions support revisiting this page; server auth still
+    // authorizes the password update. Failed reads must not leave a spinner.
+    void checkSession();
+    const timeout = setTimeout(() => { void checkSession(true); }, 2500);
     return () => {
+      disposed = true;
+      ++version;
       listener?.subscription?.unsubscribe();
       clearTimeout(timeout);
     };
@@ -66,8 +91,8 @@ export default function ResetPassword() {
     return (
       <AuthLayout
         icon={AlertTriangle}
-        title="Invalid reset link"
-        subtitle="This password reset link is missing, invalid, or expired"
+        title="Unable to verify reset link"
+        subtitle="The link may have expired, or your session could not be loaded"
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
             Request a new link
@@ -75,7 +100,7 @@ export default function ResetPassword() {
         }
       >
         <p className="text-sm text-foreground text-center">
-          Please request a new password reset email.
+          Try opening the link again. If that does not work, request a new password reset email.
         </p>
       </AuthLayout>
     );
