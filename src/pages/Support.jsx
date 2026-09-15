@@ -56,7 +56,7 @@ export default function Support() {
               },
               {
                 q: 'What does Yorbit Pro include?',
-                a: 'Pro includes unlimited budgets, unlimited savings goals, the AI Money Coach, daily AI financial briefings, and priority support.'
+                a: 'Pro includes unlimited budgets and savings goals. AI Coach requires consent and an available AI service; usage limits apply, and Pro does not guarantee daily or unlimited AI access.'
               },
               {
                 q: 'Can I export my data?',
