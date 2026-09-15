@@ -235,11 +235,8 @@ export default function BankSync() {
             <Landmark className="w-7 h-7 text-white" />
           </div>
           <p className="text-base font-black text-foreground mb-1">Connect your bank</p>
-          {/* Same "up to 5 years, when your bank has it" promise as
-              onboarding — a returning user landing here directly should
-              get the identical pitch, not a shorter/vaguer version. */}
           <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-            Securely link your bank, Venmo, or Coinbase — up to 5 years of history imports automatically, when available. Your credentials are never stored.
+            Link a supported account to import available transactions. History varies by institution and connection; upload statements for older records. Yorbit does not store your bank password.
           </p>
           <Button
             onClick={connectBank}

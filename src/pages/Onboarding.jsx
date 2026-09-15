@@ -192,7 +192,7 @@ function StepConnect({ onSkip, navigate }) {
             primary
             icon={Landmark}
             title="Connect a bank"
-            body="Transactions import on their own. Up to 5 years of history, when your bank provides it."
+            body="Import available transactions from a supported bank. History varies; you can add older records with a statement."
             onClick={() => go('/bank-sync')}
           />
         )}
