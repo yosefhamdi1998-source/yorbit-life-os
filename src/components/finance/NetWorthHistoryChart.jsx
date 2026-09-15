@@ -40,8 +40,8 @@ export default function NetWorthHistoryChart({ entries }) {
           <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="netWorthFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2F9273" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#2F9273" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--chart-income, #2F9273)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--chart-income, #2F9273)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke="hsl(var(--border))" opacity={0.45} />
@@ -55,18 +55,18 @@ export default function NetWorthHistoryChart({ entries }) {
               labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
               formatter={v => [`$${fmt(v)}`, 'Recorded manual balance']}
             />
-            <Area type="monotone" dataKey="net" stroke="#2F9273" strokeWidth={2.5} fill="url(#netWorthFill)"
+            <Area type="monotone" dataKey="net" stroke="var(--chart-income, #2F9273)" strokeWidth={2.5} fill="url(#netWorthFill)"
               dot={(props) => {
                 const isLast = props.index === series.length - 1;
                 if (!isLast) return <g key={props.index} />;
                 return (
                   <g key={props.index}>
-                    <circle cx={props.cx} cy={props.cy} r={7} fill="#2F9273" fillOpacity={0.18} />
-                    <circle cx={props.cx} cy={props.cy} r={3.5} fill="#2F9273" stroke="white" strokeWidth={1.5} />
+                    <circle cx={props.cx} cy={props.cy} r={7} fill="var(--chart-income, #2F9273)" fillOpacity={0.18} />
+                    <circle cx={props.cx} cy={props.cy} r={3.5} fill="var(--chart-income, #2F9273)" stroke="white" strokeWidth={1.5} />
                   </g>
                 );
               }}
-              activeDot={{ r: 4.5, fill: '#2F9273', stroke: 'white', strokeWidth: 1.5 }} />
+              activeDot={{ r: 4.5, fill: 'var(--chart-income, #2F9273)', stroke: 'white', strokeWidth: 1.5 }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -255,3 +255,31 @@ html .text-primary { color: hsl(var(--primary-text, var(--primary))); }
 html .hover\:text-primary:hover { color: hsl(var(--primary-text, var(--primary))); }
 html .focus\:text-primary:focus { color: hsl(var(--primary-text, var(--primary))); }
 html .group:hover .group-hover\:text-primary { color: hsl(var(--primary-text, var(--primary))); }
+
+/* Complete theme presets share the same controls and semantic money labels. */
+html[data-theme-style] body {
+  background-image: var(--theme-backdrop);
+  background-attachment: fixed;
+}
+html[data-theme-style] h1, html[data-theme-style] h2 {
+  font-family: var(--theme-heading);
+  letter-spacing: -.025em;
+}
+html[data-theme-style] .font-numeric, html[data-theme-style] .money-figure {
+  font-family: var(--theme-numbers);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+html[data-theme-style] .sky-card {
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+}
+html[data-theme-style] aside {
+  background: hsl(var(--theme-nav));
+}
+html[data-theme-style='club'] .sky-card {
+  border-top: 2px solid hsl(var(--primary) / .65);
+}
+.theme-preview { min-height: 96px; border-radius: .7rem; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-preview { transition: none; }
+}

@@ -132,8 +132,8 @@ export default function IncomeExpenseTrendChart({ transactions, simple }) {
                 wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 8 }}
                 formatter={(v) => <span style={{ color: 'hsl(var(--muted-foreground))' }}>{v}</span>}
               />
-              <Bar dataKey="income" name="Income" fill="#2F9273" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
-              <Bar dataKey="expense" name="Spending" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
+              <Bar dataKey="income" name="Income" fill="var(--chart-income, #2F9273)" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
+              <Bar dataKey="expense" name="Spending" fill="var(--chart-expense, #EF4444)" radius={[4, 4, 0, 0]} maxBarSize={barMaxSize} />
             </BarChart>
           </ResponsiveContainer>
         </div>

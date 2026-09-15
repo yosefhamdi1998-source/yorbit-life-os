@@ -114,9 +114,6 @@ export default function Settings() {
   };
 
   const chooseBackground = (key) => {
-    // Dark mode's own class rule still wins — applyBackgroundTheme only
-    // touches the light-mode variables when dark is active, so this is safe
-    // to call regardless of which mode the user is currently in.
     applyBackgroundTheme(key, document.documentElement.classList.contains('dark'));
     setBgTheme(key);
   };
@@ -305,23 +302,34 @@ export default function Settings() {
         <div className="sky-card rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-1">
             <Palette className="w-4 h-4 text-muted-foreground" />
-            <p className="font-bold text-sm">Background</p>
+            <p className="font-bold text-sm">App themes</p>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">Pick the accent color for your app. Works with both light and dark mode.</p>
-          <div className="grid grid-cols-5 gap-3">
+          <p className="text-xs text-muted-foreground mb-4">Choose a complete look: surfaces, navigation, card shapes, headings, numbers and charts. Applies instantly and is saved on this device. Light and dark mode stay under your control.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {Object.entries(BACKGROUND_THEMES).map(([key, theme]) => (
               <button
                 key={key}
                 onClick={() => chooseBackground(key)}
-                className="flex flex-col items-center gap-1.5"
-                aria-label={`${theme.label} background`}
+                className={`text-left rounded-xl border-2 p-2 min-w-0 focus-visible:ring-2 focus-visible:ring-ring ${bgTheme === key ? 'border-primary bg-secondary' : 'border-border hover:border-primary/50'}`}
+                aria-label={`${theme.label} theme`}
                 aria-pressed={bgTheme === key}
               >
-                <span
-                  className={`w-11 h-11 rounded-full transition-all ${bgTheme === key ? 'ring-2 ring-offset-2 ring-offset-card ring-primary scale-105' : 'opacity-80 hover:opacity-100'}`}
-                  style={{ background: theme.swatch }}
-                />
-                <span className="text-[10px] font-medium text-muted-foreground truncate w-full text-center">{theme.label}</span>
+                <div className="theme-preview p-3 mb-2" style={{ background: theme.swatch }} aria-hidden="true">
+                  <div className="flex gap-2 h-[72px]">
+                    <div className="w-4 rounded bg-black/20" />
+                    <div className="flex-1 min-w-0">
+                      <div className="h-1.5 w-2/3 rounded bg-white/70 mb-2" />
+                      <div className="bg-white/90 text-slate-900 p-2 shadow-sm" style={{borderRadius: theme.style === 'editorial' ? '2px' : theme.style === 'coastal' ? '14px' : '6px',fontFamily: ['editorial','club'].includes(theme.style) ? 'Georgia, serif' : 'inherit'}}>
+                        <span className="block text-sm font-semibold">$2,450</span>
+                        <div className="flex items-end gap-1 h-4 mt-1">
+                          {[35,70,50,90,65].map((height, index) => <span key={index} className="flex-1 rounded-sm" style={{height: `${height}%`, background: theme.heroVia}} />)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <span className="block text-sm font-semibold text-foreground">{theme.label}{bgTheme === key ? ' ✓' : ''}</span>
+                <span className="block text-xs text-muted-foreground mt-1">{theme.description || 'Classic cards with a coordinated color palette'}</span>
               </button>
             ))}
           </div>
