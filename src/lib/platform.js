@@ -1,33 +1,6 @@
-/**
- * Platform detection utility.
- * Detects whether the app is running inside a Capacitor native iOS/Android wrapper.
- *
- * Usage:
- *   import { isNativeIOS, isNative } from '@/lib/platform';
- *   if (isNativeIOS()) { ... }
- */
+import { Capacitor } from '@capacitor/core';
 
-export function isNative() {
-  return (
-    typeof window !== 'undefined' &&
-    (window.Capacitor?.isNative === true || typeof window.Capacitor?.platform === 'string')
-  );
-}
-
-export function isNativeIOS() {
-  return (
-    typeof window !== 'undefined' &&
-    window.Capacitor?.platform === 'ios'
-  );
-}
-
-export function isNativeAndroid() {
-  return (
-    typeof window !== 'undefined' &&
-    window.Capacitor?.platform === 'android'
-  );
-}
-
-export function isWeb() {
-  return !isNative();
-}
+export const isNative = () => Capacitor.isNativePlatform();
+export const isNativeIOS = () => Capacitor.getPlatform() === 'ios';
+export const isNativeAndroid = () => Capacitor.getPlatform() === 'android';
+export const isWeb = () => !isNative();

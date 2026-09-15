@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const oauthStarting = useRef(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
 
@@ -96,8 +97,14 @@ export default function Register() {
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+  const handleGoogle = async () => {
+    if (oauthStarting.current) return;
+    oauthStarting.current = true;
+    setLoading(true);
+    setError('');
+    try { await base44.auth.loginWithProvider('google', '/'); }
+    catch { setError('Unable to open Google sign-in. Please try again.'); }
+    finally { oauthStarting.current = false; setLoading(false); }
   };
 
   if (showOtp) {
@@ -187,6 +194,7 @@ export default function Register() {
             variant="outline"
             className="w-full h-12 text-sm font-medium mb-6"
             onClick={handleGoogle}
+            disabled={loading}
           >
             <GoogleIcon className="w-5 h-5 mr-2" />
             Continue with Google

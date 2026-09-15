@@ -1,3 +1,4 @@
+import { isNative } from '../lib/platform';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -14,7 +15,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Required so the password-recovery link (which arrives with the session
     // in the URL hash) logs the user in automatically when ResetPassword.jsx loads.
-    detectSessionInUrl: true,
+    detectSessionInUrl: !isNative(),
+    flowType: isNative() ? 'pkce' : 'implicit',
     persistSession: true,
     autoRefreshToken: true,
   },

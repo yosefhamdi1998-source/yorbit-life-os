@@ -1,3 +1,5 @@
+import { isNative } from '../lib/platform';
+import { NATIVE_AUTH_REDIRECT } from '../lib/nativeAuth';
 import { supabase } from './supabaseClient';
 import { entities } from './entities';
 
@@ -199,11 +201,18 @@ const auth = {
     if (error) throw new Error(error.message);
   },
 
-  loginWithProvider(provider, redirectPath = '/') {
-    supabase.auth.signInWithOAuth({
+  async loginWithProvider(provider, redirectPath = '/') {
+    const native = isNative();
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}${APP_BASE}${redirectPath}` },
+      options: { redirectTo: native ? NATIVE_AUTH_REDIRECT : `${window.location.origin}${APP_BASE}${redirectPath}`, skipBrowserRedirect: native },
     });
+    if (error) throw new Error('Unable to start sign-in. Please try again.');
+    if (native) {
+      if (!data?.url) throw new Error('Unable to open sign-in. Please try again.');
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url: data.url });
+    }
   },
 
   async register({ email, password }) {
@@ -213,7 +222,7 @@ const auth = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}${APP_BASE}/login?confirmed=1` },
+      options: { emailRedirectTo: isNative() ? NATIVE_AUTH_REDIRECT : `${window.location.origin}${APP_BASE}/login?confirmed=1` },
     });
     if (error) throw new Error(error.message);
     // With email confirmation switched off, Supabase returns a live session
@@ -241,14 +250,14 @@ const auth = {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${window.location.origin}${APP_BASE}/login?confirmed=1` },
+      options: { emailRedirectTo: isNative() ? NATIVE_AUTH_REDIRECT : `${window.location.origin}${APP_BASE}/login?confirmed=1` },
     });
     if (error) throw new Error(error.message);
   },
 
   async resetPasswordRequest(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}${APP_BASE}/reset-password`,
+      redirectTo: isNative() ? NATIVE_AUTH_REDIRECT : `${window.location.origin}${APP_BASE}/reset-password`,
     });
     if (error) throw new Error(error.message);
   },

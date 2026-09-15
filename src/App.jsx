@@ -1,3 +1,4 @@
+import NativeAuthReturn from '@/components/NativeAuthReturn';
 import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -143,6 +144,7 @@ function App() {
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
+            <NativeAuthReturn />
             <ScrollToTop />
             <RouteHistory />
             <AuthenticatedApp />
