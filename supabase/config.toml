@@ -1,0 +1,93 @@
+# Supabase project configuration.
+#
+# WHY THIS FILE EXISTS
+#
+# `verify_jwt` is the platform-level gate in front of every Edge Function: with
+# it on, Supabase rejects a request that carries no valid JWT before any of our
+# code runs. HANDOFF.md calls it "the only thing standing between the public
+# anon key and these endpoints", yet until now it lived nowhere in the
+# repository — it was set per-deploy from the CLI and afterwards only visible in
+# the dashboard. Nobody reviewing this repo could tell which endpoints were
+# gated, and a redeploy that forgot a flag would silently change the answer.
+#
+# These values MATCH WHAT IS CURRENTLY DEPLOYED. They were not guessed: eight
+# are read back from the deployment records in YORBIT_PROGRESS.md, and the other
+# four are derived from each function's own first lines, which call getUser()
+# and return 401 when there is no user.
+#
+# CHANGING A VALUE HERE CHANGES PRODUCTION AUTHENTICATION on the next
+# `supabase functions deploy`. Treat an edit as a security change, not
+# bookkeeping. In particular, do not "tidy" stripe-webhook to true.
+#
+# NOTE: verify_jwt is only the outer gate. It proves a caller holds *some* valid
+# key, not that they are entitled to the data they asked for — the anon key is
+# public and satisfies it. Per-user authorization is the functions' own job:
+# getUser() plus an ownership check on any client-supplied id, or
+# requireSystemCaller() for the system-only endpoints. See
+# scripts/test-edge-auth-guards.mjs, which asserts both.
+
+project_id = "pvjiialxboslqyiiybpe"
+
+# --- Signed-in user endpoints -------------------------------------------------
+# Each of these calls getUser(req) and returns 401 without a user, so the gate
+# and the handler agree.
+
+[functions.ai-coach]
+verify_jwt = true
+
+[functions.cleanup-duplicate-records]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+# Added 2026-09-14. Derives the Stripe customer only from the authenticated
+# user's RLS-scoped records and accepts no customer id from the browser;
+# deployed v1 with JWT verification enabled, and an unsigned POST returns 401.
+[functions.create-billing-portal]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.plaid-create-link-token]
+verify_jwt = true
+
+[functions.plaid-exchange-token]
+verify_jwt = true
+
+# --- Endpoints reachable by a user OR by the system ---------------------------
+# These accept a service-role bearer for pg_cron and server-to-server calls, and
+# otherwise fall back to a signed-in user. The gate stays ON: the service-role
+# key is itself a valid JWT, so cron is unaffected, while a signed-in caller
+# that gets past the gate is still refused by the ownership check
+# (account.user_id !== user.id) or by requireSystemCaller.
+
+[functions.plaid-sync-transactions]
+verify_jwt = true
+
+[functions.plaid-sync-holdings]
+verify_jwt = true
+
+[functions.sync-all-accounts]
+verify_jwt = true
+
+[functions.generate-subscription-reminders]
+verify_jwt = true
+
+[functions.weekly-custom-record-analysis]
+verify_jwt = true
+
+# --- The one deliberate exception --------------------------------------------
+# Stripe calls this endpoint directly and sends no JWT — it authenticates with
+# the `stripe-signature` header instead, which the handler verifies against
+# STRIPE_WEBHOOK_SECRET before touching the database. Turning the gate on here
+# would make Supabase reject every webhook before that check ran, and billing
+# events would be dropped silently.
+#
+# Deployed as verify_jwt=false (stripe-webhook v1), and MIGRATION_STEPS.md
+# documents the matching deploy command:
+#     supabase functions deploy stripe-webhook --no-verify-jwt
+
+[functions.stripe-webhook]
+verify_jwt = false
