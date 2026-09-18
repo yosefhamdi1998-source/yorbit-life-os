@@ -61,7 +61,8 @@
     "test:sync-dispatcher": "node scripts/test-sync-dispatcher.mjs",
     "test:native-auth": "node scripts/test-native-auth.mjs",
     "test:edge-auth-guards": "node scripts/test-edge-auth-guards.mjs",
-    "test:function-jwt-config": "node scripts/test-function-jwt-config.mjs"
+    "test:function-jwt-config": "node scripts/test-function-jwt-config.mjs",
+    "audit:plaid-tokens": "npx supabase db query --linked -f scripts/audit-plaid-token-exposure.sql"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
