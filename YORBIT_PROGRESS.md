@@ -1112,3 +1112,91 @@ September15 16:35 scheduled coverage: 0 implementation changes. Reviewed Goals l
 September15 17:07 scheduled pass: zero code changes. Native-auth callback security/recovery, store-link clipboard success/manual-recovery and report-range tests passed. Browser Settings Simple Mode on -> Home four nav items Home/Money/Plan/More, detailed charts absent; Add transaction directly opens New Transaction, blank Save disabled, Cancel works. Restored Simple off; full Home chart returns, desktop1280 no horizontal overflow. No synthetic records saved or real provider calls. No new reproducible defect found in this coverage; five changes not claimed, no arbitrary release. Native signing/configuration and real subscription verification remain separate unresolved work. Daily/weekly reviews already complete. Changes limited to progress notes plus preexisting Supabase temp metadata.
 
 September15 17:39 scheduled pass: one customer-facing fix: Money Spending category rows were inert; now keyboard-accessible category buttons open Transactions with expense/category filters while retaining the same summary date window. Clear instructional copy added. Browser verified education last30days10/61 matching771.01; customAug25-Sep7 shopping2/31 matching344.59 then food4/31 matching181.10, no date reset. Bank->UploadStatement->BackTransactions works; no provider/file mutation. Dispatcher/auth/exchange, report comparison/ranges/selection tests, strict lint and build passed. Five changes not claimed: one verified usability gap addressed, unchanged provider/native blockers not bypassed. Daily/weekly checkpoints already recorded.
+
+## Claude - security regression coverage, September18 America/New_York
+
+Entries below written by Claude (Claude Code, desktop app). Codex keeps this
+journal and reads it; until now Claude's only channel back was commit messages,
+which had to be noticed. Recording here so both agents share one record.
+
+September18 03:42 commit 4db4590: locked the service-caller guard against
+regression. The fail-open sentinel was already fixed in _shared/serviceBearer.ts
+(exact Bearer extraction plus timingSafeEqual, a stronger fix than the one-word
+fail-closed patch originally proposed), but nothing in the suite stopped it
+returning. scripts/test-edge-auth-guards.mjs transpiles the REAL serviceBearer.ts
+with the project's own tsc and imports it, so a behavioural change in that file
+fails here; a hand-written replica would have kept passing while the real guard
+rotted, and the loader exits non-zero if the transpile or export ever breaks so
+the suite cannot go green by testing nothing. 23 checks: missing/empty/
+whitespace-only key denies, `Bearer __none__` opens nothing, exact
+^Bearer <token>$ so prefix padding, suffix padding and an embedded key are all
+rejected where the old .includes() accepted them, scheme stays case-insensitive,
+second token rejected. Two zero-tolerance source rules: no
+`Deno.env.get(...) || '<literal>'` fallback anywhere, and no hand-rolled header
+comparison outside serviceBearer.ts. Verified it actually bites - reintroducing
+the sentinel in a throwaway file failed both rules and exited 1, removing it
+returned green. A regression test never seen to fail is not yet a regression test.
+
+September18 16:06 commit 76892ee: put verify_jwt under version control.
+supabase/config.toml did not exist, so the platform gate HANDOFF.md calls "the
+only thing standing between the public anon key and these endpoints" was visible
+only in the dashboard and a redeploy that forgot a flag would change production
+auth silently. All 13 functions declared. Values are not guesses: eight read back
+from the deployment records in this journal, the rest derived from handlers that
+call getUser(req) and return 401. They match what is deployed, so this documents
+reality rather than changing it. stripe-webhook stays false - Stripe sends no JWT
+and authenticates by signature, so turning the gate on would drop every webhook
+before that check ran; test-function-jwt-config.mjs pins it from both directions,
+requiring the gate off AND the handler to still verify a signature. The test
+caught two mistakes in its own commit: create-billing-portal (added 09-14) had no
+entry because the function list was enumerated before syncing, and the config
+parser used \Z, which in JavaScript is a literal "Z" rather than end-of-input,
+silently making the LAST section - the stripe-webhook entry that most needs
+checking - unparseable. Confirmed `supabase db query --linked` still works with
+config.toml present, since adding it changes how the CLI resolves project settings.
+
+September18 16:21 commit db13f21: Plaid legacy-token exposure verified CLOSED.
+Measured read-only against the linked project - 9 plaid accounts, 0 holding a
+legacy token, 9 rows in plaid_credentials. Migration 20260914190526
+(save_plaid_accounts_private) writes NULL for new links and the older rows are
+cleared, so every connected account's token now lives only in the vault. Checked
+the distinction deliberately: zero could have meant "cleared" or "no Plaid
+accounts exist", and it is the former. npm run audit:plaid-tokens committed with
+that measurement as its baseline; its job changes from finding the problem to
+proving it stays fixed. It still reports, deliberately and without overstating
+them, that the column remains readable and writable by `authenticated` (those
+REVOKEs genuinely never took) and that connected_accounts keeps client write
+policies - defence in depth worth seeing, not a live hole, because the column is
+empty and getPlaidAccessToken consults the vault first.
+
+September18 UI coverage, no code changes: clicked through 12 pages against the
+synthetic fixture harness at 390x844 - Home, Budget, Money, Investments, Bills,
+Recurring, Goals, Totals, More, Notes, Settings, Coach. No defects. No 404s, no
+JS errors, no horizontal overflow, zero controls without an accessible name, all
+9 More links resolve to declared routes. Budget form validation rejects -50, 0
+and 999999999 (min=1, max=10000000); Cancel closes; delete prompts "Remove the
+food budget limit?" and declining left all 3 limits intact. Totals arithmetic
+consistent ($90K income - $170K expenses = -$80,238). Three false alarms were
+caught before reporting: /plan is not a route (Plan links to /budget), an
+apparent "Home content at /budget" was pushState confusing React Router rather
+than a routing bug, and six "unlabeled controls" were an artefact of using
+innerText (empty for elements in a collapsed container) and not checking
+placeholder. All three would have been confident, wrong bug reports.
+
+Open, deliberately not actioned by Claude. In Plaid files owned by Codex:
+_shared/plaidToken.ts still says the legacy copy "is blanked by 20260907160000",
+an id that is net_worth_value_positive.sql and never touches Plaid, and the
+legacy fallback branch is now dead for all nine accounts. Elsewhere: gh-pages is
+still 414ac68 from 09-08 while master has moved on, so that link serves a stale
+app; and delete_all_my_data() clears 8 of the 20 tables carrying a user_id, with
+advisor_conversations and advisor_messages (the AI Coach history) among those
+surviving a "delete all your financial data" action - a product decision, not a
+defect to patch, with a test proposed on branch claude/secdef-audit that is
+deliberately kept out of `npm test` because it fails today.
+
+Not verified by any of the above: payments and real billing lifecycle, real bank
+connect/sync/reconnect flows, the iPhone release, storage buckets, and real
+two-session authentication. The isolation work on branch
+claude/multiuser-isolation is database-role testing - simulated JWT claims at the
+RLS tier - not real authenticated sessions, and not a complete security pass.
+Yorbit is not ready for sale.
