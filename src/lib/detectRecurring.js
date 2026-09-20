@@ -1,4 +1,4 @@
-import { parseISO, addMonths } from 'date-fns';
+import { parseISO, addMonths, format } from 'date-fns';
 import { BILL_CATEGORIES as BILL_CATEGORY_LIST } from '@/lib/enums';
 
 // bills.category's allowed set, from the single source of truth that
@@ -145,7 +145,8 @@ export function detectRecurring(transactions, existingBillNames = []) {
         intervalLabel: 'Monthly',
         occurrences: months.length,
         lastDate: last3.date,
-        nextDate: addMonths(parseISO(last3.date), 1).toISOString().slice(0, 10),
+        // Keep the local calendar date; UTC serialization can move it back a day.
+        nextDate: format(addMonths(parseISO(last3.date), 1), 'yyyy-MM-dd'),
         monthlyEquivalent: amount,
       });
     }
