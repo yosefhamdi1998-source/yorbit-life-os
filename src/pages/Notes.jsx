@@ -13,6 +13,7 @@ import useDeleteLock from '@/hooks/useDeleteLock';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 
 const COLORS = ['#FDE68A', '#BFDBFE', '#BBF7D0', '#FBCFE8', '#DDD6FE', '#FECACA'];
+const COLOR_NAMES = ['Yellow', 'Blue', 'Green', 'Pink', 'Purple', 'Red'];
 // Defaults to today, because that's right nearly every time — but it's a
 // real editable field, so a note about last Tuesday's call can say so.
 const DEFAULT_FORM = () => ({
@@ -207,12 +208,15 @@ export default function Notes() {
               <label htmlFor="note-body" className="text-xs font-semibold text-muted-foreground mb-1.5 block">Note</label>
               <Textarea id="note-body" placeholder="Write something…" rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
             </div>
-            <div className="flex gap-2 pt-1">
-              {COLORS.map(c => (
+            <div className="flex flex-wrap gap-2 pt-1" role="group" aria-label="Note color">
+              {COLORS.map((c, index) => (
                 <button
                   key={c}
+                  type="button"
+                  aria-label={`${COLOR_NAMES[index]} note color`}
+                  aria-pressed={form.color === c}
                   onClick={() => setForm(f => ({ ...f, color: c }))}
-                  className="w-7 h-7 rounded-full shrink-0 transition-transform active:scale-90"
+                  className="w-11 h-11 rounded-full shrink-0 transition-transform active:scale-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   style={{ background: c, outline: form.color === c ? '2px solid hsl(var(--foreground))' : 'none', outlineOffset: 2 }}
                 />
               ))}
