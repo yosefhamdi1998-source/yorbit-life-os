@@ -15,6 +15,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull } from '@/lib/format';
+import { validateBillForm } from '@/lib/billValidation';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
 const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#DD8163', other: '#94A3B8' };
@@ -107,7 +108,11 @@ export default function Bills() {
   };
 
   const saveBill = async () => {
-    if (!form.name || !form.amount || !form.due_date) return;
+    const validationError = validateBillForm(form);
+    if (validationError) {
+      toast({ title: 'Check bill details', description: validationError, variant: 'destructive' });
+      return;
+    }
     // Synchronous re-entry guard. `disabled={saving}` can't stop a fast
     // double-tap on its own — React batches the state update, so taps
     // landing in the same tick all get through (verified on the
@@ -116,7 +121,7 @@ export default function Bills() {
     savingRef.current = true;
     setSaving(true);
     try {
-      const payload = { ...form, amount: parseFloat(form.amount) };
+      const payload = { ...form, name: form.name.trim(), amount: Number(form.amount) };
       if (editingBill) {
         setBills(prev => prev.map(b => b.id === editingBill.id ? { ...b, ...payload } : b));
         await base44.entities.Bill.update(editingBill.id, payload);
