@@ -25,6 +25,9 @@ class FixtureEntity {
     this.rows = (DATA[table] || []).map((r, i) => ({ id: r.id ?? `${table}-${i}`, created_date: r.created_date ?? '2026-01-01', ...r }));
   }
   async list(sort, limit) {
+    if (this.table === 'connected_accounts' && scenarioName === 'bank-load-retry' && !this.failureShown) {
+      this.failureShown = true; throw new Error('Synthetic load failure');
+    }
     // The defect needs the write AND the follow-up reload to fail together: a
     // reload that succeeds rescues the screen and hides the bug. But the page
     // has to LOAD before anything can be edited, so the first read is allowed
@@ -47,6 +50,7 @@ class FixtureEntity {
   }
   async create(payload) { const row = { id: `${this.table}-new-${this.rows.length}`, created_date: new Date().toISOString(), ...payload }; this.rows.push(row); return row; }
   async update(id, payload) {
+    if (this.table === 'connected_accounts' && scenarioName === 'bank-recovery' && payload.sync_status === 'disconnected') throw new Error('Synthetic disconnect failure');
     if (this.table === 'bills' && scenarioName === 'bills-write-fail') {
       throw new Error('Failed to fetch');
     }

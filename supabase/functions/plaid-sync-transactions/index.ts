@@ -1,3 +1,4 @@
+import { beginBankSync, completeBankSync, failBankSync, logBankSync, type BankSyncContext } from '../_shared/bankSync.ts';
 import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
@@ -143,6 +144,7 @@ Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
 
+  let sync: BankSyncContext | null = null;
   try {
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
@@ -202,7 +204,7 @@ Deno.serve(async (req) => {
     const { token: access_token } = await getPlaidAccessToken(admin, connected_account_id);
     if (!access_token) return jsonResponse({ error: 'Your bank connection needs to be reconnected.' }, 400, {}, req);
 
-    await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', connected_account_id);
+    sync = await beginBankSync(admin, account);
 
     const config = new Configuration({
       basePath: PlaidEnvironments.production,
@@ -257,11 +259,9 @@ Deno.serve(async (req) => {
     // sync-all-accounts then skips forever.
     const MAX_PAGES = 40;              // 40 x 500 = 20,000 transactions
     let pages = 0;
-    let lastOffset = -1;
     while (true) {
       if (++pages > MAX_PAGES) {
-        console.warn(`plaid-sync-transactions: hit MAX_PAGES for account ${connected_account_id}; stopping with ${plaidTxs.length} transactions`);
-        break;
+        throw new Error('Transaction history exceeds the safe page limit; sync is incomplete');
       }
       const txRes = await plaidClient.transactionsGet({
         access_token,
@@ -298,15 +298,11 @@ Deno.serve(async (req) => {
         };
       }
 
+      const total = txRes.data.total_transactions;
+      if (!Number.isSafeInteger(total) || total < 0) throw new Error('Invalid transaction total');
       offset += txRes.data.transactions.length;
-      if (offset >= txRes.data.total_transactions || txRes.data.transactions.length === 0) break;
-      // Offset must strictly advance. If it ever does not, the next request
-      // is byte-for-byte the one just made and the loop cannot terminate.
-      if (offset === lastOffset) {
-        console.warn(`plaid-sync-transactions: offset stalled at ${offset} for account ${connected_account_id}; stopping`);
-        break;
-      }
-      lastOffset = offset;
+      if (offset >= total) break;
+      if (txRes.data.transactions.length === 0) throw new Error('Transaction history ended before the reported total');
     }
 
     // Build the duplicate-check set from what's ALREADY stored for this
@@ -357,13 +353,10 @@ Deno.serve(async (req) => {
       if (!data || data.length < PAGE) break;
     }
 
-    let imported = 0;
-    let skipped = 0;
-    let failed = 0;
 
     for (const tx of plaidTxs) {
-      if (tx.pending) { skipped++; continue; }
-      if (isSelfTransfer(tx)) { skipped++; continue; }
+      if (tx.pending) { sync.skipped++; continue; }
+      if (isSelfTransfer(tx)) { sync.skipped++; continue; }
 
       const title = tx.merchant_name || tx.name || 'Transaction';
       const amount = Math.abs(tx.amount);
@@ -372,8 +365,7 @@ Deno.serve(async (req) => {
       // pull can return the same transaction_id more than once across
       // pages on a freshly connected item.
       const providerId = tx.transaction_id;
-      if (providerId && existingIds.has(providerId)) { skipped++; continue; }
-      if (providerId) existingIds.add(providerId);
+      if (providerId && existingIds.has(providerId)) { sync.skipped++; continue; }
 
       const type = tx.amount > 0 ? 'expense' : 'income';
       const category = mapCategory(tx);
@@ -399,12 +391,15 @@ Deno.serve(async (req) => {
       // failed reported "success, imported 0" and the only telemetry that
       // existed actively lied about it.
       if (error) {
-        failed++;
-        if (failed <= 3) console.error('transaction insert failed:', error.message);
+        sync.failed++;
+        if (sync.failed <= 3) console.error('A transaction could not be saved');
       } else {
-        imported++;
+        sync.imported++;
+        if (providerId) existingIds.add(providerId);
       }
     }
+
+    if (sync.failed > 0) throw new Error('Some transactions could not be saved; sync is incomplete');
 
     // What history did we ACTUALLY get? The earliest date Plaid returned is
     // the honest answer — never the window we asked for. Keep the oldest
@@ -417,9 +412,7 @@ Deno.serve(async (req) => {
       ? earliestReturned
       : priorStart;
 
-    await admin.from('connected_accounts').update({
-      sync_status: 'connected',
-      last_synced_at: new Date().toISOString(),
+    await completeBankSync(sync, {
       history_start_date: historyStart,
       // Spread only when we actually got a balance. Writing nulls would
       // overwrite a good previous balance with "unknown" on any sync where
@@ -427,7 +420,7 @@ Deno.serve(async (req) => {
       ...(latestBalances || {}),
       // Only a full-window pass counts as a completed backfill.
       ...(wantsFullHistory ? { history_backfilled_at: new Date().toISOString() } : {}),
-    }).eq('id', connected_account_id);
+    });
 
     // Surface any Plaid category the classifier has no explicit rule for,
     // at the moment it arrives rather than whenever someone next thinks to
@@ -446,18 +439,8 @@ Deno.serve(async (req) => {
       console.error('pfc registry check failed (non-fatal):', (e as Error).message);
     }
 
-    await admin.from('bank_sync_logs').insert({
-      user_id: account.user_id,
-      provider: 'plaid',
-      connected_account_id,
-      started_at: new Date().toISOString(),
-      finished_at: new Date().toISOString(),
-      status: failed > 0 ? 'partial' : 'success',
-      imported_count: imported,
-      skipped_duplicate_count: skipped,
-      error_count: failed,
-      message: `Imported ${imported}, skipped ${skipped} duplicates, ${failed} failed`,
-    });
+    const { imported, skipped } = sync;
+    await logBankSync(sync, 'success', `Imported ${imported}, skipped ${skipped}`);
 
     return jsonResponse({
       success: true,
@@ -469,62 +452,13 @@ Deno.serve(async (req) => {
       transactionsAvailableFromPlaid: plaidTxs.length,
     }, 200, {}, req);
   } catch (error) {
-    console.error('plaid-sync-transactions error:', error.response?.data || error.message);
-
-    // Release the 'syncing' status set before the Plaid call.
-    //
-    // Without this a single transient failure was permanent: the row stayed
-    // at 'syncing' forever, and sync-all-accounts selects only rows where
-    // sync_status = 'connected', so the cron never looked at that account
-    // again. The bank kept showing as connected in the UI while new
-    // transactions silently stopped arriving — the worst possible failure
-    // mode, because nothing anywhere said anything was wrong.
     try {
-      const body = await req.clone().json().catch(() => ({}));
-      const id = body?.connected_account_id;
-      if (id) {
-        const admin2 = serviceClient();
-        const { data: acct } = await admin2
-          .from('connected_accounts').select('user_id').eq('id', id).single();
-        // Plaid's error_code says whether this is fixable by retrying or
-        // needs the user to re-authenticate. "Please try again" on an
-        // ITEM_LOGIN_REQUIRED is advice that can never work: the item stays
-        // broken however many times they tap it.
-        const plaidCode = error.response?.data?.error_code || '';
-        const needsReconnect = [
-          'ITEM_LOGIN_REQUIRED',
-          'ITEM_LOCKED',
-          'PENDING_EXPIRATION',
-          'ACCESS_NOT_GRANTED',
-          'INVALID_ACCESS_TOKEN',
-          'ITEM_NOT_SUPPORTED',
-        ].includes(plaidCode);
-
-        await admin2.from('connected_accounts').update({
-          sync_status: needsReconnect ? 'reconnect_required' : 'error',
-          error_message: needsReconnect
-            ? 'Your bank needs you to sign in again to keep sharing transactions. Reconnect it from Bank Sync.'
-            : "We couldn't sync this account. Please try again in a few minutes.",
-        }).eq('id', id);
-        if (acct?.user_id) {
-          await admin2.from('bank_sync_logs').insert({
-            user_id: acct.user_id,
-            provider: 'plaid',
-            connected_account_id: id,
-            started_at: new Date().toISOString(),
-            finished_at: new Date().toISOString(),
-            status: 'error',
-            imported_count: 0,
-            skipped_duplicate_count: 0,
-            error_count: 1,
-            message: plaidCode ? `Sync failed (${plaidCode})` : 'Sync failed',
-          });
-        }
-      }
-    } catch (cleanupErr) {
-      console.error('plaid-sync-transactions cleanup failed:', cleanupErr.message);
+      await failBankSync(sync, error);
+    } catch {
+      console.error('Bank sync failure status could not be saved');
     }
-
-    return errorResponse("We couldn't sync your transactions. Please try again.", 500, { internal: error, fn: 'plaid-sync-transactions', req });
+    return errorResponse("We couldn't finish syncing your transactions. Please try again.", 500, {
+      internal: new Error('Bank sync incomplete'), fn: 'plaid-sync-transactions', req,
+    });
   }
 });

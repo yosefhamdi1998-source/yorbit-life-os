@@ -1,3 +1,4 @@
+import { beginBankSync, completeBankSync, failBankSync, logBankSync, type BankSyncContext } from '../_shared/bankSync.ts';
 import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
@@ -13,16 +14,13 @@ Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
 
-  // Read once, up front, and keep it in scope for the catch block below —
-  // a Request body can only be consumed once, so re-reading it after an
-  // error (to mark the account 'error') isn't an option.
-  let connected_account_id;
+  let sync: BankSyncContext | null = null;
   try {
     const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
     const plaidSecret = Deno.env.get('PLAID_SECRET');
     if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
 
-    ({ connected_account_id } = await req.json());
+    const { connected_account_id } = await req.json();
     const admin = serviceClient();
 
     const authHeader = req.headers.get('Authorization') || '';
@@ -60,7 +58,7 @@ Deno.serve(async (req) => {
     const { token: access_token } = await getPlaidAccessToken(admin, connected_account_id);
     if (!access_token) return jsonResponse({ error: 'Your connection needs to be reconnected.' }, 400, {}, req);
 
-    await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', connected_account_id);
+    sync = await beginBankSync(admin, account);
 
     const config = new Configuration({
       basePath: PlaidEnvironments.production,
@@ -76,7 +74,6 @@ Deno.serve(async (req) => {
     // multiple accounts at the institution, and Plaid returns all of them.
     const ownHoldings = holdings.filter((h) => h.account_id === account.provider_account_id);
 
-    let synced = 0;
     for (const h of ownHoldings) {
       const security = securityById.get(h.security_id);
       const { error } = await admin.from('investment_holdings').upsert({
@@ -89,39 +86,24 @@ Deno.serve(async (req) => {
         currency: h.iso_currency_code || 'USD',
         updated_date: new Date().toISOString(),
       }, { onConflict: 'connected_account_id,security_name,ticker_symbol' });
-      if (!error) synced++;
+      if (error) sync.failed++;
+      else sync.imported++;
     }
 
-    await admin.from('connected_accounts').update({
-      sync_status: 'connected',
-      last_synced_at: new Date().toISOString(),
-    }).eq('id', connected_account_id);
-
-    await admin.from('bank_sync_logs').insert({
-      user_id: account.user_id,
-      provider: 'plaid',
-      connected_account_id,
-      started_at: new Date().toISOString(),
-      finished_at: new Date().toISOString(),
-      status: 'success',
-      imported_count: synced,
-      skipped_duplicate_count: 0,
-      error_count: 0,
-      message: `Synced ${synced} holding(s)`,
-    });
+    if (sync.failed > 0) throw new Error('Some holdings could not be saved; sync is incomplete');
+    await completeBankSync(sync);
+    const synced = sync.imported;
+    await logBankSync(sync, 'success', `Synced ${synced} holding(s)`);
 
     return jsonResponse({ success: true, synced }, 200, {}, req);
   } catch (error) {
-    console.error('plaid-sync-holdings error:', error.response?.data || error.message);
-    if (connected_account_id) {
-      try {
-        const admin = serviceClient();
-        await admin.from('connected_accounts').update({
-          sync_status: 'error',
-          error_message: "We couldn't sync this account's holdings. Please try again.",
-        }).eq('id', connected_account_id);
-      } catch { /* best-effort status update only */ }
+    try {
+      await failBankSync(sync, error);
+    } catch {
+      console.error('Bank sync failure status could not be saved');
     }
-    return errorResponse("We couldn't sync your holdings. Please try again.", 500, { internal: error, fn: 'plaid-sync-holdings', req });
+    return errorResponse("We couldn't finish syncing your holdings. Please try again.", 500, {
+      internal: new Error('Bank sync incomplete'), fn: 'plaid-sync-holdings', req,
+    });
   }
 });

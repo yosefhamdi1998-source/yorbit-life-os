@@ -30,17 +30,21 @@ export default function BankSync() {
   const [syncingId, setSyncingId] = useState(null);
   const [syncResult, setSyncResult] = useState(null); // { imported, skipped }
   const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [disconnectingId, setDisconnectingId] = useState(null);
 
   const loadAccounts = useCallback(async () => {
+    setLoadError(null);
     try {
       const [accountData, holdingData] = await Promise.all([
-        base44.entities.ConnectedAccount.list('-created_date', 20),
-        base44.entities.InvestmentHolding.list('-institution_value', 100),
+        base44.entities.ConnectedAccount.list('-created_date'),
+        base44.entities.InvestmentHolding.list('-institution_value'),
       ]);
       setAccounts(accountData.filter(a => a.sync_status !== 'disconnected'));
-      setHoldings(holdingData);
+      const visibleIds = new Set(accountData.filter(a => a.sync_status !== 'disconnected').map(a => a.id));
+      setHoldings(holdingData.filter(h => visibleIds.has(h.connected_account_id)));
     } catch {
-      setError("We couldn't load your connected accounts. Please try again.");
+      setLoadError("We couldn't load your connected accounts. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -154,9 +158,11 @@ export default function BankSync() {
     try {
       if (isInvestment) {
         const res = await base44.functions.invoke('plaidSyncHoldings', { connected_account_id: id });
+        if (res?.success !== true || !Number.isFinite(res.synced)) throw new Error('Sync was not confirmed');
         setSyncResult({ holdingsSynced: res.synced });
       } else {
         const res = await base44.functions.invoke('plaidSyncTransactions', { connected_account_id: id, full });
+        if (res?.success !== true || !Number.isFinite(res.imported)) throw new Error('Sync was not confirmed');
         setSyncResult({
           imported: res.imported,
           skipped: res.skipped,
@@ -164,16 +170,26 @@ export default function BankSync() {
           fullHistoryPass: res.fullHistoryPass,
         });
       }
-      await loadAccounts();
     } catch {
       setError(isInvestment ? "We couldn't sync your holdings. Please try again." : "We couldn't sync your transactions. Please try again.");
     }
+    // Refresh even on failure so reconnect_required becomes actionable.
+    await loadAccounts();
     setSyncingId(null);
   };
 
   const disconnect = async (id) => {
-    await base44.entities.ConnectedAccount.update(id, { sync_status: 'disconnected' });
-    setAccounts(prev => prev.filter(a => a.id !== id));
+    setDisconnectingId(id);
+    setError(null);
+    try {
+      await base44.entities.ConnectedAccount.update(id, { sync_status: 'disconnected' });
+      setAccounts(prev => prev.filter(a => a.id !== id));
+      setHoldings(prev => prev.filter(h => h.connected_account_id !== id));
+    } catch {
+      setError("We couldn't confirm the disconnect. Refresh accounts before trying again.");
+    } finally {
+      setDisconnectingId(null);
+    }
   };
 
   if (loading) {
@@ -201,11 +217,19 @@ export default function BankSync() {
         }
       />
 
+      {loadError && (
+        <div role="alert" className="sky-card rounded-2xl p-4 mb-4 space-y-3">
+          <p className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" onClick={loadAccounts}>Retry loading accounts</Button>
+        </div>
+      )}
+
       {/* Error banner */}
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-4 text-sm text-red-700">
+        <div role="alert" className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-4 text-sm text-red-700">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span className="flex-1">{error}</span>
+          <Button variant="ghost" size="sm" onClick={() => { setError(null); loadAccounts(); }}>Refresh accounts</Button>
           <button onClick={() => setError(null)} aria-label="Dismiss" className="p-2.5 -m-1.5 shrink-0"><X className="w-4 h-4" /></button>
         </div>
       )}
@@ -219,9 +243,9 @@ export default function BankSync() {
               ? `Synced! ${syncResult.holdingsSynced} holding${syncResult.holdingsSynced !== 1 ? 's' : ''} updated.`
               : <>
                   Synced! {syncResult.imported} new transaction{syncResult.imported !== 1 ? 's' : ''} imported
-                  {syncResult.skipped > 0 ? `, ${syncResult.skipped} duplicates skipped` : ''}.
+                  {syncResult.skipped > 0 ? `, ${syncResult.skipped} records skipped` : ''}.
                   {syncResult.fullHistoryPass && syncResult.actualHistoryStart && (
-                    <> Your bank provided history back to <strong>{format(parseISO(syncResult.actualHistoryStart), 'MMMM d, yyyy')}</strong> — that's everything it has.</>
+                    <> Your bank provided history back to <strong>{format(parseISO(syncResult.actualHistoryStart), 'MMMM d, yyyy')}</strong> for this connection. Older records may require statement uploads.</>
                   )}
                 </>}
           </span>
@@ -229,7 +253,7 @@ export default function BankSync() {
         </div>
       )}
 
-      {accounts.length === 0 ? (
+      {accounts.length === 0 && loadError ? null : accounts.length === 0 ? (
         <div className="sky-card rounded-2xl p-8 text-center border border-dashed border-blue-200">
           <div className="w-14 h-14 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
             <Landmark className="w-7 h-7 text-white" />
@@ -328,7 +352,7 @@ export default function BankSync() {
                               variant="outline" size="sm"
                               className="h-8 text-xs gap-1"
                               onClick={() => syncAccount(acct.id, acct.account_type)}
-                              disabled={!!syncingId}
+                              disabled={!!syncingId || !!disconnectingId || connecting}
                             >
                               <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
                               {isSyncing ? 'Syncing' : 'Sync'}
@@ -339,6 +363,7 @@ export default function BankSync() {
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             onClick={() => disconnect(acct.id)}
                             aria-label="Disconnect account"
+                            disabled={!!disconnectingId || !!syncingId || connecting}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -357,7 +382,7 @@ export default function BankSync() {
               time — this re-asks for everything. */}
           <Button
             onClick={async () => {
-              for (const a of accounts.filter(x => x.account_type !== 'investment')) {
+              for (const a of accounts.filter(x => x.account_type !== 'investment' && x.sync_status !== 'reconnect_required')) {
                 await syncAccount(a.id, a.account_type, true);
               }
             }}

@@ -11,7 +11,10 @@
 // Localhost entries are for `npm run dev`. They are harmless in production:
 // an attacker who can serve from the victim's own localhost has already won.
 const ALLOWED_ORIGINS = [
+  // Packaged Capacitor origins (iOS and Android). Authorization still applies.
   'https://yorbit-life-os.vercel.app',
+  'capacitor://localhost',
+  'https://localhost',
   'https://yosefhamdi1998-source.github.io',
   'http://localhost:5173',
   'http://localhost:4173',

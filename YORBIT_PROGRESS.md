@@ -1446,3 +1446,36 @@ choosing nothing imported both. test-import-concurrency caught the new free
 identifier by failing, as it did for planImport - that harness has now caught
 three missing scope entries. 16 dedup checks pass; strict lint, build and full
 suite pass.
+
+
+## September 22, 2026 — Codex takeover, verified launch repairs
+
+Claude stopped at 6020fab; work continued in the clean, current GitHub checkout at C:/Users/Yosef/projects/yorbit-life-os. The older Codex checkout and its uncommitted journal were preserved. No additional agents or development automations were started.
+
+Completed engineering:
+- Closed live profile self-promotion: a synthetic authenticated user could set role=admin and write ai_tier. Migration restrict_profile_authority (20260922093151) removes those client writes while preserving owner consent/onboarding updates and trusted service-role administration. Seven database-role checks pass after deployment; synthetic users and edits rolled back. This is not a two-browser authentication test.
+- Repaired both bank workers: failure cleanup uses only an authorized account context; expired connections become reconnect_required; start/completion writes must be confirmed; disconnects are preserved; failed transaction/holding writes and incomplete pagination no longer invent success or freshness. Successful retries clear old errors. Actual handler tests use real Request bodies and synthetic provider/database/auth implementations: 35 scenarios pass. No real bank API calls made.
+- Bank screen now refreshes failure states, shows a retry for failed loads, checks confirmed sync results, retains accounts on failed disconnect, excludes disconnected holdings, and loads all account/holding pages. Removed unsupported claim that a full pull is everything a bank has.
+- Retired the unsafe legacy administrator bulk cleanup. Matching fields do not prove duplicates. Authenticated admin requests now receive 410; no financial records are read/deleted by this endpoint. Synthetic tests verify anonymous, ordinary-user and admin paths.
+- Added native Capacitor origins to the shared CORS allowlist, preserving bearer authorization and rejecting unrelated origins. Local preflight/response tests pass. Native device execution remains untested.
+
+Validation: full npm test passed including live read-only enum checks; strict lint and production build passed. Subsequent cleanup/UI changes passed their targeted checks, strict lint and another production build. Tests were not used to infer every control works.
+
+Interaction coverage this run (synthetic app only):
+| Surface | Status | Evidence |
+| --- | --- | --- |
+| Bank Sync, failed sync | Tested | Clicking Sync exposes Sign in again and Reconnect without reload. |
+| Bank Sync, failed disconnect | Tested | Account remains visible; error replaces silent failure. |
+| Bank Sync, load failure/retry | Tested | No false empty state; Retry loading accounts restores the list. |
+| Home filter/chart/navigation | Tested | Last 7 days updates dates and totals; September drill-down shows 20 records, income 3200.00/spending 2866.07; previous August/next September and transaction link preserve selected dates. |
+| Phone/dark bank layout | Tested with limitation | Phone viewport requested; browser reported actual inner width 434px, no document horizontal overflow. Screenshot capture had resize artifacts; not a physical-device check. |
+| Desktop/light, Simple mode, remaining Settings | Not yet tested this run | Earlier coverage retained above; not inferred current. |
+| Real Plaid, payments, deletion, signed iOS | Blocked/not exercised | Synthetic checks only; no real financial mutations, bank connections, charges, or account deletion. |
+
+Backend deployments: plaid-sync-transactions v22; plaid-sync-holdings v8; cleanup-duplicate-records v8 (disabled); delete-account v12; generate-subscription-reminders v10; plaid-create-link-token v9; plaid-exchange-token v11; sync-all-accounts v8; create-checkout v3. Except the two bank workers and disabled cleanup, deployments preserved the prior live function files and changed only CORS. JWT gates preserved.
+
+Approval-review restrictions: AI Coach origin-only redeployment rejected because its existing opt-in flow transmits financial context to Anthropic; specific owner approval requested and pending. Weekly AI endpoint also left unchanged. Stripe webhook and billing portal updates rejected because Stripe approval remains unresolved; they remain at prior versions. No workaround attempted. The destructive cleanup deployment was rejected, replaced with the tested disabled implementation, and that safe alternative deployed successfully.
+
+Remaining engineering: webhook ordering/repeated checkout trials; atomic replacement of stale investment positions; full multi-session isolation and native device validation; remaining interaction coverage. STRIPE_SECRET_KEY absence was last verified by Claude, not reverified in this pass; adding a key is a prerequisite, not proof billing works. Existing restricted-key proposal remains pending. Financial-reset scope proposal still excludes custom_records/notes and requires owner decision. Native signing/products/reviewer account still need actual owner configuration. A Vercel deployment is not an App Store release.
+
+Web deployment evidence: pending GitHub push and production verification for this batch.

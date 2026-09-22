@@ -96,6 +96,8 @@ const base = {
 
 export const SCENARIOS = {
   default: base,
+  'bank-recovery': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
+  'bank-load-retry': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
   'category-accuracy': {
     ...base,
     transactions: [...base.transactions,

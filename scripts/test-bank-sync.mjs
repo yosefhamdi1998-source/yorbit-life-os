@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import { transformSync } from 'esbuild';
+
+const compile = path => transformSync(fs.readFileSync(path, 'utf8').replace(/^import .*;\r?\n/gm, '').replace(/^export /gm, ''), { loader: 'ts' }).code;
+const shared = compile('supabase/functions/_shared/bankSync.ts');
+
+async function run(kind, scenario = 'success') {
+  let handler, providerCalls = 0;
+  const writes = [], logs = [], transactions = [];
+  const account = { id: 'fixture-account', user_id: 'fixture-owner', provider_account_id: 'fixture-bank', sync_status: 'connected', last_synced_at: '2026-01-01', history_backfilled_at: null };
+  const admin = {
+    rpc: async () => ({ data: [], error: null }),
+    from(table) {
+      let operation = 'read', patch, filters = [], start = 0;
+      const q = {
+        select() { return q; }, eq(k, v) { filters.push([k, v]); return q; },
+        not() { return q; }, gte() { return q; }, lte() { return q; },
+        range(from) { start = from; return q; },
+        update(value) { operation = 'update'; patch = value; return q; },
+        insert(value) { operation = 'insert'; patch = value; return q; },
+        upsert(value) { operation = 'insert'; patch = value; return q; },
+        single() { return execute(); }, maybeSingle() { return execute(); },
+        then(resolve, reject) { return execute().then(resolve, reject); },
+      };
+      async function execute() {
+        if (operation === 'read') {
+          if (table === 'connected_accounts') return { data: scenario === 'missing' ? null : { ...account }, error: null };
+          assert.equal(table, 'transactions');
+          if (scenario === 'read-error') return { data: null, error: new Error('Synthetic read failure') };
+          return { data: scenario === 'duplicate' && start === 0 ? [{ provider_transaction_id: 'tx-0' }] : [], error: null };
+        }
+        if (table === 'connected_accounts') {
+          assert.equal(operation, 'update');
+          const matching = filters.every(([k, v]) => account[k] === v);
+          const fails = scenario === 'start-error' && patch.sync_status === 'syncing' || scenario === 'finish-error' && patch.sync_status === 'connected';
+          if (fails) return { data: null, error: new Error('Synthetic write failure') };
+          if (matching) { Object.assign(account, patch); writes.push(patch); }
+          return { data: matching ? { id: account.id } : null, error: null };
+        }
+        if (table === 'bank_sync_logs') { logs.push(patch); return { error: null }; }
+        assert.ok(['transactions', 'investment_holdings'].includes(table));
+        if (scenario === 'insert-error' || scenario === 'partial' && transactions.length === 1) return { error: new Error('Synthetic insert failure') };
+        transactions.push(patch); return { error: null };
+      }
+      return q;
+    },
+  };
+  function providerError() {
+    if (scenario === 'reconnect' || scenario === 'disconnect-error' || scenario === 'provider-error') {
+      if (scenario === 'disconnect-error') account.sync_status = 'disconnected';
+      const error = new Error('Synthetic provider failure');
+      if (scenario === 'reconnect') error.response = { data: { error_code: 'ITEM_LOGIN_REQUIRED' } };
+      throw error;
+    }
+    if (scenario === 'disconnect') account.sync_status = 'disconnected';
+  }
+  const source = compile(`supabase/functions/plaid-sync-${kind}/index.ts`);
+  vm.runInNewContext(`${shared}\n${source}`, {
+    Deno: { serve: fn => { handler = fn; }, env: { get: () => 'fixture' } },
+    handleOptions: () => null, serviceClient: () => admin,
+    getUser: async () => { if (scenario === 'auth-error') throw new Error('Synthetic auth failure'); return scenario === 'anonymous' ? null : { id: scenario === 'foreign' ? 'someone-else' : 'fixture-owner' }; },
+    isServiceBearer: () => scenario === 'service', getPlaidAccessToken: async () => ({ token: 'fixture-token' }),
+    enforceRateLimit: async () => null, identityFromRequest: () => '', RULES: { sync: {} },
+    jsonResponse: (body, status = 200) => ({ body, status }), errorResponse: (error, status) => ({ body: { error }, status }),
+    Configuration: class {}, PlaidEnvironments: { production: 'unused' },
+    PlaidApi: class {
+      async transactionsGet({ options }) {
+        providerCalls++; providerError();
+        assert.equal(options.account_ids[0], 'fixture-bank');
+        const empty = scenario === 'empty-page' || scenario === 'empty';
+        const rows = empty ? [] : [0, 1].map(i => ({ transaction_id: `tx-${options.offset + i}`, amount: i ? -12 : 25, date: '2026-09-01', name: 'Fixture', pending: false }));
+        return { data: { transactions: rows, total_transactions: scenario === 'page-cap' ? 99999 : scenario === 'empty' ? 0 : 2, accounts: [] } };
+      }
+      async investmentsHoldingsGet() {
+        providerCalls++; providerError();
+        return { data: { holdings: [0, 1].map(i => ({ account_id: 'fixture-bank', security_id: `sec-${i}`, quantity: 1, institution_value: 50 })), securities: [0, 1].map(i => ({ security_id: `sec-${i}`, name: `Fixture ${i}`, ticker_symbol: `F${i}` })) } };
+      }
+    },
+    console: { log() {}, warn() {}, error() {} },
+  });
+  const req = new Request('https://fixture.invalid/sync', { method: 'POST', body: scenario === 'invalid-json' ? '{' : JSON.stringify({ connected_account_id: account.id }) });
+  const response = await handler(req);
+  return { response, providerCalls, account, writes, logs, transactions };
+}
+
+let passed = 0;
+for (const kind of ['transactions', 'holdings']) {
+  for (const scenario of ['reconnect', 'success', 'service', 'provider-error', 'auth-error', 'anonymous', 'foreign', 'missing', 'invalid-json', 'start-error', 'finish-error', 'insert-error', 'partial', 'disconnect', 'disconnect-error']) {
+    const result = await run(kind, scenario);
+    const { response, providerCalls, account, logs, transactions, writes } = result;
+    const succeeds = ['success', 'service'].includes(scenario);
+    assert.equal(response.status === 200, succeeds, `${kind}/${scenario}: HTTP success must mean a complete, persisted sync`);
+    if (['auth-error', 'anonymous', 'foreign', 'missing', 'invalid-json', 'start-error'].includes(scenario)) {
+      assert.equal(providerCalls, 0, `${kind}/${scenario}: no provider call before successful authorized start`);
+      assert.equal(writes.length, 0, `${kind}/${scenario}: no unauthorized cleanup write`);
+      assert.equal(logs.length, 0);
+    } else if (scenario.startsWith('disconnect')) {
+      assert.equal(account.sync_status, 'disconnected');
+      assert.equal(account.last_synced_at, '2026-01-01');
+    } else {
+      assert.equal(account.sync_status, succeeds ? 'connected' : scenario === 'reconnect' ? 'reconnect_required' : 'error', `${kind}/${scenario}`);
+      assert.equal(logs.length, 1, `${kind}/${scenario}: observable outcome`);
+      assert.equal(logs[0].imported_count, transactions.length);
+      if (!succeeds) assert.equal(account.last_synced_at, '2026-01-01', `${kind}/${scenario}: preserve last successful sync`);
+      else assert.equal(account.error_message, null);
+    }
+    passed++;
+  }
+}
+for (const scenario of ['empty-page', 'page-cap', 'read-error', 'duplicate', 'empty']) {
+  const r = await run('transactions', scenario);
+  if (['duplicate', 'empty'].includes(scenario)) {
+    assert.equal(r.response.status, 200);
+    assert.equal(r.transactions.length, scenario === 'empty' ? 0 : 1);
+  } else {
+    assert.notEqual(r.response.status, 200, scenario);
+    assert.equal(r.account.history_backfilled_at, null, scenario);
+    assert.equal(r.account.last_synced_at, '2026-01-01', scenario);
+    assert.equal(r.transactions.length, 0, scenario);
+  }
+  assert.ok(r.providerCalls <= 40, 'Pagination must remain bounded');
+  passed++;
+}
+console.log(`PASS ${passed} bank-sync scenarios using real handlers and Request bodies; synthetic auth, Plaid and database only`);
