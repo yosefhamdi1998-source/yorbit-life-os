@@ -25,6 +25,15 @@ class FixtureEntity {
     this.rows = (DATA[table] || []).map((r, i) => ({ id: r.id ?? `${table}-${i}`, created_date: r.created_date ?? '2026-01-01', ...r }));
   }
   async list(sort, limit) {
+    // The defect needs the write AND the follow-up reload to fail together: a
+    // reload that succeeds rescues the screen and hides the bug. But the page
+    // has to LOAD before anything can be edited, so the first read is allowed
+    // through and every read after it fails — the shape of a connection that
+    // dies while the screen is open.
+    if (this.table === 'bills' && (scenarioName === 'bills-write-fail' || scenarioName === 'bills-write-rejected')) {
+      if (this.firstBillsReadDone) throw new Error('Failed to fetch');
+      this.firstBillsReadDone = true;
+    }
     if (((this.table === 'savings_goals' && scenarioName === 'goals-retry') || (this.table === 'bills' && scenarioName === 'recurring-retry')) && !this.failureShown) {
       this.failureShown = true;
       throw new Error('Synthetic entity load failure');
@@ -37,7 +46,15 @@ class FixtureEntity {
     return limit ? r.slice(0, limit) : r;
   }
   async create(payload) { const row = { id: `${this.table}-new-${this.rows.length}`, created_date: new Date().toISOString(), ...payload }; this.rows.push(row); return row; }
-  async update(id, payload) { const row = this.rows.find(r => r.id === id); Object.assign(row, payload); return row; }
+  async update(id, payload) {
+    if (this.table === 'bills' && scenarioName === 'bills-write-fail') {
+      throw new Error('Failed to fetch');
+    }
+    if (this.table === 'bills' && scenarioName === 'bills-write-rejected') {
+      throw new Error('new row violates check constraint "bills_amount_check"');
+    }
+    const row = this.rows.find(r => r.id === id); Object.assign(row, payload); return row;
+  }
   async delete(id) { this.rows = this.rows.filter(r => r.id !== id); return { success: true }; }
   async bulkUpdate(rows) { return Promise.all(rows.map(({ id, ...f }) => this.update(id, f))); }
   async deleteMany(q = {}) { this.rows = this.rows.filter(r => !Object.entries(q).every(([k, v]) => r[k] === v)); return { success: true }; }

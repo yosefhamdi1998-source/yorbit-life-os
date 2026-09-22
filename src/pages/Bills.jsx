@@ -16,6 +16,7 @@ import PullToRefreshIndicator from '@/components/PullToRefreshIndicator';
 import useAutoOpenForm from '@/hooks/useAutoOpenForm';
 import { fmtFull } from '@/lib/format';
 import { validateBillForm } from '@/lib/billValidation';
+import { classifyWriteError } from '@/lib/writeOutcome';
 
 const CAT_ICONS = { housing: '🏠', utilities: '💡', phone: '📱', insurance: '🛡️', subscription: '📺', credit_card: '💳', loan: '🏦', other: '💸' };
 const CAT_COLORS = { housing: '#8B5CF6', utilities: '#F59E0B', phone: '#0EA5E9', insurance: '#3B82F6', subscription: '#EC4899', credit_card: '#EF4444', loan: '#DD8163', other: '#94A3B8' };
@@ -120,6 +121,13 @@ export default function Bills() {
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
+    // The last values we know the server actually holds. The edit path paints
+    // the new amount on screen before the write is confirmed, so if the write
+    // fails we need somewhere to fall back to that does NOT depend on the
+    // network — recovery used to be `loadBills()` alone, and when the write and
+    // the reload both failed the unsaved figure just stayed on screen, totals
+    // included. A persisted total of 150 edited to 175 kept reading 175.
+    const confirmedBills = bills;
     try {
       const payload = { ...form, name: form.name.trim(), amount: Number(form.amount) };
       if (editingBill) {
@@ -132,10 +140,38 @@ export default function Bills() {
       }
       closeForm();
       loadBills(false);
-    } catch {
-      toast({ title: "Couldn't save bill", description: "Please try again in a moment.", variant: 'destructive' });
-      // Revert optimistic update for edit
-      if (editingBill) loadBills(false);
+    } catch (err) {
+      if (editingBill) {
+        // Synchronous and unconditional: what is displayed goes back to the
+        // last confirmed state whether or not the reload below can reach the
+        // server. The form is deliberately left open with the entered values
+        // so the correction is not retyped.
+        setBills(confirmedBills);
+
+        // A rejected write and a dropped connection are not the same claim.
+        // The server refusing the statement proves nothing was stored; losing
+        // the connection proves only that we did not hear back, and the write
+        // may have landed. Saying "not saved" in that second case would be a
+        // guess, so the wording stops at what is actually known.
+        if (classifyWriteError(err) === 'rejected') {
+          toast({
+            title: "Bill wasn't saved",
+            description: 'The change was rejected, so this bill is unchanged. Your entries are still here — adjust them and try again.',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: "Couldn't confirm the save",
+            description: "We lost the connection, so we can't tell whether this saved. The amount shown is the last confirmed one — reload before editing it again.",
+            variant: 'destructive',
+          });
+        }
+        // Still reconcile when the network allows; on success this replaces the
+        // restored snapshot with the server's truth.
+        loadBills(false);
+      } else {
+        toast({ title: "Couldn't save bill", description: "Please try again in a moment.", variant: 'destructive' });
+      }
     } finally {
       savingRef.current = false;
       setSaving(false);

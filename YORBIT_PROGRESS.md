@@ -1272,3 +1272,28 @@ Release verified September 20 05:53 EDT: 3052fb31cb6afb83b0ac0061bb4648dcd4fcad0
 - Count: one improvement, not five. Focused on the confirmed accuracy defect; no superficial split or unverified feature additions. Native/billing provider restrictions unchanged; dark/Simple variants not retested this pass. Daily September 20 checkpoint still due at 09:00 EDT, not marked complete.
 - Strict lint passed; production build/full suite pending. Existing journal and Supabase temp changes preserved; contributor checkout clean and GitHub master 3052fb3 at initial check.
 Validation update: strict lint, production build and full npm test all exited 0. Vercel latest 3052fb3 Ready; immediate upstream race check unchanged and contributor checkout clean. Release includes only bill validation, its regression/package entry and preserved progress notes.
+
+September22 Claude, primary implementation agent: Bills edit recovery on a
+failed write. Reproduced the reported defect before changing anything - against
+pre-fix code, editing Con Edison from 142.18 to 999 with the write and every
+subsequent reload failing left TOTAL DUE reading $1,110 for bills the server
+still held at $254. Cause: the edit path painted the new value optimistically
+and its only recovery was loadBills(), which on failure just toasts and leaves
+the stale figure, totals included; togglePaid ten lines below already snapshots
+and restores. saveBill now captures the confirmed bills before the optimistic
+write and restores them synchronously in the catch, so recovery no longer
+depends on the network, then still calls loadBills to reconcile when it can. The
+form is left open with the entered values. New src/lib/writeOutcome.js separates
+a server refusal (proves nothing was stored) from a lost connection (proves only
+that we did not hear back, and the write may have landed), because claiming "not
+saved" for the second is a guess; unrecognised errors default to unknown.
+Verified in the browser on the fixture harness: bills-write-fail gives $254 with
+"Couldn't confirm the save"; bills-write-rejected gives $254 with "Bill wasn't
+saved"; both keep 999 in the form. Extended Codex's test-bill-validation harness
+rather than adding a parallel one - its with(scope) eval needed the new
+identifiers, and it now also asserts the restore, the wording and the open form;
+confirmed it FAILS on pre-fix Bills.jsx. Added test-write-outcome for the
+classifier. Two fixture scenarios added following the existing goals-retry
+convention. Strict lint, production build and the full suite pass. Codex
+automations remain paused; both Claude scheduled agents were also disabled, as
+recurring re-tests of unchanged features were the cost problem.

@@ -116,4 +116,12 @@ export const SCENARIOS = {
   },
   // Nothing at all — the empty states.
   empty: { ...base, transactions: [], budgets: [], bills: [], savings_goals: [], net_worth_entries: [] },
+  // Both reproduce a failed bill EDIT; they differ only in what the failure
+  // proves. bills-write-fail drops the connection on the write AND on every
+  // reload, so nothing can tell us whether the write landed. bills-write-
+  // rejected has the database refuse the statement, which does prove it did
+  // not. The screen must fall back to the last confirmed values in both cases;
+  // only the wording may differ.
+  'bills-write-fail': base,
+  'bills-write-rejected': base,
 };
