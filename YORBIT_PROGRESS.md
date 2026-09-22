@@ -1432,3 +1432,17 @@ of the reset entirely; deleting a single form already cascades to its records,
 which is the precise control the owner already has. Proposal is now 2 tables,
 not 3: advisor_conversations and advisor_messages, both AI Coach history.
 Nothing executed against real records.
+
+September22 Claude: ambiguous overlapping statements now RESOLVABLE, not just
+flagged. A notice saying "some rows appear twice" left the owner with no way to
+act on it, so the item stayed open. The review step now lists each conflicting
+transaction - description, signed amount, date, how many times it appears and
+which files - with two answers: "Different accounts, keep all N" or "Same
+statement, import once". planImport takes those per-key answers; an unanswered
+conflict stays keep-all, because the default must never be the one that loses a
+transaction. Browser-verified on fixtures: two files sharing a rent row show the
+conflict naming it, choosing "same statement" imported 3 of 4 and skipped 1,
+choosing nothing imported both. test-import-concurrency caught the new free
+identifier by failing, as it did for planImport - that harness has now caught
+three missing scope entries. 16 dedup checks pass; strict lint, build and full
+suite pass.

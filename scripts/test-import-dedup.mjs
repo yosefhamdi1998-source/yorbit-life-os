@@ -107,6 +107,54 @@ console.log('The contract that must not regress\n');
   ok('cross-file repeats are imported in full and flagged, never silently dropped');
 }
 
+console.log('\nThe owner resolves ambiguous overlaps explicitly\n');
+
+// A warning is not a resolution. crossFileRepeats must carry enough to SHOW
+// which transaction is in question, and planImport must honour the answer.
+{
+  const from = (f, rows) => rows.map((r) => ({ ...r, __sourceFile: f }));
+  const rows = [
+    ...from('jan-feb.csv', [row('2026-02-10', 'Rent', 800), row('2026-01-05', 'Only A', 10)]),
+    ...from('feb-mar.csv', [row('2026-02-10', 'Rent', 800), row('2026-03-09', 'Only B', 20)]),
+  ];
+
+  const [conflict] = crossFileRepeats(rows);
+  assert.equal(conflict.title, 'Rent');
+  assert.equal(conflict.date, '2026-02-10');
+  assert.equal(conflict.amount, 800);
+  assert.deepEqual(conflict.files.sort(), ['feb-mar.csv', 'jan-feb.csv']);
+  ok('the conflict names the actual transaction, not just a count');
+
+  // Default, and what happens if the owner ignores the review: keep everything.
+  assert.equal(planImport([], rows).toImport.length, 4);
+  ok('no answer means keep every occurrence - never lose a transaction by default');
+
+  // "These are the same statement re-exported": collapse to one.
+  const once = planImport([], rows, { [conflict.key]: 'once' });
+  assert.equal(once.toImport.length, 3);
+  assert.equal(once.toImport.filter((r) => r.title === 'Rent').length, 1);
+  assert.equal(once.skipped, 1);
+  ok('choosing "same statement" imports the shared rent once and keeps the rest');
+
+  // "These are different accounts": keep both, explicitly.
+  assert.equal(planImport([], rows, { [conflict.key]: 'all' }).toImport.length, 4);
+  ok('choosing "different accounts" keeps both charges');
+}
+
+// A resolution must not leak onto other keys, including repeats inside one file.
+{
+  const from = (f, rows) => rows.map((r) => ({ ...r, __sourceFile: f }));
+  const rows = [
+    ...from('a.csv', [row('2026-02-02', 'Shared', 50), ...Array.from({ length: 5 }, () => row('2026-02-03', 'Trade', 25))]),
+    ...from('b.csv', [row('2026-02-02', 'Shared', 50)]),
+  ];
+  const [conflict] = crossFileRepeats(rows);
+  const { toImport } = planImport([], rows, { [conflict.key]: 'once' });
+  assert.equal(toImport.filter((r) => r.title === 'Shared').length, 1, 'the resolved key collapses');
+  assert.equal(toImport.filter((r) => r.title === 'Trade').length, 5, 'the untouched key is unaffected');
+  ok('a resolution applies only to the row it was made for');
+}
+
 console.log('\nThe defect: a truncated snapshot duplicates silently\n');
 
 // Reproduces the old behaviour. The read was `listAll('-date', 50000)` —

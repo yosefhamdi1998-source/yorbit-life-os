@@ -29,9 +29,15 @@ import { statementRowKey } from './csv.js';
  *   for the keys being imported — see assertCompleteSnapshot below for why a
  *   truncated list silently produces duplicates rather than an error.
  * @param {Array} collectedRows normalized rows from the statement file(s)
+ * @param {Object} resolutions  per-key choices made in the review step, from
+ *   crossFileRepeats(). 'all' (the default) trusts every occurrence the files
+ *   report; 'once' treats the files as re-exports of ONE account, so a key is
+ *   taken only as many times as the single fullest file reports it. Absent keys
+ *   default to 'all', because losing a real transaction is worse than showing a
+ *   duplicate the owner can delete.
  * @returns {{toImport: Array, skipped: number}}
  */
-export function planImport(existingRows, collectedRows) {
+export function planImport(existingRows, collectedRows, resolutions = {}) {
   const existingCounts = new Map();
   for (const t of existingRows) {
     const k = statementRowKey(t);
@@ -55,6 +61,25 @@ export function planImport(existingRows, collectedRows) {
   // surfaced to the person importing instead — see crossFileRepeats, which the
   // review step shows before anything is written.
 
+  // Only computed for keys the owner marked 'once': how many times the single
+  // fullest file reports that key. Nothing is capped unless they asked for it.
+  const capPerKey = new Map();
+  if (Object.values(resolutions).includes('once')) {
+    const perFile = new Map();
+    for (const r of collectedRows) {
+      const file = r.__sourceFile ?? '';
+      if (!perFile.has(file)) perFile.set(file, new Map());
+      const counts = perFile.get(file);
+      const key = statementRowKey(r);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    for (const counts of perFile.values()) {
+      for (const [key, n] of counts) {
+        if (resolutions[key] === 'once') capPerKey.set(key, Math.max(capPerKey.get(key) || 0, n));
+      }
+    }
+  }
+
   const takenSoFar = new Map();
   const toImport = [];
   let skipped = 0;
@@ -63,9 +88,10 @@ export function planImport(existingRows, collectedRows) {
     const key = statementRowKey(r);
     const already = existingCounts.get(key) || 0;
     const taken = takenSoFar.get(key) || 0;
+    const cap = capPerKey.has(key) ? capPerKey.get(key) : Infinity;
     // Import this occurrence only if the files hold more of this key than the
-    // database already does.
-    if (taken < already) {
+    // database already does, and only up to any cap the owner chose.
+    if (taken < already || taken >= cap) {
       takenSoFar.set(key, taken + 1);
       skipped++;
       continue;
@@ -115,12 +141,22 @@ export function crossFileRepeats(collectedRows) {
   for (const r of collectedRows) {
     const key = statementRowKey(r);
     const file = r.__sourceFile ?? '';
-    if (!seen.has(key)) seen.set(key, { files: new Set(), occurrences: 0 });
+    if (!seen.has(key)) seen.set(key, { files: new Set(), occurrences: 0, sample: r });
     const entry = seen.get(key);
     entry.files.add(file);
     entry.occurrences += 1;
   }
   return [...seen.entries()]
     .filter(([, v]) => v.files.size > 1)
-    .map(([key, v]) => ({ key, files: [...v.files], occurrences: v.occurrences }));
+    .map(([key, v]) => ({
+      key,
+      files: [...v.files],
+      occurrences: v.occurrences,
+      // Enough to show the owner WHICH transaction is in question, rather than
+      // only how many there are.
+      date: v.sample.date,
+      title: v.sample.title,
+      amount: v.sample.amount,
+      type: v.sample.type,
+    }));
 }

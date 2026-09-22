@@ -10,7 +10,7 @@ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 const run=new AsyncFunction('scope',`with(scope){${body}}`);
 function harness(list) {
  const writes=[],states=[],errors=[],steps=[],counts={};
- const scope={importLock:{current:false},collected:[{title:'Synthetic',date:'2026-09-01',type:'expense',amount:10,category:'food'}],statementRowKey,planImport,
+ const scope={importLock:{current:false},collected:[{title:'Synthetic',date:'2026-09-01',type:'expense',amount:10,category:'food'}],statementRowKey,planImport,overlapChoices:{},
  base44:{entities:{Transaction:{listAll:list,create:async row=>writes.push(row)}}},setImporting:v=>states.push(v),setError:v=>errors.push(v),setImportProgress:()=>{},setImportedRange:v=>counts.range=v,setImportedCount:v=>counts.imported=v,setSkippedCount:v=>counts.skipped=v,setFailedCount:v=>counts.failed=v,setStep:v=>steps.push(v)};
  return {scope,writes,states,errors,steps,counts};
 }

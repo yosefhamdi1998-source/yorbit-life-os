@@ -168,6 +168,11 @@ export default function CSVImport() {
   const fileRef = useRef();
   const [step, setStep] = useState('upload'); // upload | processing | mapping | preview | importing | done
   const [collected, setCollected] = useState([]); // normalized {title, amount, type, category, date} rows
+  // Per-conflict answers from the review step, keyed by statementRowKey:
+  // 'all' keeps every occurrence, 'once' treats the files as re-exports of one
+  // account. Unanswered conflicts stay 'all', because the default must never be
+  // the one that loses a transaction.
+  const [overlapChoices, setOverlapChoices] = useState({});
   const [fileSummaries, setFileSummaries] = useState([]); // [{name, count, kind, warning?}]
   const [pendingMapFiles, setPendingMapFiles] = useState([]); // CSVs whose columns couldn't be auto-detected
   const [mapIndex, setMapIndex] = useState(0);
@@ -402,7 +407,7 @@ export default function CSVImport() {
         setError('We could not check your existing transactions. Nothing was imported. Please try again.');
         return;
       }
-      const plan = planImport(existing, collected);
+      const plan = planImport(existing, collected, overlapChoices);
       skipped += plan.skipped;
       // __sourceFile is a dedup-only marker; it must never reach the database.
       const toImport = plan.toImport.map(({ __sourceFile, ...r }) => ({ ...r, import_source: csvSource }));
@@ -443,7 +448,7 @@ export default function CSVImport() {
 
   const reset = () => {
     if (importLock.current) return;
-    setStep('upload'); setCollected([]); setFileSummaries([]); setPendingMapFiles([]); setMapIndex(0); setError('');
+    setStep('upload'); setCollected([]); setOverlapChoices({}); setFileSummaries([]); setPendingMapFiles([]); setMapIndex(0); setError('');
   };
 
   const reviewDates = collected.map(row => row.date).filter(Boolean).sort();
@@ -580,12 +585,56 @@ export default function CSVImport() {
                 identical rows. Everything is imported and the conflict is
                 stated, because a visible duplicate can be deleted while a
                 silently dropped transaction may never be noticed. */}
+            {/* An actual review, not a warning. A notice saying "some rows
+                appear twice" leaves the owner with no way to act on it; these
+                are the specific transactions, with the files they came from,
+                and the answer only they can give. Default stays 'all' so
+                ignoring this cannot lose a transaction. */}
             {crossFileRepeats(collected).length > 0 && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4 text-sm">
-                <strong>{crossFileRepeats(collected).length} transaction{crossFileRepeats(collected).length === 1 ? ' appears' : 's appear'} in more than one of these files.</strong>{' '}
-                They will all be imported. If these files are re-exports of the same account covering
-                overlapping dates, remove one before importing. If they are different accounts that
-                happen to match, this is correct and nothing needs changing.
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4">
+                <p className="text-sm font-semibold mb-1">
+                  {crossFileRepeats(collected).length} transaction{crossFileRepeats(collected).length === 1 ? ' appears' : 's appear'} in more than one file
+                </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Re-exports of the same account repeat the same transactions. Different accounts can
+                  look identical by coincidence. Only you know which — everything is kept unless you say otherwise.
+                </p>
+                <ul className="space-y-2">
+                  {crossFileRepeats(collected).map((c) => {
+                    const choice = overlapChoices[c.key] || 'all';
+                    return (
+                      <li key={c.key} className="rounded-lg bg-card/60 border border-border p-3">
+                        <div className="flex items-baseline justify-between gap-3 mb-1">
+                          <span className="text-sm font-semibold truncate">{c.title}</span>
+                          <span className="text-sm font-bold tabular-nums shrink-0">
+                            {c.type === 'income' ? '+' : '−'}${Math.abs(Number(c.amount)).toFixed(2)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {c.date} · appears {c.occurrences} times across {c.files.join(', ')}
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setOverlapChoices((p) => ({ ...p, [c.key]: 'all' }))}
+                            aria-pressed={choice === 'all'}
+                            className={`flex-1 min-h-[44px] text-xs font-semibold rounded-lg border px-2 ${choice === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}
+                          >
+                            Different accounts — keep all {c.occurrences}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOverlapChoices((p) => ({ ...p, [c.key]: 'once' }))}
+                            aria-pressed={choice === 'once'}
+                            className={`flex-1 min-h-[44px] text-xs font-semibold rounded-lg border px-2 ${choice === 'once' ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}
+                          >
+                            Same statement — import once
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             )}
             <div className="space-y-1 max-h-96 overflow-y-auto">
