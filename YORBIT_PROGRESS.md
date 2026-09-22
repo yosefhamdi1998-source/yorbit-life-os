@@ -1349,3 +1349,73 @@ review step names how many rows appear in more than one file and says what to do
 in each case, before anything is written. Browser-verified: two files sharing a
 row show "1 transaction appears in more than one of these files" and import all
 4. The unbounded snapshot fix from earlier today is unaffected and stands.
+
+## RELEASE CHECKLIST — current as of 2026-09-22 (Claude)
+
+Supersedes the ad-hoc status in earlier Claude entries. Original findings stay
+above for traceability; where a later fix supersedes one, it is named.
+
+### DEPLOYED AND VERIFIED (in production, evidence checked in the live bundle)
+- f9854db Bills edit recovery. Reproduced $1,110-vs-$254 on pre-fix code;
+  restores last confirmed state without the network. Supersedes the handoff's
+  "remaining Bills issue after input validation".
+- 59ce77d Import dedup snapshot unbounded. Was capped at 50,000 with the ledger
+  at 34,257 (68%). Latent, not live, when found.
+- ef7ca89 Import dedup preserves different accounts. SUPERSEDES the max-across-
+  files rule in 59ce77d, which was a regression: two accounts each charged
+  Netflix 15.99 on the same day imported ONE row, silently deleting a real
+  charge. Every occurrence is imported again.
+- 4db4590 Service-caller guard regression lock (tests the real serviceBearer.ts).
+- 76892ee verify_jwt version-controlled for all 13 functions, with drift guard.
+- db13f21 Plaid legacy-token exposure measured closed: 9 accounts, 0 legacy
+  tokens, 9 vaulted.
+
+### IMPLEMENTED BUT UNVERIFIED (code exists; no end-to-end proof)
+- Subscription lifecycle. create-checkout, stripe-webhook, create-billing-portal
+  and delete-account's cancellation path are all written and deployed, but no
+  checkout has ever completed because STRIPE_SECRET_KEY is absent (see below).
+  Mocked tests pass; that is not billing readiness.
+- Native auth callback (app.yorbit://auth/callback) exists in source. No signed
+  build, no device test. Source is not device verification.
+- Scheduled bank sync honesty. Not re-verified against current code this batch.
+
+### TESTS ONLY — NOT A DEPLOYED FIX
+- Database user isolation: scripts/audit-rls-isolation.sql and
+  test-cross-user-isolation.sql, brought into master this batch. 15/15 cross-user
+  checks passed on 09-18 at the RLS tier using simulated JWT claims and a rolled-
+  back transaction. This is DATABASE-ROLE testing, not two real authenticated
+  sessions, and it changed no product code. Corrected: an earlier Claude entry
+  listed this under "fixed in production", which it never was.
+- scripts/test-delete-coverage.mjs, likewise tests only.
+- Branches claude/secdef-audit, claude/multiuser-isolation, claude/edge-auth-audit
+  are now 9 days stale and must NOT be merged - diffing them against master shows
+  they would revert ~4,800 lines of Codex's work. Their test files were extracted
+  individually instead. claude/edge-auth-audit is fully superseded by 4db4590.
+
+### STILL OPEN (engineering, no owner action needed)
+- Ambiguous overlapping statements. The silent-omission regression is corrected,
+  but overlap itself is not resolved: rows appearing in more than one file are
+  all imported and flagged in the review step. A warning is not a resolution -
+  there is still no way to review the specific ambiguous rows and choose. Next
+  step is a per-row review before writing, not a guess.
+- delete_all_my_data() clears 8 of 20 user-owned tables. 10 are deliberately kept
+  with reasons; 3 are proposed for clearing and await an owner decision -
+  advisor_conversations, advisor_messages, custom_records. SQL prepared in
+  scripts/proposed/ and deliberately NOT in migrations/, because a file there
+  runs on the next push. Permanent account deletion is separate and already
+  comprehensive: delete-account cancels Stripe, removes Plaid Items, refuses to
+  continue if either is unconfirmed, then deletes the auth user, which cascades.
+- Corrected: the deletion success toast was reported as overstating its scope.
+  It does not. Codex already scoped it and it accurately lists what is removed
+  and says other data remains.
+
+### OWNER ACTION REQUIRED (established, not assumed)
+- STRIPE_SECRET_KEY is absent. Verified read-only via `supabase secrets list`,
+  which returns names and digests only. STRIPE_WEBHOOK_SECRET IS present (set
+  09-13), as are ANTHROPIC_API_KEY, PLAID_CLIENT_ID and PLAID_SECRET. Without
+  STRIPE_SECRET_KEY, create-checkout, stripe-webhook and create-billing-portal
+  all return 501, so no subscription can be created, activated or managed. This
+  is the single blocker for the entire subscription lifecycle. Supersedes the
+  earlier, vaguer "Stripe not configured" note.
+- Supabase auth redirect allow-list: whether app.yorbit://auth/callback is
+  registered cannot be read from the CLI. Unverified, not confirmed missing.

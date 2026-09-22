@@ -15,7 +15,7 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config && npm run test:net-worth-validation && npm run test:goal-validation && npm run test:account-projection && npm run test:plaid-exchange-response && npm run test:account-deletion && npm run test:route-history && npm run test:statement-values && npm run test:billing-portal && npm run test:ai-usage-limits && npm run test:budget-validation && npm run test:report-selection && npm run test:store-copy && npm run test:auth-state && npm run test:password-recovery && npm run test:themes && npm run test:sync-dispatcher && npm run test:native-auth && npm run test:edge-auth-guards && npm run test:function-jwt-config && npm run test:recurring-dates && npm run test:bill-validation && npm run test:write-outcome && npm run test:import-dedup",
+    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config && npm run test:net-worth-validation && npm run test:goal-validation && npm run test:account-projection && npm run test:plaid-exchange-response && npm run test:account-deletion && npm run test:route-history && npm run test:statement-values && npm run test:billing-portal && npm run test:ai-usage-limits && npm run test:budget-validation && npm run test:report-selection && npm run test:store-copy && npm run test:auth-state && npm run test:password-recovery && npm run test:themes && npm run test:sync-dispatcher && npm run test:native-auth && npm run test:edge-auth-guards && npm run test:function-jwt-config && npm run test:recurring-dates && npm run test:bill-validation && npm run test:write-outcome && npm run test:import-dedup && npm run test:delete-coverage",
     "test:lint-config": "node scripts/test-lint-config.js",
     "test:animated-number": "node scripts/test-animated-number.mjs",
     "test:ai-context": "node scripts/test-ai-context.js",
@@ -66,7 +66,10 @@
     "test:function-jwt-config": "node scripts/test-function-jwt-config.mjs",
     "audit:plaid-tokens": "npx supabase db query --linked -f scripts/audit-plaid-token-exposure.sql",
     "test:write-outcome": "node scripts/test-write-outcome.mjs",
-    "test:import-dedup": "node scripts/test-import-dedup.mjs"
+    "test:import-dedup": "node scripts/test-import-dedup.mjs",
+    "test:delete-coverage": "node scripts/test-delete-coverage.mjs",
+    "audit:rls-isolation": "npx supabase db query --linked -f scripts/audit-rls-isolation.sql",
+    "test:cross-user-isolation": "npx supabase db query --linked -f scripts/test-cross-user-isolation.sql"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
