@@ -1297,3 +1297,36 @@ classifier. Two fixture scenarios added following the existing goals-retry
 convention. Strict lint, production build and the full suite pass. Codex
 automations remain paused; both Claude scheduled agents were also disabled, as
 recurring re-tests of unchanged features were the cost problem.
+
+September22 Claude: statement-import duplication, both reported cases. The
+journal recorded the import lock but no specific open defect, so both were
+established from the code and reproduced before any change.
+
+(1) Large ledger. Dedup read the ledger with a hard cap - listAll('-date',
+50000), newest first - so past that size the OLDEST rows fell out of the
+snapshot and re-importing an old statement found no match and wrote the file
+again. Silent, because a short read is indistinguishable from a small ledger.
+Measured read-only: this account holds 34,257 transactions, 68% of the cap. Not
+yet broken, one large import from it. The read is now unbounded; it costs no
+more today because it already fetched the whole ledger.
+
+(2) Overlapping files. This one was real and reproduced by the new test on
+current code. Statement exports overlap routinely - a Jan-Feb file and a Feb-Mar
+file both contain February - and dedup compared the file count against the
+database count without distinguishing which file a row came from. Two files each
+listing one Gym charge imported TWO Gym charges. Rows now carry their source
+file and the wanted count per key is the MAX across files, not the sum: the
+shared rows are the same transactions seen twice, not twice as many. Within one
+file the count still stands as written, so a statement holding twenty identical
+same-day Coinbase trades still imports all twenty - verified explicitly, since
+collapsing overlap must not flatten genuine repeats.
+
+Dedup extracted to src/lib/importDedup.js so it is testable directly. Browser-
+verified on the fixture harness, not just in unit tests: 3-row file imported 3;
+re-import imported 0 and skipped 3; two overlapping files imported 3 of 4 and
+skipped 1. Also pluralised "Skipped 1 duplicates" in that receipt. Extended two
+existing harnesses rather than adding parallel ones - test-bill-validation and
+test-import-concurrency both eval component bodies with with(scope) and needed
+the new identifier; test-import-concurrency caught the omission by failing.
+Confirmed the new test FAILS on the pre-fix summing behaviour. Strict lint,
+production build and the full suite pass.

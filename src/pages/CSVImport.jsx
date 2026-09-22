@@ -1,4 +1,5 @@
-import { parseCSV, statementRowKey } from '@/lib/csv';
+import { parseCSV } from '@/lib/csv';
+import { planImport } from '@/lib/importDedup';
 import { parseStatementAmount, parseStatementColumns, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -197,7 +198,7 @@ export default function CSVImport() {
           if (norm.length === 0) {
             summaries.push({ name, count: 0, kind: 'pdf', warning: "Couldn't find transaction rows in this PDF — its layout may not be supported yet." });
           } else {
-            allNormalized.push(...norm);
+            allNormalized.push(...norm.map(r => ({ ...r, __sourceFile: name })));
             summaries.push({ name, count: norm.length, kind: 'pdf', warning: skippedStatementRows(raw.length, norm.length) });
           }
         } else if (lower.endsWith('.csv')) {
@@ -295,7 +296,7 @@ export default function CSVImport() {
               // payment by definition, whatever the note happens to say.
               p2p: !!p2pFormat,
             })).filter(Boolean);
-            allNormalized.push(...norm);
+            allNormalized.push(...norm.map(r => ({ ...r, __sourceFile: name })));
             summaries.push({ name, count: norm.length, kind: 'csv', warning: skippedStatementRows(rows.length, norm.length) });
           } else {
             // Couldn't confidently guess the columns — queue for a quick
@@ -348,7 +349,7 @@ export default function CSVImport() {
     const norm = current.rawRows.map(row => normalizeRow({
       date: row[current.mapping.date], description: row[current.mapping.description], amount: row[current.mapping.amount],
     })).filter(Boolean);
-    setCollected(c => [...c, ...norm]);
+    setCollected(c => [...c, ...norm.map(r => ({ ...r, __sourceFile: current.file.name }))]);
     setFileSummaries(s => [...s, { name: current.file.name, count: norm.length, kind: 'csv', warning: skippedStatementRows(current.rawRows.length, norm.length) }]);
     setError('');
     if (mapIndex + 1 < pendingMapFiles.length) {
@@ -387,29 +388,24 @@ export default function CSVImport() {
       // twenty the first time.
       let existing;
       try {
-        existing = await base44.entities.Transaction.listAll('-date', 50000);
+        // NO ROW LIMIT, deliberately. This read at most 50,000 rows
+        // newest-first, which silently dropped the OLDEST rows once a ledger
+        // passed that size - and a short read looks exactly like a small
+        // ledger, so re-importing an old statement would find no match and
+        // write the whole file again with nothing reporting it. This account
+        // was at 34,257 transactions when that was measured: not yet broken,
+        // but 68% of the way there and one large import from it. Unbounded
+        // costs no more today (it already fetched the whole ledger) and stops
+        // being wrong later.
+        existing = await base44.entities.Transaction.listAll('-date');
       } catch {
         setError('We could not check your existing transactions. Nothing was imported. Please try again.');
         return;
       }
-      const existingCounts = new Map();
-      for (const t of existing) {
-        const k = statementRowKey(t);
-        existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
-      }
-
-      const takenSoFar = new Map();
-      const toImport = [];
-      for (const r of collected) {
-        const key = statementRowKey(r);
-        const already = existingCounts.get(key) || 0;
-        const taken = takenSoFar.get(key) || 0;
-        // Import this occurrence only if the file has more of this key than
-        // the database already does.
-        if (taken < already) { takenSoFar.set(key, taken + 1); skipped++; continue; }
-        takenSoFar.set(key, taken + 1);
-        toImport.push({ ...r, import_source: csvSource });
-      }
+      const plan = planImport(existing, collected);
+      skipped += plan.skipped;
+      // __sourceFile is a dedup-only marker; it must never reach the database.
+      const toImport = plan.toImport.map(({ __sourceFile, ...r }) => ({ ...r, import_source: csvSource }));
 
       // Only rows whose create() actually resolved. Building the range from
       // `toImport` would report the span we ATTEMPTED, which is the number that
@@ -616,7 +612,7 @@ export default function CSVImport() {
           <p className="text-base text-muted-foreground mb-1">
             Imported <span className="font-bold text-foreground">{importedCount}</span> transactions.
           </p>
-          {skippedCount > 0 && <p className="text-sm text-muted-foreground">Skipped <span className="font-bold">{skippedCount}</span> duplicates.</p>}
+          {skippedCount > 0 && <p className="text-sm text-muted-foreground">Skipped <span className="font-bold">{skippedCount}</span> duplicate{skippedCount === 1 ? '' : 's'}.</p>}
           {failedCount > 0 && <p className="text-sm text-amber-600 mt-1">{failedCount} rows had errors and were skipped.</p>}
 
           {/* THE DATE RANGE ACTUALLY WRITTEN.
