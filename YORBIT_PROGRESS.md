@@ -1419,3 +1419,16 @@ above for traceability; where a later fix supersedes one, it is named.
   earlier, vaguer "Stripe not configured" note.
 - Supabase auth redirect allow-list: whether app.yorbit://auth/callback is
   registered cannot be read from the CLI. Unverified, not confirmed missing.
+
+September22 Claude, deletion scope CORRECTION: custom_records withdrawn from the
+proposal. It was proposed for clearing on the assumption that owner-entered form
+records in a finance app are financial. They are not necessarily: custom_forms
+is a GENERIC form builder - arbitrary name, icon and fields - so records can be
+anything. Checked read-only: the only form on this account is "Vehicle
+Maintenance" with one record. Erasing that table under "delete your financial
+data" would have destroyed a vehicle maintenance log. The app cannot tell which
+forms are financial and over-deletion is the worse error, so the table stays out
+of the reset entirely; deleting a single form already cascades to its records,
+which is the precise control the owner already has. Proposal is now 2 tables,
+not 3: advisor_conversations and advisor_messages, both AI Coach history.
+Nothing executed against real records.

@@ -3,9 +3,10 @@
 //
 // WHY
 //
-// Settings offers "Delete all your financial data?" and, on success, says
-// "All your financial data has been removed." The RPC behind it clears 8 of
-// the 20 tables that carry a user_id. Some of those omissions are correct —
+// Settings offers "Delete all your financial data?" and the RPC behind it
+// clears 8 of the 20 tables that carry a user_id. The success copy is accurate
+// — it lists what was removed and says other data remains — so the risk here is
+// not misleading wording but an unreviewed gap. Some omissions are correct —
 // the account survives the action, so billing entitlements must survive with
 // it — but they were never written down anywhere, so there is nothing to
 // check a NEW table against. Add a table next month and it silently joins
@@ -16,10 +17,9 @@
 // user-owned table is neither cleared nor consciously excluded, which forces
 // the decision to be made once, in writing, at the time the table is added.
 //
-// NOT in the `npm test` aggregate yet, on purpose. It currently FAILS with 8
-// unaccounted tables, and wiring a red test into the shared suite would break
-// everyone else's build before the product decision behind it has been made.
-// Add it to `test` once each of the 8 is either cleared or listed below.
+// In the `npm test` aggregate: every table is now either cleared, kept with a
+// reason, or listed as awaiting an owner decision, so it is green and stays
+// green until someone adds a table without deciding what happens to it.
 //
 // Run: npm run test:delete-coverage
 
@@ -34,8 +34,6 @@ const rpc = fs.readFileSync(
   'utf8',
 );
 
-// Tables deliberately left in place, each with the reason it survives an
-// action that keeps the account. Changing this list is a product decision.
 // Financial records that survive today and are PROPOSED for clearing. The SQL
 // is prepared in scripts/proposed/delete_financial_data_scope.sql and is
 // deliberately NOT in supabase/migrations/, because a file there runs on the
@@ -47,10 +45,10 @@ const rpc = fs.readFileSync(
 const PROPOSED_FOR_CLEARING = {
   advisor_conversations: "AI Coach history - a detailed record of the owner's finances.",
   advisor_messages: 'AI Coach history - same reasoning.',
-  custom_records: 'Owner-entered rows in their own forms; in a finance app these are financial data.',
 };
 
-
+// Tables deliberately left in place, each with the reason it survives an action
+// that keeps the account. Changing this list is a product decision.
 const INTENTIONALLY_KEPT = {
   // --- Not financial records at all -----------------------------------------
   // Yorbit carries life-tracking features alongside the money ones. Clearing
@@ -67,7 +65,11 @@ const INTENTIONALLY_KEPT = {
   connected_accounts: 'Bank links stay reusable; clearing them forces a full re-connect nobody asked for.',
   bank_sync_logs: 'Audit trail of syncs, kept for support and debugging.',
   notifications: 'Transient and self-expiring; not financial records.',
-  custom_forms: 'The form definition is a user-built tool. Its RECORDS are cleared; the tool is not.',
+  custom_forms: 'A user-built tool, not data. Generic: name, icon and arbitrary fields.',
+  custom_records: 'NOT necessarily financial. custom_forms is a generic form builder, so records '
+    + 'can be anything - the only form on this account is "Vehicle Maintenance". The app cannot tell '
+    + 'which forms are financial, and over-deletion is the worse error, so the whole table stays out '
+    + 'of the reset. Deleting a single form already cascades to its records, which is the precise control.',
 };
 
 // Tables that carry a user_id, i.e. per-user data.

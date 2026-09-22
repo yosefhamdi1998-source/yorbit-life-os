@@ -27,16 +27,13 @@
 -- ALREADY CLEARED (8): transactions, budgets, bills, goals, savings_goals,
 --   net_worth_entries, investment_holdings, ai_insight_caches.
 --
--- PROPOSED TO ADD (3) — these are financial records and survive today:
+-- PROPOSED TO ADD (2) — these are financial records and survive today:
 --   advisor_conversations, advisor_messages
 --       The AI Coach history. It is a detailed discussion of the owner's
 --       income, spending and debts — arguably the most sensitive financial
 --       record in the app. Someone clearing their financial data would not
 --       expect their money conversations to remain.
---   custom_records
---       Rows the owner entered into their own forms, which in a finance app
---       are overwhelmingly financial. The form DEFINITION (custom_forms) is a
---       tool and is kept; the data captured by it is not.
+--   (custom_records was proposed here and has been WITHDRAWN - see below.)
 --
 -- DELIBERATELY KEPT, with reasons — see scripts/test-delete-coverage.mjs,
 -- which fails if any user-owned table is neither cleared nor listed there:
@@ -49,15 +46,24 @@
 --                               full re-connect nobody asked for.
 --   bank_sync_logs              audit trail, kept for support.
 --   notifications               transient and self-expiring.
---   custom_forms                the tool, not the data.
+--   custom_forms                a user-built tool, not data.
+--   custom_records              WITHDRAWN from the proposal. custom_forms is a
+--       GENERIC form builder - arbitrary name, icon and fields - so its records
+--       can be anything. Checked: the only form on this account is "Vehicle
+--       Maintenance" with one record, which is not a financial record at all.
+--       The app cannot tell which forms are financial, and over-deletion is the
+--       worse error. Deleting a single form already cascades to its records
+--       (custom_records.form_id references custom_forms on delete cascade),
+--       which is the precise control the owner already has.
 --
 -- EXTERNAL SERVICES: unchanged by this action. Stripe subscriptions and Plaid
 -- Items are NOT touched, because the account survives and the owner keeps using
 -- it. Only "Delete account" reaches external services.
 --
--- COPY: the success toast currently says "All your financial data has been
--- removed", which overstates it whatever this scope ends up being. That is
--- corrected separately and does not need this migration.
+-- COPY: already accurate and needs no change. The success toast lists exactly
+-- what was removed and states that other data remains. An earlier note claiming
+-- it overstated the scope was based on stale source and is withdrawn. If this
+-- proposal is adopted the toast must gain the AI Coach history in that list.
 
 begin;
 
@@ -79,7 +85,6 @@ begin
   -- Added by this proposal. Messages first: they reference conversations.
   delete from advisor_messages where user_id = auth.uid();
   delete from advisor_conversations where user_id = auth.uid();
-  delete from custom_records where user_id = auth.uid();
 end;
 $$;
 
