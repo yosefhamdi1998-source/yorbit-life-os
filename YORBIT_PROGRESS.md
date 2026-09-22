@@ -1479,3 +1479,27 @@ Approval-review restrictions: AI Coach origin-only redeployment rejected because
 Remaining engineering: webhook ordering/repeated checkout trials; atomic replacement of stale investment positions; full multi-session isolation and native device validation; remaining interaction coverage. STRIPE_SECRET_KEY absence was last verified by Claude, not reverified in this pass; adding a key is a prerequisite, not proof billing works. Existing restricted-key proposal remains pending. Financial-reset scope proposal still excludes custom_records/notes and requires owner decision. Native signing/products/reviewer account still need actual owner configuration. A Vercel deployment is not an App Store release.
 
 Web deployment evidence: pending GitHub push and production verification for this batch.
+
+
+## September 22, 2026 — continued implementation: isolation and holdings
+
+First web release 01b58323bc55376ea0a700b7f6500a31f4c7a36e is verified live: GitHub Vercel status success, deployment https://vercel.com/yorbit/yorbit-life-os/75ocgPWQcGwd3oHYrCNuHePrbNvr, production BankSync-XSNL-sZt.js contains Retry loading accounts, Refresh accounts and the unconfirmed-sync guard. Unsigned bank-worker calls return 401; native-origin OPTIONS returns the exact allowed origin. No real bank refresh was triggered.
+
+Additional completed engineering:
+- Child ownership: live policy tests reproduced foreign-conversation message insertion and reassignment of a custom record into another user's form. Migration 20260922095129_enforce_child_record_ownership closes both. Six role-level checks pass after deployment with all fixtures rolled back. Read-only counts found zero existing message/form parent ownership mismatches; no real records were changed.
+- Account-bound imports/exports: reproduced one synthetic import writing first to account A, then B after a session switch. Operations now latch cancellation on account change/sign-out, recheck before each import write and before export download, and bind the entity write to the initiating user ID. Same-account token refresh remains allowed. Tests cover change during dedup, mid-write, after the last write, away-and-back, adapter identity races, export reads and read failures; no mixed-account download or false completion.
+- Atomic holdings snapshots: migration 20260922100628_atomic_holdings_snapshot and holdings worker v9 now validate a complete provider response and save one account's current positions and success timestamp in a transaction. Provider security IDs replace nullable ticker/name matching. Sold positions no longer linger after a successful complete snapshot; failed inserts preserve the entire old snapshot. Eighteen database checks pass including forced mid-insert failure, owner/state checks, authenticated denial, duplicate IDs, empty snapshots, repeat snapshots and unaffected other account. All synthetic rows and the test trigger rolled back. Live v9 source matches and JWT verification remains enabled.
+- Holdings presentation: USD/EUR/other currency totals remain separate, unknown values are labeled, Investments reads beyond 200 positions and excludes disconnected-account holdings. Failed holdings/account reads produce a retry instead of a false empty portfolio. Focused tests cover 250 positions, disconnected filtering, mixed currencies, missing values and retry.
+
+Combined validation: full npm test passed after isolation/snapshot changes; new holdings-display checks, strict lint and production build passed after the display changes. Web deployment for this second batch is pending the commit/push below; backend migrations and v9 are already verified.
+
+Coverage additions (synthetic browser only):
+| Surface | Status | Evidence |
+| --- | --- | --- |
+| Settings export | Tested | Export My Data produced Downloaded; only synthetic fixture records. Session-change cases exercised by actual-handler tests. |
+| Simple mode, light, phone width | Tested with limitation | Toggle switched navigation to Home/Money/Plan; shorter Home rendered; width 434px with document width 417px. Screenshot capture retained resize artifacts; not physical iOS evidence. |
+| Investments failed holdings/retry | Tested | Failure alert visible; Retry restores EUR 75 and USD 100 separately; disconnected 9999 holding absent. |
+| Transaction form | Partially tested | Empty amount disables Save. Negative amount and missing date can reach enabled Save; submit-time validation still to exercise. Form cancellation works. |
+| Native iOS | Blocked / not yet tested | Source review found configured Keyboard/StatusBar/SplashScreen plugins are absent from dependencies. Current official Apple requirements checked: Xcode 26+ and iOS 26 SDK required for uploads since April 28, 2026. Signing, device, native bank return, purchases and deletion still unverified. |
+
+Remaining engineering: finish native plugin/preflight preparation; native bank return flow; sync concurrency/stale syncing recovery; complete payment/entitlement verification after approved test key; remaining control coverage. Automatic approval review blocked AI origin deployment and Stripe webhook/portal redeploys. AI origin-only approval question remains pending; no real financial payload was sent to AI. No bypass or new recurring development run.

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { formatHoldingValue, formatHoldingsTotals } from '@/lib/holdingValues';
 import { Landmark, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, Upload, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/PageHeader';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 
-function fmt(n) { return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 const STATUS_CONFIG = {
   connected:     { icon: CheckCircle, color: 'text-emerald-500', label: 'Connected' },
@@ -411,8 +411,8 @@ export default function BankSync() {
               <TrendingUp className="w-4 h-4 text-primary" />
               <p className="text-sm font-bold text-foreground">Holdings</p>
             </div>
-            <p className="text-sm font-black text-foreground tabular-nums">
-              ${fmt(holdings.reduce((s, h) => s + (h.institution_value || 0), 0))}
+            <p className="text-sm font-black text-foreground tabular-nums text-right break-words max-w-[65%]">
+              {formatHoldingsTotals(holdings)}
             </p>
           </div>
           <div className="divide-y divide-border/50">
@@ -424,7 +424,7 @@ export default function BankSync() {
                     {h.ticker_symbol ? `${h.ticker_symbol} · ` : ''}{h.quantity != null ? `${Number(h.quantity).toLocaleString('en-US', { maximumFractionDigits: 8 })} units` : ''}
                   </p>
                 </div>
-                <p className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmt(h.institution_value)}</p>
+                <p className="text-sm font-bold text-foreground tabular-nums shrink-0">{formatHoldingValue(h.institution_value, h.currency)}</p>
               </div>
             ))}
           </div>

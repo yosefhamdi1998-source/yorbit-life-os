@@ -123,8 +123,13 @@ class Entity {
   }
 
   // base44: entities.X.create(data)
-  async create(payload) {
+  async create(payload, { expectedUserId } = {}) {
     const user_id = await getUserId();
+    if (expectedUserId !== undefined && user_id !== expectedUserId) {
+      const error = new Error('The signed-in account changed before this record could be saved.');
+      error.code = 'ACCOUNT_CHANGED';
+      throw error;
+    }
     const result = unwrap(
       await supabase.from(this.table).insert({ ...payload, user_id }).select(this.columns).single()
     );

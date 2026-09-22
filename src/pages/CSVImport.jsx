@@ -3,6 +3,8 @@ import { planImport, crossFileRepeats } from '@/lib/importDedup';
 import { parseStatementAmount, parseStatementColumns, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { createAccountOperation } from '@/lib/accountOperation';
 import { Upload, CheckCircle, AlertTriangle, ArrowLeft, Loader2, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -165,6 +167,7 @@ function parsePdfLinesToRows(lines) {
 
 export default function CSVImport() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileRef = useRef();
   const [step, setStep] = useState('upload'); // upload | processing | mapping | preview | importing | done
   const [collected, setCollected] = useState([]); // normalized {title, amount, type, category, date} rows
@@ -369,7 +372,10 @@ export default function CSVImport() {
     importLock.current = true;
     setImporting(true);
     setError('');
+    let operation;
     try {
+      operation = createAccountOperation(base44.auth, user?.id);
+      await operation.assertCurrent();
       setImportProgress(0);
       let imported = 0, skipped = 0, failed = 0;
 
@@ -407,6 +413,7 @@ export default function CSVImport() {
         setError('We could not check your existing transactions. Nothing was imported. Please try again.');
         return;
       }
+      await operation.assertCurrent();
       const plan = planImport(existing, collected, overlapChoices);
       skipped += plan.skipped;
       // __sourceFile is a dedup-only marker; it must never reach the database.
@@ -418,10 +425,12 @@ export default function CSVImport() {
       const written = [];
       for (let i = 0; i < toImport.length; i++) {
         try {
-          await base44.entities.Transaction.create(toImport[i]);
+          await operation.assertCurrent();
+          await base44.entities.Transaction.create(toImport[i], { expectedUserId: user.id });
           imported++;
           written.push(toImport[i]);
-        } catch {
+        } catch (error) {
+          if (error?.code === 'ACCOUNT_CHANGED') throw error;
           failed++;
         }
         setImportProgress(Math.round(((i + 1) / toImport.length) * 100));
@@ -430,6 +439,7 @@ export default function CSVImport() {
       // Range of what was actually WRITTEN, not what was in the file. These
       // differ precisely when something went wrong, which is the case worth
       // surfacing.
+      await operation.assertCurrent();
       const writtenDates = written.map(r => r.date).filter(Boolean).sort();
       setImportedRange(writtenDates.length
         ? { first: writtenDates[0], last: writtenDates[writtenDates.length - 1] }
@@ -438,9 +448,12 @@ export default function CSVImport() {
       setSkippedCount(skipped);
       setFailedCount(failed);
       setStep('done');
-    } catch {
-      setError('Import could not be completed. Some rows may have been saved. Retry this file to check existing rows before adding more.');
+    } catch (error) {
+      setError(error?.code === 'ACCOUNT_CHANGED'
+        ? 'Import stopped because your signed-in account changed. Any saved rows belong to the original account. Return to that account and retry the file to check existing rows before adding more.'
+        : 'Import could not be completed. Some rows may have been saved. Retry this file to check existing rows before adding more.');
     } finally {
+      operation?.dispose();
       importLock.current = false;
       setImporting(false);
     }

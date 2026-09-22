@@ -4,14 +4,21 @@ import vm from 'node:vm';
 import { transformSync } from 'esbuild';
 
 const compile = path => transformSync(fs.readFileSync(path, 'utf8').replace(/^import .*;\r?\n/gm, '').replace(/^export /gm, ''), { loader: 'ts' }).code;
-const shared = compile('supabase/functions/_shared/bankSync.ts');
+const shared = compile('supabase/functions/_shared/bankSync.ts') + compile('supabase/functions/_shared/holdingsSnapshot.ts');
 
 async function run(kind, scenario = 'success') {
   let handler, providerCalls = 0;
   const writes = [], logs = [], transactions = [];
   const account = { id: 'fixture-account', user_id: 'fixture-owner', provider_account_id: 'fixture-bank', sync_status: 'connected', last_synced_at: '2026-01-01', history_backfilled_at: null };
   const admin = {
-    rpc: async () => ({ data: [], error: null }),
+    rpc: async (name, params) => {
+      if (name !== 'replace_investment_holdings_snapshot') return {data:[],error:null};
+      assert.equal(params.p_account_id, account.id);assert.equal(params.p_user_id,account.user_id);
+      if (['insert-error','partial','finish-error'].includes(scenario) || account.sync_status !== 'syncing') return {data:null,error:Error('Synthetic atomic save failure')};
+      transactions.push(...params.p_holdings);
+      account.sync_status='connected';account.last_synced_at='2026-09-22';account.error_message=null;
+      return {data:params.p_holdings.length,error:null};
+    },
     from(table) {
       let operation = 'read', patch, filters = [], start = 0;
       const q = {
@@ -73,9 +80,10 @@ async function run(kind, scenario = 'success') {
         const rows = empty ? [] : [0, 1].map(i => ({ transaction_id: `tx-${options.offset + i}`, amount: i ? -12 : 25, date: '2026-09-01', name: 'Fixture', pending: false }));
         return { data: { transactions: rows, total_transactions: scenario === 'page-cap' ? 99999 : scenario === 'empty' ? 0 : 2, accounts: [] } };
       }
-      async investmentsHoldingsGet() {
+      async investmentsHoldingsGet({options}) {
+        assert.equal(options.account_ids[0], 'fixture-bank');
         providerCalls++; providerError();
-        return { data: { holdings: [0, 1].map(i => ({ account_id: 'fixture-bank', security_id: `sec-${i}`, quantity: 1, institution_value: 50 })), securities: [0, 1].map(i => ({ security_id: `sec-${i}`, name: `Fixture ${i}`, ticker_symbol: `F${i}` })) } };
+        return { data: { accounts: [{account_id:'fixture-bank'}], holdings: [0, 1].map(i => ({ account_id: 'fixture-bank', security_id: `sec-${i}`, quantity: 1, institution_value: 50, iso_currency_code: 'USD' })), securities: [0, 1].map(i => ({ security_id: `sec-${i}`, name: `Fixture ${i}`, ticker_symbol: `F${i}` })) } };
       }
     },
     console: { log() {}, warn() {}, error() {} },

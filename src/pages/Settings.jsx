@@ -2,6 +2,8 @@ import { refreshSubscriptionStatus } from '@/lib/subscriptionEvents';
 import { useProStatus } from '@/hooks/useProStatus';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { createAccountOperation } from '@/lib/accountOperation';
 import { getAiConsent, grantAiConsent, withdrawAiConsent, AI_STATES } from '@/lib/aiConsent';
 import { Settings as SettingsIcon, Trash2, LogOut, AlertTriangle, Shield, Download, Lock, FileText, Mail, ChevronRight, Sparkles, Zap, CheckCircle2, Star, Heart, Palette, ALargeSmall, Gauge } from 'lucide-react';
 import { isNativeIOS } from '@/lib/platform';
@@ -30,6 +32,7 @@ import { getSimpleMode, setSimpleMode } from '@/lib/simpleMode';
 import { CHART_STYLES, getChartStyle, saveChartStyle } from '@/lib/chartPreferences';
 
 export default function Settings() {
+  const { user } = useAuth();
   const { isPro, loading: checkingPlan } = useProStatus();
   const handleManageSubscription = async () => {
     if (portalRef.current) return;
@@ -190,7 +193,10 @@ export default function Settings() {
     exportingRef.current = true;
 
     setExporting(true);
+    let operation;
     try {
+      operation = createAccountOperation(base44.auth, user?.id);
+      await operation.assertCurrent();
       // Every table that actually holds this user's data — not just the
       // 6 finance tables this used to cover. Someone deleting their
       // account deserves everything back first, including the leftover
@@ -230,6 +236,7 @@ export default function Settings() {
         base44.entities.AdvisorConversation.list(),
         base44.entities.AdvisorMessage.list(),
       ]);
+      await operation.assertCurrent();
       const data = {
         exported_at: new Date().toISOString(),
         transactions, budgets, savings_goals, goals, bills, net_worth_entries,
@@ -248,11 +255,14 @@ export default function Settings() {
       setExportDone(true);
       setTimeout(() => setExportDone(false), 3000);
     } catch (err) {
-      console.error('Export error:', err);
-      toast({ title: "Couldn't export data", description: "Please try again in a moment.", variant: 'destructive' });
+      toast({ title: "Couldn't export data", description: err?.code === 'ACCOUNT_CHANGED'
+        ? 'Your signed-in account changed. Nothing was downloaded. Start the export again from the account you want to use.'
+        : 'Please try again in a moment.', variant: 'destructive' });
+    } finally {
+      operation?.dispose();
+      exportingRef.current = false;
+      setExporting(false);
     }
-    exportingRef.current = false;
-    setExporting(false);
   };
 
   return (

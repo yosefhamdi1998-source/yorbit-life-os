@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {formatHoldingValue,formatHoldingsTotals,loadVisibleHoldings} from '../src/lib/holdingValues.js';
+assert.equal(formatHoldingValue(100,'USD'),'USD 100');assert.equal(formatHoldingValue(0,'EUR'),'EUR 0');
+assert.equal(formatHoldingValue(0.00001659,'BTC'),'BTC 0.00001659');
+assert.equal(formatHoldingValue(null,'USD'),'Value unavailable');assert.match(formatHoldingValue(5,null),/currency not reported/);
+assert.equal(formatHoldingsTotals([{institution_value:100,currency:'USD'},{institution_value:'20',currency:'USD'},{institution_value:75,currency:'EUR'}]),'EUR 75 · USD 120');
+assert.match(formatHoldingsTotals([{institution_value:null,currency:'USD'},{institution_value:9}]),/Some values unavailable/);
+let fail=false,accountFail=false;
+const rows=Array.from({length:250},(_,id)=>({id,connected_account_id:'a'}));rows.push({id:'old',connected_account_id:'b'});
+const entities={InvestmentHolding:{list:async(...args)=>{assert.deepEqual(args,['-institution_value']);if(fail)throw Error('Synthetic load error');return rows;}},ConnectedAccount:{list:async()=>{if(accountFail)throw Error('Synthetic account load error');return[{id:'a',sync_status:'connected'},{id:'b',sync_status:'disconnected'}];}}};
+assert.equal((await loadVisibleHoldings(entities)).length,250);
+fail=true;await assert.rejects(loadVisibleHoldings(entities));fail=false;accountFail=true;await assert.rejects(loadVisibleHoldings(entities));accountFail=false;assert.equal((await loadVisibleHoldings(entities)).length,250);
+console.log('PASS: holdings totals keep currencies separate, preserve missing values, load beyond 200 rows, exclude disconnected accounts and expose failures');

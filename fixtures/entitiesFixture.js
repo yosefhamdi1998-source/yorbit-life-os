@@ -25,6 +25,9 @@ class FixtureEntity {
     this.rows = (DATA[table] || []).map((r, i) => ({ id: r.id ?? `${table}-${i}`, created_date: r.created_date ?? '2026-01-01', ...r }));
   }
   async list(sort, limit) {
+    if (this.table === 'investment_holdings' && scenarioName === 'holdings-retry' && !this.failureShown) {
+      this.failureShown = true; throw new Error('Synthetic holdings read failure');
+    }
     if (this.table === 'connected_accounts' && scenarioName === 'bank-load-retry' && !this.failureShown) {
       this.failureShown = true; throw new Error('Synthetic load failure');
     }

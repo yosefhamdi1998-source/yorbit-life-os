@@ -1,4 +1,5 @@
-import { beginBankSync, completeBankSync, failBankSync, logBankSync, type BankSyncContext } from '../_shared/bankSync.ts';
+import { buildHoldingsSnapshot } from '../_shared/holdingsSnapshot.ts';
+import { beginBankSync, failBankSync, logBankSync, type BankSyncContext } from '../_shared/bankSync.ts';
 import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
@@ -66,33 +67,17 @@ Deno.serve(async (req) => {
     });
     const plaidClient = new PlaidApi(config);
 
-    const holdingsRes = await plaidClient.investmentsHoldingsGet({ access_token });
-    const { holdings, securities } = holdingsRes.data;
-    const securityById = new Map(securities.map((s) => [s.security_id, s]));
-
-    // This account's holdings only — the same access_token can cover
-    // multiple accounts at the institution, and Plaid returns all of them.
-    const ownHoldings = holdings.filter((h) => h.account_id === account.provider_account_id);
-
-    for (const h of ownHoldings) {
-      const security = securityById.get(h.security_id);
-      const { error } = await admin.from('investment_holdings').upsert({
-        user_id: account.user_id,
-        connected_account_id,
-        security_name: security?.name || 'Unknown',
-        ticker_symbol: security?.ticker_symbol || null,
-        quantity: h.quantity,
-        institution_value: h.institution_value ?? (h.quantity * (h.institution_price || 0)),
-        currency: h.iso_currency_code || 'USD',
-        updated_date: new Date().toISOString(),
-      }, { onConflict: 'connected_account_id,security_name,ticker_symbol' });
-      if (error) sync.failed++;
-      else sync.imported++;
-    }
-
-    if (sync.failed > 0) throw new Error('Some holdings could not be saved; sync is incomplete');
-    await completeBankSync(sync);
-    const synced = sync.imported;
+    const holdingsRes = await plaidClient.investmentsHoldingsGet({
+      access_token, options: { account_ids: [account.provider_account_id] },
+    });
+    const snapshot = buildHoldingsSnapshot(holdingsRes.data, account.provider_account_id);
+    // Replacements and success freshness commit together. Any failed insert
+    // leaves every previous position and its last-success timestamp intact.
+    const { data: synced, error: saveError } = await admin.rpc('replace_investment_holdings_snapshot', {
+      p_account_id: connected_account_id, p_user_id: account.user_id, p_holdings: snapshot,
+    });
+    if (saveError || synced !== snapshot.length) throw new Error('Could not confirm holdings snapshot');
+    sync.imported = synced;
     await logBankSync(sync, 'success', `Synced ${synced} holding(s)`);
 
     return jsonResponse({ success: true, synced }, 200, {}, req);

@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { formatHoldingValue, formatHoldingsTotals, loadVisibleHoldings } from '@/lib/holdingValues';
 import { TrendingUp, ArrowDownLeft, ArrowUpRight, Coins, Wallet } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/PageHeader';
-import { toast } from '@/components/ui/use-toast';
 import { fmtFull, fmtCompact, fmtAxisCompact } from '@/lib/format';
 import { format, parseISO } from 'date-fns';
 
@@ -42,6 +42,9 @@ const MONEY_OUT = /^(Withdrawal|Send)/i;
 export default function Investments() {
   const [rows, setRows] = useState([]);
   const [holdings, setHoldings] = useState([]);
+  const [holdingsFailed, setHoldingsFailed] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [assetFilter, setAssetFilter] = useState('all');
   // Tapping an asset below filters the Activity feed further down the
@@ -73,10 +76,13 @@ export default function Investments() {
     // entire page hostage - and when it timed out at 8s, twice, the page had
     // spent 16 seconds arriving at nothing.
     let alive = true;
+    setLoading(true);
+    setHoldingsFailed(false);
+    setLoadFailed(false);
 
     Promise.all([
       base44.entities.Transaction.listInvestments('-date', 400),
-      base44.entities.InvestmentHolding.list('-institution_value', 200).catch(() => []),
+      loadVisibleHoldings(base44.entities).catch(() => { if (alive) setHoldingsFailed(true); return []; }),
       base44.entities.Transaction.cryptoYearlySummary().catch(() => []),
       base44.entities.Transaction.cryptoTimeCoverage().catch(() => null),
     ])
@@ -85,7 +91,7 @@ export default function Investments() {
         setRows(tx); setHoldings(h || []);
         setYearlyRows(y || []); setCoverage(cov);
       })
-      .catch(() => toast({ title: "Couldn't load your investments", description: 'Please try again in a moment.', variant: 'destructive' }))
+      .catch(() => { if (alive) setLoadFailed(true); })
       .finally(() => { if (alive) setLoading(false); });
 
     // FIFO summary, separately. A failure here must NOT fall back to
@@ -109,7 +115,7 @@ export default function Investments() {
       .finally(() => { if (alive) setSummaryLoading(false); });
 
     return () => { alive = false; };
-  }, []);
+  }, [retry]);
 
   // Totals across every asset, straight from the server-side FIFO walk.
   const pnl = useMemo(() => {
@@ -275,7 +281,6 @@ export default function Investments() {
   const assets = serverAssets.length ? serverAssets : (summaryFailed ? [] : clientAssets);
   const yearly = serverYearly.length ? serverYearly : clientYearly;
 
-  const holdingsValue = holdings.reduce((s, h) => s + (h.institution_value || 0), 0);
 
   if (loading) {
     return (
@@ -287,7 +292,7 @@ export default function Investments() {
     );
   }
 
-  if (rows.length === 0 && holdings.length === 0) {
+  if (rows.length === 0 && holdings.length === 0 && !holdingsFailed && !loadFailed) {
     return (
       <div className="py-4 pb-8">
         <PageHeader title="Investments" subtitle="Trading and holdings, kept out of your budget" icon={TrendingUp} gradient="gradient-primary" showBack />
@@ -306,6 +311,14 @@ export default function Investments() {
   return (
     <div className="py-4 pb-8">
       <PageHeader title="Investments" subtitle="Trading and holdings, kept out of your budget" icon={TrendingUp} gradient="gradient-primary" showBack />
+
+      {(holdingsFailed || loadFailed) && (
+        <div role="alert" className="sky-card rounded-2xl p-4 mb-4 border border-destructive/40">
+          <p className="text-sm font-semibold">{loadFailed ? "We couldn't load your investment activity." : "We couldn't load your current holdings."}</p>
+          <p className="text-xs text-muted-foreground mt-1">Your records are still saved. This page may be incomplete until the load succeeds.</p>
+          <button className="mt-2 min-h-[44px] px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold" onClick={() => setRetry(value => value + 1)}>Retry loading investments</button>
+        </div>
+      )}
 
       {/* Hero — the headline is what actually crossed the boundary between
           your bank and your investing, not trading volume, which tells you
@@ -357,7 +370,7 @@ export default function Investments() {
               <Wallet className="w-4 h-4 text-primary" />
               <p className="text-sm font-bold text-foreground">Current holdings</p>
             </div>
-            <p className="text-sm font-black text-foreground tabular-nums">${fmtFull(holdingsValue)}</p>
+            <p className="text-sm font-black text-foreground tabular-nums">{formatHoldingsTotals(holdings)}</p>
           </div>
           <div className="divide-y divide-border/50">
             {holdings.map(h => (
@@ -366,7 +379,7 @@ export default function Investments() {
                   <p className="text-sm font-semibold text-foreground truncate">{h.security_name}</p>
                   <p className="text-xs text-muted-foreground">{h.ticker_symbol || ''}</p>
                 </div>
-                <p className="text-sm font-bold text-foreground tabular-nums shrink-0">${fmtFull(h.institution_value)}</p>
+                <p className="text-sm font-bold text-foreground tabular-nums shrink-0">{formatHoldingValue(h.institution_value, h.currency)}</p>
               </div>
             ))}
           </div>

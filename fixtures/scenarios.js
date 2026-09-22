@@ -94,7 +94,17 @@ const base = {
   subscriptions: [],
 };
 
+const holdingsFixture = { ...base,
+ connected_accounts: [{id:'broker-a',institution_name:'Fixture Brokerage',account_name:'Investments',account_type:'investment',sync_status:'connected'},{id:'broker-old',institution_name:'Old fixture',account_name:'Disconnected',sync_status:'disconnected'}],
+ investment_holdings: [
+  {id:'usd',connected_account_id:'broker-a',security_name:'USD fixture',quantity:2,institution_value:100,currency:'USD'},
+  {id:'eur',connected_account_id:'broker-a',security_name:'EUR fixture',quantity:3,institution_value:75,currency:'EUR'},
+  {id:'closed',connected_account_id:'broker-old',security_name:'Hidden disconnected holding',institution_value:9999,currency:'USD'},
+ ],
+};
 export const SCENARIOS = {
+ 'holdings-currencies': holdingsFixture,
+ 'holdings-retry': holdingsFixture,
   default: base,
   'bank-recovery': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
   'bank-load-retry': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
