@@ -4,7 +4,7 @@
 // Run: npm run test:import-dedup
 
 import assert from 'node:assert/strict';
-import { planImport, snapshotTruncationReason } from '../src/lib/importDedup.js';
+import { planImport, snapshotTruncationReason, crossFileRepeats } from '../src/lib/importDedup.js';
 
 const row = (date, title, amount, type = 'expense') => ({ date, title, amount, type });
 let checks = 0;
@@ -39,20 +39,46 @@ console.log('The contract that must not regress\n');
   ok('re-importing those twenty adds none');
 }
 
-// Overlapping files are reconciled because `collected` accumulates across every
-// file in one session: the shared rows count once, the surplus imports.
+// ACROSS FILES the planner does not guess, and this is the case that decides it.
+//
+// A Jan-Feb export and a Feb-Mar export of ONE account share February, and those
+// rows are the same transactions twice. But two DIFFERENT accounts routinely
+// produce identical rows - the same Netflix charge, same day, same amount, on a
+// Chase card and an Amex card - and those are two real charges. Nothing in a CSV
+// says which account it came from, so collapsing on a guess silently deletes
+// real money from the ledger. An earlier version of this planner did exactly
+// that; this test is why it was reverted.
 {
-  // Tagged exactly as CSVImport tags them, because the file a row came from is
-  // what separates "twenty trades in one statement" from "one charge listed in
-  // two overlapping statements".
   const from = (file, rows) => rows.map((r) => ({ ...r, __sourceFile: file }));
-  const existing = [row('2026-03-01', 'Salary', 3000, 'income')];
-  const fileA = from('jan-feb.csv', [row('2026-03-01', 'Salary', 3000, 'income'), row('2026-03-02', 'Gym', 45)]);
-  const fileB = from('feb-mar.csv', [row('2026-03-02', 'Gym', 45), row('2026-03-03', 'Fuel', 60)]);
-  const { toImport } = planImport(existing, [...fileA, ...fileB]);
-  assert.deepEqual(toImport.map((r) => r.title), ['Gym', 'Fuel'],
-    'the salary already exists and the shared Gym row must import exactly once');
-  ok('two overlapping files import each shared row exactly once');
+  const { toImport } = planImport([], [
+    ...from('chase.csv', [row('2026-09-01', 'Netflix', 15.99)]),
+    ...from('amex.csv', [row('2026-09-01', 'Netflix', 15.99)]),
+  ]);
+  assert.equal(toImport.length, 2,
+    'two accounts charged the same amount on the same day is two transactions, not one');
+  ok('identical rows from two different accounts both import');
+}
+
+// The ambiguity is surfaced rather than guessed, so the owner decides before
+// anything is written.
+{
+  const from = (file, rows) => rows.map((r) => ({ ...r, __sourceFile: file }));
+  const flagged = crossFileRepeats([
+    ...from('a.csv', [row('2026-09-01', 'Netflix', 15.99), row('2026-09-02', 'Rent', 800)]),
+    ...from('b.csv', [row('2026-09-01', 'Netflix', 15.99)]),
+  ]);
+  assert.equal(flagged.length, 1, 'only the row present in both files is flagged');
+  assert.deepEqual(flagged[0].files.sort(), ['a.csv', 'b.csv']);
+  ok('a row appearing in two files is flagged for review, not silently merged');
+}
+
+// A row in only one file is never flagged, however often it repeats there.
+{
+  const twenty = Array.from({ length: 20 },
+    () => ({ ...row('2026-02-02', 'Coinbase trade', 50), __sourceFile: 'only.csv' }));
+  assert.equal(crossFileRepeats(twenty).length, 0);
+  assert.equal(planImport([], twenty).toImport.length, 20);
+  ok('twenty repeats inside one file are neither flagged nor collapsed');
 }
 
 // A genuine second occurrence is not a duplicate. Two coffees on one day at the
@@ -65,15 +91,20 @@ console.log('The contract that must not regress\n');
   ok('a real repeat beyond what is stored still imports');
 }
 
-// The two rules must not cancel each other out. Collapsing overlap across
-// files is only safe while genuine repeats INSIDE one file still all import.
+// Two statements each listing the same twenty trades: forty rows import and the
+// key is flagged. That reads like over-importing, and for a re-export of one
+// account it is — but the alternative is deleting twenty real trades when those
+// files are two different accounts, and nothing here can tell which. The owner
+// is shown the conflict and decides; the ledger does not decide for them.
 {
   const tag = (file) => Array.from({ length: 20 },
     () => ({ ...row('2026-02-02', 'Coinbase trade', 50), __sourceFile: file }));
-  const { toImport } = planImport([], [...tag('a.csv'), ...tag('b.csv')]);
-  assert.equal(toImport.length, 20,
-    'two statements each listing the same twenty trades are twenty trades, not forty');
-  ok('overlap collapses across files without flattening repeats within one');
+  const rows = [...tag('a.csv'), ...tag('b.csv')];
+  assert.equal(planImport([], rows).toImport.length, 40,
+    'every occurrence the files report is honoured rather than guessed away');
+  assert.equal(crossFileRepeats(rows).length, 1,
+    'and the conflict is raised for review before anything is written');
+  ok('cross-file repeats are imported in full and flagged, never silently dropped');
 }
 
 console.log('\nThe defect: a truncated snapshot duplicates silently\n');

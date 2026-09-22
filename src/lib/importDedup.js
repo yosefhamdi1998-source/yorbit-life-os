@@ -38,31 +38,22 @@ export function planImport(existingRows, collectedRows) {
     existingCounts.set(k, (existingCounts.get(k) || 0) + 1);
   }
 
-  // How many of each key genuinely happened, per the files themselves.
+  // ACROSS FILES, DO NOT GUESS.
   //
-  // Across files this is the MAX, not the sum. Statement exports overlap all
-  // the time — a Jan-Feb file and a Feb-Mar file both contain February — and
-  // the shared rows are the SAME transactions seen twice, not twice as many
-  // transactions. Summing imported every overlapping row a second time: two
-  // files each listing one Gym charge produced two Gym charges.
+  // An earlier version took the MAX per key across files, reasoning that a
+  // Jan-Feb export and a Feb-Mar export share February and those rows are the
+  // same transactions seen twice. That is true for re-exports of ONE account —
+  // and wrong for two different accounts, which routinely produce identical
+  // rows: the same Netflix charge on the same day for the same amount on a
+  // Chase card and an Amex card is two real charges, not one. Nothing in a CSV
+  // identifies the account, so the two cases are indistinguishable here.
   //
-  // Within a single file the count stands as written, because that is the case
-  // max must not break: a file holding twenty identical same-day trades is
-  // reporting twenty real trades.
-  const wantedPerKey = new Map();
-  const perFile = new Map();
-  for (const r of collectedRows) {
-    const file = r.__sourceFile ?? '';
-    if (!perFile.has(file)) perFile.set(file, new Map());
-    const counts = perFile.get(file);
-    const key = statementRowKey(r);
-    counts.set(key, (counts.get(key) || 0) + 1);
-  }
-  for (const counts of perFile.values()) {
-    for (const [key, n] of counts) {
-      wantedPerKey.set(key, Math.max(wantedPerKey.get(key) || 0, n));
-    }
-  }
+  // Between a visible duplicate and a silent omission, a ledger must choose the
+  // duplicate. An extra row inflates spending where the owner can see it and
+  // delete it; a dropped row understates spending and may never be noticed. So
+  // every occurrence the files report is honoured, and the ambiguity is
+  // surfaced to the person importing instead — see crossFileRepeats, which the
+  // review step shows before anything is written.
 
   const takenSoFar = new Map();
   const toImport = [];
@@ -71,12 +62,10 @@ export function planImport(existingRows, collectedRows) {
   for (const r of collectedRows) {
     const key = statementRowKey(r);
     const already = existingCounts.get(key) || 0;
-    const wanted = wantedPerKey.get(key) || 0;
     const taken = takenSoFar.get(key) || 0;
-    // Import only while the ledger holds fewer of this key than actually
-    // happened, and only up to that number — the surplus occurrences of an
-    // overlapping row are the same transaction reported again.
-    if (taken < already || taken >= wanted) {
+    // Import this occurrence only if the files hold more of this key than the
+    // database already does.
+    if (taken < already) {
       takenSoFar.set(key, taken + 1);
       skipped++;
       continue;
@@ -109,4 +98,29 @@ export function snapshotTruncationReason(existingRows, requestedLimit) {
     return `Read ${existingRows.length} existing transactions against a limit of ${requestedLimit}, so older rows may be missing and duplicates could be written.`;
   }
   return null;
+}
+
+/**
+ * Keys that appear in more than one of the uploaded files.
+ *
+ * planImport deliberately imports every occurrence, because it cannot tell a
+ * re-export of one account from two different accounts that happen to match.
+ * This lets the review step say so plainly before anything is written, turning
+ * a silent guess into the owner's decision.
+ *
+ * @returns {Array<{key: string, files: string[], occurrences: number}>}
+ */
+export function crossFileRepeats(collectedRows) {
+  const seen = new Map();
+  for (const r of collectedRows) {
+    const key = statementRowKey(r);
+    const file = r.__sourceFile ?? '';
+    if (!seen.has(key)) seen.set(key, { files: new Set(), occurrences: 0 });
+    const entry = seen.get(key);
+    entry.files.add(file);
+    entry.occurrences += 1;
+  }
+  return [...seen.entries()]
+    .filter(([, v]) => v.files.size > 1)
+    .map(([key, v]) => ({ key, files: [...v.files], occurrences: v.occurrences }));
 }

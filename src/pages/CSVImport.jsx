@@ -1,5 +1,5 @@
 import { parseCSV } from '@/lib/csv';
-import { planImport } from '@/lib/importDedup';
+import { planImport, crossFileRepeats } from '@/lib/importDedup';
 import { parseStatementAmount, parseStatementColumns, parseStatementDate, skippedStatementRows } from '@/lib/statementValues';
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -574,6 +574,20 @@ export default function CSVImport() {
           <div className="sky-card rounded-2xl p-4 sm:p-6 mb-4">
             <p className="text-base font-bold mb-0.5">Review ({collected.length} transactions found)</p>
             <p className="text-sm text-muted-foreground mb-4">Duplicates already in your account will be skipped automatically.</p>
+            {/* Rows present in more than one uploaded file are ambiguous and we
+                do not guess: re-exports of one account repeat the same
+                transactions, but two different accounts genuinely produce
+                identical rows. Everything is imported and the conflict is
+                stated, because a visible duplicate can be deleted while a
+                silently dropped transaction may never be noticed. */}
+            {crossFileRepeats(collected).length > 0 && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4 text-sm">
+                <strong>{crossFileRepeats(collected).length} transaction{crossFileRepeats(collected).length === 1 ? ' appears' : 's appear'} in more than one of these files.</strong>{' '}
+                They will all be imported. If these files are re-exports of the same account covering
+                overlapping dates, remove one before importing. If they are different accounts that
+                happen to match, this is correct and nothing needs changing.
+              </div>
+            )}
             <div className="space-y-1 max-h-96 overflow-y-auto">
               {collected.slice(0, 50).map((tx, i) => (
                 <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0">

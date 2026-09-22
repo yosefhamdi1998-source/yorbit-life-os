@@ -1330,3 +1330,22 @@ test-import-concurrency both eval component bodies with with(scope) and needed
 the new identifier; test-import-concurrency caught the omission by failing.
 Confirmed the new test FAILS on the pre-fix summing behaviour. Strict lint,
 production build and the full suite pass.
+
+September22 Claude, CORRECTION to the same-day overlap change: it was wrong and
+is reverted. Asked to verify that dedup preserves legitimate transactions from
+different accounts, it did not. Taking the MAX per key across files collapses a
+Jan-Feb and a Feb-Mar export of ONE account correctly, but two DIFFERENT
+accounts routinely produce identical rows - the same Netflix charge, same day,
+same amount, on a Chase card and an Amex card - and those are two real charges.
+Reproduced: two accounts, one identical row each, imported 1 instead of 2, so a
+real charge was silently deleted. Nothing in a CSV identifies the account, so
+the two cases cannot be told apart here.
+
+Between a visible duplicate and a silent omission a ledger must take the
+duplicate: an extra row inflates spending where the owner can see and delete it,
+a dropped row understates spending and may never be noticed. Every occurrence
+the files report is now imported, and the ambiguity is surfaced instead - the
+review step names how many rows appear in more than one file and says what to do
+in each case, before anything is written. Browser-verified: two files sharing a
+row show "1 transaction appears in more than one of these files" and import all
+4. The unbounded snapshot fix from earlier today is unaffected and stands.
