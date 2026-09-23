@@ -13,7 +13,8 @@ The website is live. Public paid launch and App Store submission are not yet ver
 - Legacy administrator bulk cleanup v8 is disabled with HTTP 410. It cannot read or delete financial records.
 - Production assets and backend source/JWT settings were checked. These are configuration and code-deployment checks, not a real bank connection or payment test.
 
-## Validated release package; deployment evidence belongs in YORBIT_PROGRESS.md
+## Final web release verified live
+- Release e051c1b passed Vercel deployment; the public index-DcnMty2S.js bundle contains the updated router. Native packaging is saved in GitHub; no native build was triggered.
 - React Router updated to 7.18.4 for the upstream security fix. The current production-dependency audit reports zero advisories. Three moderate advisory entries remain in the native build tool chain through xcode/uuid; no forced downgrade or incompatible override was applied.
 - Installed the Keyboard, SplashScreen and StatusBar plugins already referenced by native configuration. Capacitor iOS source/assets sync succeeded on Windows. Portable Swift paths are normalized after sync; native auth/plugin checks pass.
 - The manual Mac build workflow now checks for Xcode 26 and iOS SDK 26 or later before building. Apple has required these upload minimums since April 28, 2026. No paid build or submission was triggered.
