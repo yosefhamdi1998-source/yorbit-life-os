@@ -15,7 +15,7 @@
     "test:venmo": "node scripts/test-venmo-mapping.cjs",
     "test:delete-lock": "node scripts/test-delete-lock.js",
     "test:redaction": "node scripts/test-redaction.js",
-    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config && npm run test:net-worth-validation && npm run test:goal-validation && npm run test:account-projection && npm run test:plaid-exchange-response && npm run test:account-deletion && npm run test:route-history && npm run test:statement-values && npm run test:billing-portal && npm run test:ai-usage-limits && npm run test:budget-validation && npm run test:report-selection && npm run test:store-copy && npm run test:auth-state && npm run test:password-recovery && npm run test:themes && npm run test:sync-dispatcher && npm run test:native-auth && npm run test:edge-auth-guards && npm run test:function-jwt-config && npm run test:recurring-dates && npm run test:bill-validation && npm run test:write-outcome && npm run test:import-dedup && npm run test:delete-coverage && npm run test:bank-sync && npm run test:native-cors && npm run test:bank-ui && npm run test:cleanup-disabled && npm run test:account-operation && npm run test:import-concurrency && npm run test:holdings-response && npm run test:holding-values",
+    "test": "npm run check:enums && npm run test:lint-config && npm run test:animated-number && npm run test:venmo && npm run test:delete-lock && npm run test:redaction && npm run test:ai-context && npm run test:error-ids && npm run test:net-worth && npm run test:dedup && npm run test:ranges && npm run test:revenuecat && npm run test:checkout && npm run test:csv && npm run test:starter-budget && npm run test:export-pagination && npm run test:spending-categories && npm run test:report-average && npm run test:report-comparison && npm run test:report-trend-label && npm run test:pdf-rows && npm run test:service-bearer && npm run test:transaction-validation && npm run test:native-release-config && npm run test:net-worth-validation && npm run test:goal-validation && npm run test:account-projection && npm run test:plaid-exchange-response && npm run test:account-deletion && npm run test:route-history && npm run test:statement-values && npm run test:billing-portal && npm run test:ai-usage-limits && npm run test:budget-validation && npm run test:report-selection && npm run test:store-copy && npm run test:auth-state && npm run test:password-recovery && npm run test:themes && npm run test:sync-dispatcher && npm run test:native-auth && npm run test:edge-auth-guards && npm run test:function-jwt-config && npm run test:recurring-dates && npm run test:bill-validation && npm run test:write-outcome && npm run test:import-dedup && npm run test:delete-coverage && npm run test:bank-sync && npm run test:native-cors && npm run test:bank-ui && npm run test:cleanup-disabled && npm run test:account-operation && npm run test:import-concurrency && npm run test:holdings-response && npm run test:holding-values && npm run test:apple-toolchain",
     "test:lint-config": "node scripts/test-lint-config.js",
     "test:animated-number": "node scripts/test-animated-number.mjs",
     "test:ai-context": "node scripts/test-ai-context.js",
@@ -77,15 +77,19 @@
     "test:account-operation": "node scripts/test-account-operation.mjs",
     "test:import-concurrency": "node scripts/test-import-concurrency.mjs",
     "test:holdings-response": "node scripts/test-holdings-response.mjs",
-    "test:holding-values": "node scripts/test-holding-values.mjs"
+    "test:holding-values": "node scripts/test-holding-values.mjs",
+    "test:apple-toolchain": "node scripts/test-apple-toolchain.mjs",
+    "sync:ios": "cap sync ios && node scripts/normalize-ios-paths.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "8.1.1",
     "@capacitor/browser": "8.0.4",
-    "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
+    "@capacitor/keyboard": "8.0.5",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -144,7 +148,7 @@
     "react-leaflet": "^4.2.1",
     "react-markdown": "^9.0.1",
     "react-resizable-panels": "^2.1.7",
-    "react-router-dom": "^6.26.0",
+    "react-router-dom": "7.18.4",
     "recharts": "^2.15.4",
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
@@ -154,6 +158,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.0",
     "@eslint/js": "^9.19.0",
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",

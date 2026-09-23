@@ -29,6 +29,7 @@
 # exactly which file/step failed — see FAIL() below.
 
 set -uo pipefail
+PYTHON_BIN="${YORBIT_PYTHON:-python3}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -66,6 +67,10 @@ echo "== Yorbit backup docs — regenerating all 5 =="
 echo "Staging in: $STAGING (local only, not synced)"
 echo ""
 
+# Validate every destructive target in this same shell before deletion.
+[ "$(realpath -m "$STAGING")" = "$(realpath -m 'C:/YORBIT/backup-staging')" ] || FAIL "unsafe staging path"
+[ "$(realpath -m "$ICLOUD_DEST/$FOLDER4")" = "$(realpath -m 'C:/Users/Yosef/iCloudDrive/YORBIT/4 - App Source Code (browse this)')" ] || FAIL "unsafe iCloud source path"
+[ "$(realpath -m "$DESKTOP_DEST/$FOLDER4")" = "$(realpath -m 'C:/Users/Yosef/OneDrive/Desktop/Yorbit Backup/4 - App Source Code (browse this)')" ] || FAIL "unsafe Desktop source path"
 rm -rf "$STAGING"
 mkdir -p "$STAGING" || FAIL "could not create staging folder: $STAGING"
 
@@ -75,21 +80,23 @@ SESSION=$(ls -t "$LOGDIR"/*.jsonl 2>/dev/null | head -1)
 echo "-> $MD3 (from $(basename "$SESSION"))"
 node scripts/export-session.js "$SESSION" "$STAGING/$MD3" || FAIL "$MD3 (scripts/export-session.js failed — see its own output above)"
 
-# ---- 2. The two PDFs, generated from live repo state ----
+printf '\n\nCoverage note: this file exports the latest Claude session only. Current Codex work and deployment evidence are in YORBIT_PROGRESS.md, LAUNCH_STATUS.md and OWNER_ACTIONS.md inside the source backup. Older saved task histories remain in Yorbit-Main-Handoff.\n' >> "$STAGING/$MD3"
+
+# ---- 2. The two PDFs, generated from dated, verified release evidence ----
 echo "-> $PDF1"
-python3 scripts/backup-docs/status_report.py "$STAGING/$PDF1" || FAIL "$PDF1 (status_report.py failed)"
+"$PYTHON_BIN" scripts/backup-docs/verified_report.py status "$STAGING/$PDF1" || FAIL "$PDF1 (status_report.py failed)"
 
 echo "-> $PDF2"
-python3 scripts/backup-docs/todo_next.py "$STAGING/$PDF2" || FAIL "$PDF2 (todo_next.py failed)"
+"$PYTHON_BIN" scripts/backup-docs/verified_report.py next "$STAGING/$PDF2" || FAIL "$PDF2 (todo_next.py failed)"
 
 # ---- 3. Source zip (from `git ls-files`, so it can't drift from what's
 #         actually tracked) plus its unzipped twin ----
 echo "-> $ZIP4"
-python3 scripts/backup-docs/build_source_zip.py "$STAGING/$ZIP4" || FAIL "$ZIP4 (build_source_zip.py failed)"
+"$PYTHON_BIN" scripts/backup-docs/build_source_zip.py "$STAGING/$ZIP4" || FAIL "$ZIP4 (build_source_zip.py failed)"
 
 echo "-> $FOLDER4"
 rm -rf "$STAGING/_extract_tmp"
-python3 -c "import zipfile; zipfile.ZipFile('$STAGING/$ZIP4').extractall('$STAGING/_extract_tmp')" || FAIL "$FOLDER4 (could not extract $ZIP4)"
+"$PYTHON_BIN" -c "import zipfile; zipfile.ZipFile('$STAGING/$ZIP4').extractall('$STAGING/_extract_tmp')" || FAIL "$FOLDER4 (could not extract $ZIP4)"
 mv "$STAGING/_extract_tmp/yorbit-life-os" "$STAGING/$FOLDER4" || FAIL "$FOLDER4 (extract landed in an unexpected shape)"
 rmdir "$STAGING/_extract_tmp" 2>/dev/null || true
 
@@ -112,11 +119,11 @@ scan_one() {
 
 scan_one "$STAGING/$MD3" "$MD3"
 
-python3 scripts/backup-docs/extract_pdf_text.py "$STAGING/$PDF1" > "$STAGING/.scan1.txt" || FAIL "could not extract text from $PDF1 for scanning"
+"$PYTHON_BIN" scripts/backup-docs/extract_pdf_text.py "$STAGING/$PDF1" > "$STAGING/.scan1.txt" || FAIL "could not extract text from $PDF1 for scanning"
 scan_one "$STAGING/.scan1.txt" "$PDF1"
 rm -f "$STAGING/.scan1.txt"
 
-python3 scripts/backup-docs/extract_pdf_text.py "$STAGING/$PDF2" > "$STAGING/.scan2.txt" || FAIL "could not extract text from $PDF2 for scanning"
+"$PYTHON_BIN" scripts/backup-docs/extract_pdf_text.py "$STAGING/$PDF2" > "$STAGING/.scan2.txt" || FAIL "could not extract text from $PDF2 for scanning"
 scan_one "$STAGING/.scan2.txt" "$PDF2"
 rm -f "$STAGING/.scan2.txt"
 

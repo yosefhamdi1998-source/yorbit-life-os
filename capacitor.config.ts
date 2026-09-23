@@ -1,11 +1,9 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
- * Capacitor config for Yorbit. @capacitor/core, cli, ios, and android
- * are installed. The ios/ platform can only be generated on macOS (Xcode
- * is required) - see codemagic.yaml for the cloud build pipeline that
- * handles this without needing a local Mac. android/ can be generated
- * locally: `npm run build && npx cap add android`.
+ * Capacitor config for Yorbit. Web assets and Swift package registrations can
+ * be synced on Windows with cap sync ios; compiling, signing, and running iOS
+ * still require macOS/Xcode. Codemagic native builds are manual.
  */
 const config: CapacitorConfig = {
   // Change this only now, never after either store has a live listing —

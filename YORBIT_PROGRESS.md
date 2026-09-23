@@ -1503,3 +1503,26 @@ Coverage additions (synthetic browser only):
 | Native iOS | Blocked / not yet tested | Source review found configured Keyboard/StatusBar/SplashScreen plugins are absent from dependencies. Current official Apple requirements checked: Xcode 26+ and iOS 26 SDK required for uploads since April 28, 2026. Signing, device, native bank return, purchases and deletion still unverified. |
 
 Remaining engineering: finish native plugin/preflight preparation; native bank return flow; sync concurrency/stale syncing recovery; complete payment/entitlement verification after approved test key; remaining control coverage. Automatic approval review blocked AI origin deployment and Stripe webhook/portal redeploys. AI origin-only approval question remains pending; no real financial payload was sent to AI. No bypass or new recurring development run.
+
+## September 23, 2026 — final web/native packaging validation and readiness answer
+
+Second web release ef26e4a is verified live: GitHub Vercel status success, deployment https://vercel.com/yorbit/yorbit-life-os/7rhxj1rvdxHHWF5jkxzV7KWJjzEN. Public index-uRXbSDqB.js references CSVImport-DXilGT_L.js with ACCOUNT_CHANGED, accountOperation-BuVM7AWJ.js, Settings-uX6RxbDq.js, Investments-B9oVoKHd.js with retry, and holdingValues-CfmRESXz.js with missing-value labeling. Backend snapshot worker v9/source and SQL checks were verified separately. This supersedes the earlier pending deployment note.
+
+Final engineering:
+- Upgraded React Router to 7.18.4 for upstream GHSA-wrjc-x8rr-h8h6. Production dependency audit: zero advisories. Three moderate build-tool entries remain through Capacitor CLI -> xcode -> uuid; CLI correctly marked devDependency. No unsupported major override.
+- Installed configured Keyboard, SplashScreen and StatusBar Capacitor plugins and registered them in the Swift package. Windows sync initially generated invalid Swift backslash paths, caught by the native auth guard; sync:ios now normalizes only package path literals and repeat sync passes.
+- Added a manual-build preflight for actual Xcode and iOS SDK major versions >=26, with fail-closed missing/old toolchain checks. This prepares source packaging only.
+- Replaced stale generated status/owner-action report inputs with dated verified evidence. Backup script validates fixed destructive targets before replacement and supports the configured Python runtime. Exported transcript explicitly describes its latest-Claude-session scope; this journal is the Codex work record.
+
+Combined final validation: full npm test PASS, strict lint PASS, production build PASS, npm run sync:ios PASS, native auth/plugin checks and Apple toolchain guard checks PASS. No native compilation, signing, device test, payment or real bank connection was performed. Native workflows remain manually triggered. Final package deployment is recorded separately after push.
+
+Coverage update:
+| Surface | Status | Evidence |
+| --- | --- | --- |
+| Transaction validation | Tested, synthetic | Negative amount rejected; real keyboard clearing of date rejected with Choose a valid transaction date; Cancel closes form. Browser fill('') did not dispatch the equivalent React change and was not accepted as evidence of an app defect. |
+| CSV import review/submit | Tested, isolated fixture | Verified Vite fixture aliases and in-memory entity create, then clicked Import: exactly 3 rows imported, Sep 1-3 range shown; View Transactions preserved start/end parameters. Initial approval-review denial resolved by proving isolation, without contacting production. |
+| Desktop Simple/light navigation | Tested with limitation | Post-router reload renders Home/Money/Plan/More/Settings and preserves transaction date filters. Actual browser width 1423px; earlier phone actual width 434px. Not signed-device evidence. |
+| Remaining controls and signed iOS | Not yet tested | Earlier coverage is retained; passing build does not certify every control. |
+| Stripe and AI redeployments | Blocked | Exact Stripe restricted-key approval and specific AI origin-deployment approval remain unresolved; automatic approval review rejected those actions. Existing live endpoints preserved. |
+
+Readiness: website deployed; public paid launch and App Store submission NOT verified ready. Remaining engineering includes bank sync concurrency/stale syncing recovery and native bank return. Remaining end-to-end checks include hosted signup/isolation, billing/cancellation/deletion and signed-device auth/purchases/keyboard/safe areas/offline behavior. LAUNCH_STATUS.md and OWNER_ACTIONS.md contain the concise handoff. Original Codex checkout remains preserved; no extra agents or recurring development jobs were started.

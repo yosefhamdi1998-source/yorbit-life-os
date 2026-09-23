@@ -53,6 +53,8 @@ workflows:
         bundle_identifier: app.yorbit
     # Start native releases manually in Codemagic; hourly web pushes must not spend build minutes or submit binaries.
     scripts:
+      - name: Verify Apple upload toolchain
+        script: node scripts/check-apple-toolchain.mjs
       - name: Verify native subscription configuration
         script: node scripts/check-native-release.mjs
       - name: Install npm dependencies
@@ -61,7 +63,7 @@ workflows:
         script: VITE_APP_STORE_ID="$APP_STORE_APPLE_ID" npm run build
       - name: Sync Capacitor iOS project
         script: |
-          npx cap sync ios
+          npm run sync:ios
       - name: Resolve Swift package dependencies
         script: |
           xcodebuild -resolvePackageDependencies -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME"
