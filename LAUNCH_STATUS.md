@@ -36,7 +36,7 @@ The website is live. Public paid launch and App Store submission are not yet ver
 
 ## Remaining engineering and end-to-end evidence
 - Payment checkout, webhook ordering, entitlements, cancellation and subscribed-account deletion need a properly approved test-mode setup and end-to-end verification.
-- Native bank linking still needs a verified supported return/deep-link flow and physical-device checks. Native authentication, offline/error handling, safe areas, keyboard and purchases require a signed build.
+- Native bank linking's OAuth deep-link resume (for banks like Chase/USAA that require a sign-in step outside Plaid's own screen) is implemented and covered by synthetic tests: redirect_uri passthrough, pending-link persistence across an app kill/relaunch, strict deep-link validation, and the exact same exchange/sync path as an in-page link. What's left is entirely owner/device-side, not engineering: registering the redirect with Plaid and Apple/Google, and physical-device verification once that's done — see OWNER_ACTIONS.md item 7. Native authentication, offline/error handling, safe areas, keyboard and purchases still separately require a signed build.
 - Real signup, cross-account browser sessions, bank sync and account deletion remain untested in a disposable hosted environment.
 - Privacy answers, reviewer login/data, screenshots and listing claims need verification against the signed release and current service configuration. Do not submit the draft listing as finished.
 - AI origin-only deployment remains pending specific approval. No real financial test payload was sent to Anthropic.

@@ -27,5 +27,14 @@ The fix is pasting the CURRENT service-role key into that SQL statement, run onc
 
 This is independent of the bank-sync concurrency fix in this same session and predates it. A signed-in user's own manual Sync button is unaffected - it authenticates with their session, not this stored key - so this has been silent rather than something anyone would have noticed clicking around the app.
 
+## 7. Register the native bank-link OAuth redirect with Plaid and Apple/Google (new, found this session)
+The client and server code for native OAuth bank redirects (Chase, USAA and other large banks that require a sign-in step outside Plaid's own Link screen) is implemented and covered by synthetic tests, but three owner-controlled configuration steps remain before it can work on a real device - none of them are things this session could do:
+
+1. Plaid Dashboard (Team Settings -> API): add `https://yorbit-life-os.vercel.app/bank-oauth-return` to Allowed redirect URIs, and register the Android package name `app.yorbit` under Allowed Android package names.
+2. Apple: add the Associated Domains capability to the app's App ID (`applinks:yorbit-life-os.vercel.app`) and host a correct `apple-app-site-association` file at that domain containing the real Apple Team ID - requires the Apple Developer Program access already tracked in item 3.
+3. Android: host `.well-known/assetlinks.json` at the same domain with the SHA-256 fingerprint of the actual release signing certificate, and add an `autoVerify="true"` intent filter for that domain - requires the release keystore.
+
+Until all three exist, a bank that needs this step redirects to that URL and it loads as a plain webpage - a friendly "return to the app" message (src/pages/BankOAuthReturn.jsx), not a broken one - instead of resuming the connection automatically. Institutions that don't need this step (most smaller/regional banks, and Plaid's own Sandbox test institutions) are unaffected either way, and no live redirect_uri is sent unless the client reports it's running natively. This was tested against synthetic fixtures only, not a real Plaid OAuth redirect, which needs a signed device - see item 4.
+
 ## Working arrangement
 Continue in YORBIT MAIN 222. Canonical code: C:/Users/Yosef/projects/yorbit-life-os, master on GitHub. Earlier Codex checkout and its uncommitted journal are preserved. Do not restart multiple development agents or overlapping recurring implementation jobs. The concise status is LAUNCH_STATUS.md; detailed evidence is YORBIT_PROGRESS.md.

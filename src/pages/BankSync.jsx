@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/PageHeader';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { isNative } from '@/lib/platform';
+import {
+  loadPlaidScript, savePendingBankLink, clearPendingBankLink, takePendingAutoSync,
+  exchangeNewBankLink, finishReconnectBankLink,
+} from '@/lib/plaidLink';
 
 
 const STATUS_CONFIG = {
@@ -43,24 +48,29 @@ export default function BankSync() {
       setAccounts(accountData.filter(a => a.sync_status !== 'disconnected'));
       const visibleIds = new Set(accountData.filter(a => a.sync_status !== 'disconnected').map(a => a.id));
       setHoldings(holdingData.filter(h => visibleIds.has(h.connected_account_id)));
+      return accountData;
     } catch {
       setLoadError("We couldn't load your connected accounts. Please try again.");
+      return [];
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadAccounts(); }, [loadAccounts]);
-
-  // Load Plaid Link script
-  const loadPlaidScript = () => new Promise((resolve, reject) => {
-    if (window.Plaid) { resolve(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
+  useEffect(() => {
+    (async () => {
+      const fresh = await loadAccounts();
+      // A bank linked via the native OAuth deep-link resume (a different
+      // page, possibly a different app launch, from wherever it started)
+      // couldn't run its own sync inline - drain whatever it queued here,
+      // exactly like the in-page flow already does immediately below.
+      const pending = takePendingAutoSync();
+      for (const { id, full } of pending) {
+        const account = fresh.find(a => a.id === id);
+        if (account) await syncAccount(id, account.account_type, full);
+      }
+    })();
+  }, [loadAccounts]);
 
   const connectBank = async () => {
     setConnecting(true);
@@ -68,10 +78,18 @@ export default function BankSync() {
     try {
       await loadPlaidScript();
 
-      // Get link token from backend — the Edge Function returns { link_token } directly
-      const res = await base44.functions.invoke('plaidCreateLinkToken', {});
+      // Get link token from backend — the Edge Function returns { link_token } directly.
+      // `native` tells the server to set a redirect_uri, needed only so an
+      // OAuth bank (Chase, USAA, etc.) has somewhere registered to send the
+      // user back to once signed-device native config is in place — see
+      // NATIVE_BANK_LINK_REDIRECT_URI in src/lib/plaidLink.js.
+      const res = await base44.functions.invoke('plaidCreateLinkToken', { native: isNative() });
       const { link_token } = res;
       if (!link_token) throw new Error('No link token returned');
+      // Persisted so the OAuth deep-link resume (NativeBankLinkReturn) can
+      // finish this exact flow even if the OS killed the app while the user
+      // was signed into their bank in an external OAuth step.
+      if (isNative()) savePendingBankLink({ link_token, mode: 'new' });
 
       // Open Plaid Link
       const handler = window.Plaid.create({
@@ -79,17 +97,14 @@ export default function BankSync() {
         onSuccess: async (public_token, metadata) => {
           setConnecting(true);
           try {
-            const exchangeRes = await base44.functions.invoke('plaidExchangeToken', {
-              public_token,
-              institution_name: metadata.institution?.name || 'Bank',
-              accounts: metadata.accounts,
-            });
+            const accounts = await exchangeNewBankLink({ base44, public_token, metadata });
+            if (isNative()) clearPendingBankLink();
             await loadAccounts();
             // Auto-sync the newly added accounts ({ accounts } comes back flat).
             // account_type comes straight from the just-created row — 'investment'
             // (Coinbase and similar) routes to the holdings sync instead of the
             // transaction sync, which doesn't apply to it.
-            for (const acct of exchangeRes.accounts || []) {
+            for (const acct of accounts) {
               await syncAccount(acct.id, acct.account_type, true);
             }
           } catch {
@@ -98,6 +113,7 @@ export default function BankSync() {
           setConnecting(false);
         },
         onExit: (err) => {
+          if (isNative()) clearPendingBankLink();
           if (err) setError('Bank connection was cancelled.');
           setConnecting(false);
         },
@@ -120,9 +136,10 @@ export default function BankSync() {
     setError(null);
     try {
       await loadPlaidScript();
-      const res = await base44.functions.invoke('plaidCreateLinkToken', { connected_account_id: id });
+      const res = await base44.functions.invoke('plaidCreateLinkToken', { connected_account_id: id, native: isNative() });
       const { link_token } = res;
       if (!link_token) throw new Error('No link token returned');
+      if (isNative()) savePendingBankLink({ link_token, mode: 'reconnect', connected_account_id: id });
 
       const handler = window.Plaid.create({
         token: link_token,
@@ -130,7 +147,8 @@ export default function BankSync() {
           // Update mode re-authenticates the SAME item — no new public_token
           // exchange needed, just clear the stuck status and sync.
           try {
-            await base44.entities.ConnectedAccount.update(id, { sync_status: 'connected', error_message: null });
+            await finishReconnectBankLink({ base44, id });
+            if (isNative()) clearPendingBankLink();
             await loadAccounts();
             await syncAccount(id, accounts.find(a => a.id === id)?.account_type);
           } catch {
@@ -139,6 +157,7 @@ export default function BankSync() {
           setConnecting(false);
         },
         onExit: (err) => {
+          if (isNative()) clearPendingBankLink();
           if (err) setError('Reconnect was cancelled.');
           setConnecting(false);
         },

@@ -4,6 +4,12 @@ import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
 import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
+// Must exactly match src/lib/plaidLink.js's NATIVE_BANK_LINK_REDIRECT_URI and
+// an "Allowed redirect URI" registered in the Plaid Dashboard. The client
+// only ever sends a boolean (`native`) - this fixed value is the only
+// redirect_uri Plaid is ever asked to use, never anything client-supplied.
+const NATIVE_REDIRECT_URI = 'https://yorbit-life-os.vercel.app/bank-oauth-return';
+
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
@@ -68,6 +74,7 @@ Deno.serve(async (req) => {
         : { products: [Products.Transactions], optional_products: [Products.Investments] }),
       country_codes: [CountryCode.Us],
       language: 'en',
+      ...(body?.native === true ? { redirect_uri: NATIVE_REDIRECT_URI } : {}),
     });
 
     return jsonResponse({ link_token: response.data.link_token }, 200, {}, req);

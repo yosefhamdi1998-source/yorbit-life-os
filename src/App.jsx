@@ -1,4 +1,5 @@
 import NativeAuthReturn from '@/components/NativeAuthReturn';
+import NativeBankLinkReturn from '@/components/NativeBankLinkReturn';
 import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -34,6 +35,7 @@ const Totals = lazy(() => import('@/pages/Totals'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const LaunchChecklist = lazy(() => import('@/pages/LaunchChecklist'));
 const BankSync = lazy(() => import('@/pages/BankSync'));
+const BankOAuthReturn = lazy(() => import('@/pages/BankOAuthReturn'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const TermsOfUse = lazy(() => import('@/pages/TermsOfUse'));
 const Support = lazy(() => import('@/pages/Support'));
@@ -105,6 +107,7 @@ const AuthenticatedApp = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/upgrade" element={<Upgrade />} />
             {FEATURES.bankSync && <Route path="/bank-sync" element={<BankSync />} />}
+            {FEATURES.bankSync && <Route path="/bank-oauth-return" element={<BankOAuthReturn />} />}
             {FEATURES.launchChecklist && <Route path="/launch-checklist" element={<LaunchChecklist />} />}
             {FEATURES.launchChecklist && <Route path="/testflight-checklist" element={<TestFlightChecklist />} />}
             {FEATURES.launchChecklist && <Route path="/app-store-copy" element={<AppStoreCopy />} />}
@@ -145,6 +148,7 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
             <NativeAuthReturn />
+            <NativeBankLinkReturn />
             <ScrollToTop />
             <RouteHistory />
             <AuthenticatedApp />
