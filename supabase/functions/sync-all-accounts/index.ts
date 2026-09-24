@@ -26,7 +26,25 @@ Deno.serve(async (req) => {
     const denied = await requireSystemCaller(req, admin, jsonResponse);
     if (denied) return denied;
 
-    const { data: accounts, error: accountError } = await admin.from('connected_accounts').select('id, account_type').eq('sync_status', 'connected');
+    // Candidates, not a guarantee of who actually syncs. 'connected' is the
+    // normal case; 'error' lets a transient prior failure heal on the next
+    // scheduled run instead of waiting for someone to notice and click Retry;
+    // 'syncing' is included so an ABANDONED row - the worker that claimed it
+    // died before clearing the status - gets a chance to be reclaimed rather
+    // than sitting outside every future run forever, which is the exact
+    // stuck-state failure this exists to recover from. 'reconnect_required'
+    // and 'disconnected' are excluded: the first needs a fresh Plaid Link,
+    // not a sync, and the second means the owner asked to stop.
+    //
+    // This list does not by itself decide who wins a race or whether a
+    // 'syncing' row is actually stale enough to reclaim - beginBankSync does
+    // that atomically, against the live row, for every account attempted
+    // below. Listing 'syncing' here just means a genuinely-abandoned account
+    // is not silently skipped every single run; a still-active one is
+    // attempted too, and simply refused.
+    const { data: accounts, error: accountError } = await admin.from('connected_accounts')
+      .select('id, account_type')
+      .in('sync_status', ['connected', 'error', 'syncing']);
     if (accountError) throw new Error('Could not load connected accounts');
     if (!accounts || accounts.length === 0) {
       console.log('No connected accounts to sync.');
@@ -41,8 +59,21 @@ Deno.serve(async (req) => {
 
     for (const account of accounts) {
       try {
-        const { error: startError } = await admin.from('connected_accounts').update({ sync_status: 'syncing' }).eq('id', account.id);
-        if (startError) throw new Error('Could not mark sync in progress');
+        // No pre-mark here. This used to flip sync_status to 'syncing'
+        // itself before calling the child function - unconditionally, with
+        // no check of the row's current state. That did not just duplicate
+        // beginBankSync's job, it defeated it: the child function re-reads
+        // the row fresh, so by the time IT ran, the status this loop had
+        // just written was the only status it could ever see. Two racing
+        // callers for the same account - this loop and a manual "Sync now"
+        // click, or two overlapping scheduled runs - would BOTH observe
+        // 'syncing' as the starting point and both transition 'syncing' to
+        // 'syncing', which trivially satisfies an equality check and let
+        // both proceed to call Plaid concurrently for the same account.
+        // beginBankSync, inside the child function, is now the only place
+        // that claims a row, and it is the same code path a direct user
+        // request goes through - the one place that can actually see every
+        // caller and arbitrate between them.
 
         // Investment accounts (Coinbase and similar) report holdings, not a
         // dated transaction log — Plaid's transactionsGet doesn't apply to
@@ -57,6 +88,18 @@ Deno.serve(async (req) => {
           headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ connected_account_id: account.id }),
         });
+
+        if (res.status === 409) {
+          // Someone else genuinely holds this account's sync right now - a
+          // user's own click, or another concurrent run. Not a failure: that
+          // other caller owns reporting the outcome, and re-marking the row
+          // here would just be a second write racing the one already
+          // in flight. Recorded separately so it is never counted as this
+          // batch failing to do its job.
+          results.push({ id: account.id, status: 'skipped' });
+          continue;
+        }
+
         const syncResponse = await res.json();
         if (!res.ok || syncResponse?.error) throw new Error('Downstream sync failed');
         const confirmed = account.account_type === 'investment'
@@ -68,6 +111,11 @@ Deno.serve(async (req) => {
         results.push({ id: account.id, status: 'success' });
       } catch {
         console.error("A scheduled account sync failed");
+        // Guarded: a genuine failure inside the child function already ran
+        // failBankSync and moved the row off 'syncing' itself, so this is a
+        // no-op then. It only actually writes for failures ABOVE the child
+        // function - the fetch itself throwing, or a malformed response -
+        // where nothing else recorded that this account did not sync.
         await admin.from('connected_accounts').update({
           sync_status: 'error',
           error_message: "We couldn't sync this account. Please try again.",
@@ -77,9 +125,13 @@ Deno.serve(async (req) => {
     }
 
     const succeeded = results.filter((r) => r.status === 'success').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
     const failed = results.filter((r) => r.status === 'error').length;
-    console.log(`Sync complete. Success: ${succeeded}, Failed: ${failed}`);
-    return jsonResponse({ synced: succeeded, failed, results }, failed ? 502 : 200, {}, req);
+    console.log(`Sync complete. Success: ${succeeded}, Skipped: ${skipped}, Failed: ${failed}`);
+    // A skip is not a failure - it means another caller has this account
+    // and this run correctly stayed out of the way. Only real failures
+    // should make the batch's own status reflect trouble.
+    return jsonResponse({ synced: succeeded, skipped, failed, results }, failed ? 502 : 200, {}, req);
   } catch (error) {
     console.error('sync-all-accounts fatal error:', error.message);
     return errorResponse("We couldn't sync your accounts. Please try again.", 500, { internal: error, fn: 'sync-all-accounts', req });

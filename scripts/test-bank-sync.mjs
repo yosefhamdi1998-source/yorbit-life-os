@@ -9,7 +9,7 @@ const shared = compile('supabase/functions/_shared/bankSync.ts') + compile('supa
 async function run(kind, scenario = 'success') {
   let handler, providerCalls = 0;
   const writes = [], logs = [], transactions = [];
-  const account = { id: 'fixture-account', user_id: 'fixture-owner', provider_account_id: 'fixture-bank', sync_status: 'connected', last_synced_at: '2026-01-01', history_backfilled_at: null };
+  const account = { id: 'fixture-account', user_id: 'fixture-owner', provider_account_id: 'fixture-bank', sync_status: 'connected', last_synced_at: '2026-01-01', history_backfilled_at: null, updated_date: '2026-09-22T00:00:00.000Z' };
   const admin = {
     rpc: async (name, params) => {
       if (name !== 'replace_investment_holdings_snapshot') return {data:[],error:null};
@@ -22,7 +22,13 @@ async function run(kind, scenario = 'success') {
     from(table) {
       let operation = 'read', patch, filters = [], start = 0;
       const q = {
-        select() { return q; }, eq(k, v) { filters.push([k, v]); return q; },
+        select() { return q; },
+        eq(k, v) { filters.push(['eq', k, v]); return q; },
+        // beginBankSync's atomic claim: a live row is excluded from
+        // reclaim ('neq'), and the actual staleness test arrives as a raw
+        // PostgREST or() string - see matchesFilter below for the parser.
+        neq(k, v) { filters.push(['neq', k, v]); return q; },
+        or(filterString) { filters.push(['or', filterString]); return q; },
         not() { return q; }, gte() { return q; }, lte() { return q; },
         range(from) { start = from; return q; },
         update(value) { operation = 'update'; patch = value; return q; },
@@ -40,7 +46,24 @@ async function run(kind, scenario = 'success') {
         }
         if (table === 'connected_accounts') {
           assert.equal(operation, 'update');
-          const matching = filters.every(([k, v]) => account[k] === v);
+          // Mirrors just enough of PostgREST's filter grammar to evaluate
+          // what beginBankSync actually sends: eq/neq are plain equality,
+          // and or() is a comma-joined list of `column.operator.value`
+          // terms, true if ANY one matches - exactly the "not currently
+          // syncing, OR syncing but stale" claim condition.
+          const matchesTerm = (term) => {
+            const [col, op, ...rest] = term.split('.');
+            const val = rest.join('.');
+            if (op === 'neq') return account[col] !== val;
+            if (op === 'lt') return new Date(account[col]).getTime() < new Date(val).getTime();
+            throw new Error(`Unsupported synthetic or() operator: ${op}`);
+          };
+          const matching = filters.every(([tag, a, b]) => {
+            if (tag === 'eq') return account[a] === b;
+            if (tag === 'neq') return account[a] !== b;
+            if (tag === 'or') return a.split(',').some(matchesTerm);
+            throw new Error(`Unsupported synthetic filter tag: ${tag}`);
+          });
           const fails = scenario === 'start-error' && patch.sync_status === 'syncing' || scenario === 'finish-error' && patch.sync_status === 'connected';
           if (fails) return { data: null, error: new Error('Synthetic write failure') };
           if (matching) { Object.assign(account, patch); writes.push(patch); }

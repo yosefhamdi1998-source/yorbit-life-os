@@ -1,5 +1,5 @@
 # Yorbit launch status
-Verified September 23, 2026. This report replaces older launch-readiness claims, not the historical evidence in YORBIT_PROGRESS.md.
+Verified September 23, 2026, updated the same evening. This report replaces older launch-readiness claims, not the historical evidence in YORBIT_PROGRESS.md.
 
 ## Verdict
 The website is live. Public paid launch and App Store submission are not yet verified ready. A Vercel deployment does not create an iPhone App Store release.
@@ -28,10 +28,16 @@ The website is live. Public paid launch and App Store submission are not yet ver
 - The final combined full test suite, strict lint, production build and Capacitor source sync passed after the router and native packaging changes. This is not an iOS compilation or signing result.
 - Browser screenshots showed capture resize artifacts. These checks do not establish physical-iPhone safe areas or keyboard behavior.
 
+## Implemented, pending production verification
+- Sync concurrency and abandoned syncing-state recovery: beginBankSync now claims an account with one atomic, race-safe UPDATE instead of a pre-mark the child function's own check could no longer see past; a row stuck at 'syncing' by a crashed worker is reclaimable after 15 minutes instead of excluded from every future scheduled run forever. 8 new unit-level checks plus 35 existing handler checks and a rewritten dispatcher test all pass; verified in the browser against synthetic fixtures. Commit pending push - see YORBIT_PROGRESS.md for the full account, including a reproduction of the original defect and confirmation the new tests fail against the unmodified code.
+
+## New finding: scheduled bank sync is not currently running at all
+- Verified read-only: the sync-all-accounts-4h cron job is active and its stored command has real values, not template placeholders, but its last 3 days of dispatches were answered 401 UNAUTHORIZED_INVALID_JWT_FORMAT by Supabase's own gateway - rejected before any function code runs. Matches the observed data: no connected_accounts row has updated in over a week despite the job firing on schedule. Most likely cause: the service-role key was rotated since the cron job's Authorization header was last set, per MIGRATION_STEPS.md's own description of that as a manual, one-time paste with no automatic re-sync. This is independent of the concurrency fix above and predates this session's work. A user's own manual Sync button is unaffected - it authenticates with the signed-in session, not this stored key. See OWNER_ACTIONS.md.
+
 ## Remaining engineering and end-to-end evidence
 - Payment checkout, webhook ordering, entitlements, cancellation and subscribed-account deletion need a properly approved test-mode setup and end-to-end verification.
 - Native bank linking still needs a verified supported return/deep-link flow and physical-device checks. Native authentication, offline/error handling, safe areas, keyboard and purchases require a signed build.
-- Sync concurrency and abandoned syncing-state recovery remain to finish. Real signup, cross-account browser sessions, bank sync and account deletion remain untested in a disposable hosted environment.
+- Real signup, cross-account browser sessions, bank sync and account deletion remain untested in a disposable hosted environment.
 - Privacy answers, reviewer login/data, screenshots and listing claims need verification against the signed release and current service configuration. Do not submit the draft listing as finished.
 - AI origin-only deployment remains pending specific approval. No real financial test payload was sent to Anthropic.
 

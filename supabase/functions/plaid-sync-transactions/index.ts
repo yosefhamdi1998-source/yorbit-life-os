@@ -1,4 +1,4 @@
-import { beginBankSync, completeBankSync, failBankSync, logBankSync, type BankSyncContext } from '../_shared/bankSync.ts';
+import { beginBankSync, completeBankSync, failBankSync, logBankSync, SyncInProgressError, type BankSyncContext } from '../_shared/bankSync.ts';
 import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
@@ -456,6 +456,13 @@ Deno.serve(async (req) => {
       await failBankSync(sync, error);
     } catch {
       console.error('Bank sync failure status could not be saved');
+    }
+    // A live conflict, not a failure: someone else - another tab, the
+    // scheduled sync, a second click before this one returned - is already
+    // syncing this account. 409 lets sync-all-accounts and the client tell
+    // "busy" apart from "broken" instead of reporting a false failure.
+    if (error instanceof SyncInProgressError) {
+      return errorResponse(error.message, 409, { fn: 'plaid-sync-transactions', req });
     }
     return errorResponse("We couldn't finish syncing your transactions. Please try again.", 500, {
       internal: new Error('Bank sync incomplete'), fn: 'plaid-sync-transactions', req,

@@ -170,8 +170,16 @@ export default function BankSync() {
           fullHistoryPass: res.fullHistoryPass,
         });
       }
-    } catch {
-      setError(isInvestment ? "We couldn't sync your holdings. Please try again." : "We couldn't sync your transactions. Please try again.");
+    } catch (err) {
+      // The server already distinguishes "this account is already syncing"
+      // (a live conflict - another tab, the scheduled sync, a second click
+      // before this one returned) from an actual failure, and sends a short,
+      // accurate message either way. Showing a fixed "please try again" for
+      // both told someone who merely double-clicked that something was
+      // broken when nothing was; base44's client already turns the server's
+      // message into a safe, human-written string (or a generic fallback
+      // for anything that looks internal), so using it directly is safe.
+      setError(err?.message || (isInvestment ? "We couldn't sync your holdings. Please try again." : "We couldn't sync your transactions. Please try again."));
     }
     // Refresh even on failure so reconnect_required becomes actionable.
     await loadAccounts();
