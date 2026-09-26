@@ -16,6 +16,7 @@ const FUNCTION_MAP = {
   plaidExchangeToken: 'plaid-exchange-token',
   plaidSyncTransactions: 'plaid-sync-transactions',
   plaidSyncHoldings: 'plaid-sync-holdings',
+  plaidDisconnectAccount: 'plaid-disconnect-account',
   createCheckout: 'create-checkout',
   createBillingPortal: 'create-billing-portal',
   deleteAccount: 'delete-account',

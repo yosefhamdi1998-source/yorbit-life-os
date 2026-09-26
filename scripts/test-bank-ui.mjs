@@ -32,9 +32,18 @@ for(const kind of ['checking','investment']) {
 }
 const disconnectBody=source.match(/const disconnect = async \(id\) => \{([\s\S]*?)\n  \};/)[1];
 const disconnect=new AsyncFunction('scope','with(scope){'+disconnectBody+'}');
-for(const fails of [false,true]) {
+for(const outcome of ['success','failure','unconfirmed']) {
  let removed=0,error=null,busy='untouched';
- await disconnect({id:'fixture',setDisconnectingId:v=>busy=v,setError:v=>error=v,setAccounts:()=>removed++,setHoldings:()=>removed++,base44:{entities:{ConnectedAccount:{update:async()=>{if(fails)throw new Error('Synthetic');}}}}});
- assert.equal(removed,fails?0:2);assert.equal(Boolean(error),fails);assert.equal(busy,null);
+ await disconnect({id:'fixture',setDisconnectingId:v=>busy=v,setError:v=>error=v,setAccounts:()=>removed++,setHoldings:()=>removed++,
+ base44:{functions:{invoke:async()=>{if(outcome==='failure')throw new Error('Synthetic');return outcome==='unconfirmed'?{}:{success:true};}}}});
+ assert.equal(removed,outcome==='success'?2:0);assert.equal(Boolean(error),outcome!=='success');assert.equal(busy,null);
 }
-console.log('PASS bank UI: failed/unconfirmed sync refreshes status, success confirmed, failed disconnect retains records and releases controls');
+// The server's own message (e.g. a blocked-by-sibling or provider failure)
+// must reach the screen unmodified, not a fixed string - matching connectBank/syncAccount.
+{
+ let error=null;
+ await disconnect({id:'fixture',setDisconnectingId:()=>{},setError:v=>error=v,setAccounts:()=>{},setHoldings:()=>{},
+ base44:{functions:{invoke:async()=>{throw new Error("We couldn't confirm the disconnect with your bank. Please try again.");}}}});
+ assert.equal(error,"We couldn't confirm the disconnect with your bank. Please try again.");
+}
+console.log('PASS bank UI: failed/unconfirmed sync refreshes status, success confirmed, failed/unconfirmed disconnect retains records, releases controls, and surfaces the server\'s own message');

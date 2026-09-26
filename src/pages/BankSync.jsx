@@ -209,11 +209,16 @@ export default function BankSync() {
     setDisconnectingId(id);
     setError(null);
     try {
-      await base44.entities.ConnectedAccount.update(id, { sync_status: 'disconnected' });
+      // Server-side: revokes the actual Plaid connection (unless a sibling
+      // account still shares it) before marking this account disconnected,
+      // and never reports success unless that's actually confirmed - so a
+      // failed attempt here is safe to just retry.
+      const res = await base44.functions.invoke('plaidDisconnectAccount', { connected_account_id: id });
+      if (res?.success !== true) throw new Error('Disconnect was not confirmed');
       setAccounts(prev => prev.filter(a => a.id !== id));
       setHoldings(prev => prev.filter(h => h.connected_account_id !== id));
-    } catch {
-      setError("We couldn't confirm the disconnect. Refresh accounts before trying again.");
+    } catch (err) {
+      setError(err?.message || "We couldn't confirm the disconnect. Refresh accounts before trying again.");
     } finally {
       setDisconnectingId(null);
     }

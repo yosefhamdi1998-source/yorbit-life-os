@@ -131,6 +131,7 @@ const OWNERSHIP = [
   ['plaid-sync-transactions', /account\.user_id\s*!==\s*user\.id/],
   ['plaid-sync-holdings', /account\.user_id\s*!==\s*user\.id/],
   ['plaid-create-link-token', /account\.user_id\s*!==\s*user\.id/],
+  ['plaid-disconnect-account', /\.eq\('id',\s*accountId\)\.eq\('user_id',\s*user\.id\)/],
   ['ai-coach', /\.eq\('id',\s*conversation_id\)\s*\.eq\('user_id',\s*userId\)/],
 ];
 for (const [fn, re] of OWNERSHIP) {

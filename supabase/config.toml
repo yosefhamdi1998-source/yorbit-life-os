@@ -56,6 +56,9 @@ verify_jwt = true
 [functions.plaid-exchange-token]
 verify_jwt = true
 
+[functions.plaid-disconnect-account]
+verify_jwt = true
+
 # --- Endpoints reachable by a user OR by the system ---------------------------
 # These accept a service-role bearer for pg_cron and server-to-server calls, and
 # otherwise fall back to a signed-in user. The gate stays ON: the service-role
