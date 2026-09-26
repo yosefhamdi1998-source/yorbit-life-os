@@ -48,5 +48,14 @@ The client and server code for native OAuth bank redirects (Chase, USAA and othe
 
 Until all three exist, a bank that needs this step redirects to that URL and it loads as a plain webpage - a friendly "return to the app" message (src/pages/BankOAuthReturn.jsx), not a broken one - instead of resuming the connection automatically. Institutions that don't need this step (most smaller/regional banks, and Plaid's own Sandbox test institutions) are unaffected either way, and no live redirect_uri is sent unless the client reports it's running natively. This was tested against synthetic fixtures only, not a real Plaid OAuth redirect, which needs a signed device - see item 4.
 
+## 8. URGENT: restore this session's Supabase CLI access, then let it deploy the pending fix (new, found and caused this session)
+This session's Supabase CLI has no stored login at all - not a revoked or expired credential, just nothing present (`supabase projects list` itself returns 401; confirmed no SUPABASE_ACCESS_TOKEN anywhere and a freshly-created, empty CLI config directory). This blocked two things: investigating the scheduled-sync auth failure (item 6) at all, and deploying the new bank-disconnect Edge Function after its frontend half already went live.
+
+**Consequence, live right now**: the Disconnect button on Bank Sync calls a function (plaid-disconnect-account) that does not exist in Supabase yet - confirmed with a direct request to it returning 404. Every real user who clicks Disconnect gets an error until this is deployed. This is new, caused by this session's own commit 0326219, and is the top priority to close.
+
+**The fix, no secret needed in chat**: in a terminal you control on this machine (not through me), run `npx supabase login`. It opens a browser for you to approve against your own Supabase account; the CLI stores the resulting session itself, in your own Windows profile (`C:\Users\Yosef\.supabase\`), same as it always has - nothing to paste anywhere. Once done, tell me and I'll deploy `plaid-disconnect-account` immediately and re-verify production, then continue the cron investigation with real read access instead of guessing.
+
+If you'd rather this not require a fresh login every time a session starts clean, the more durable alternative is a personal access token: Supabase Dashboard -> Account -> Access Tokens -> generate one, then set it as a persistent Windows environment variable yourself (System Properties -> Environment Variables, or `setx SUPABASE_ACCESS_TOKEN "<value>"` in your own terminal) - again, never pasted here. Either one unblocks this the same way.
+
 ## Working arrangement
 Continue in YORBIT MAIN 222. Canonical code: C:/Users/Yosef/projects/yorbit-life-os, master on GitHub. Earlier Codex checkout and its uncommitted journal are preserved. Do not restart multiple development agents or overlapping recurring implementation jobs. The concise status is LAUNCH_STATUS.md; detailed evidence is YORBIT_PROGRESS.md.
