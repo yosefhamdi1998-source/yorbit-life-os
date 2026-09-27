@@ -3,59 +3,31 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { transform } from 'esbuild';
 
+// SCOPE OF THIS FILE: the Edge Function's own logic - given whatever
+// claim_bank_disconnect (migration 20260927120000) reports, does the
+// handler make exactly the right calls? This does NOT execute real SQL:
+// there is no local Postgres/Docker available in this environment to run
+// the migration's pg_advisory_xact_lock logic against. The migration's own
+// concurrency correctness is reasoned through in its own comments and by
+// the "concurrent siblings" scenario below, which simulates the two
+// *correct* outcomes a properly-serializing RPC call would produce for two
+// racing sibling disconnects, and checks the handler reacts to each
+// correctly. It is not a substitute for running the migration against a
+// real database once that access exists - see YORBIT_PROGRESS.md.
+
 const source = fs.readFileSync('supabase/functions/plaid-disconnect-account/index.ts', 'utf8');
 const js = (await transform(source.replace(/^import .*;\r?\n/gm, ''), { loader: 'ts' })).code;
 
-function makeAdmin(seed) {
-  const tables = { connected_accounts: seed.connected_accounts.map(r => ({ ...r })), plaid_credentials: seed.plaid_credentials.map(r => ({ ...r })) };
-  const log = { itemRemoveCalls: 0, updates: [], deletes: [] };
-  function builder(tableName, op, patch) {
-    const filters = [];
-    let limit = null;
-    const api = {
-      eq(field, value) { filters.push(row => row[field] === value); return api; },
-      neq(field, value) { filters.push(row => row[field] !== value); return api; },
-      select() { return api; },
-      limit(n) { limit = n; return api; },
-      async maybeSingle() {
-        const rows = tables[tableName].filter(row => filters.every(f => f(row)));
-        if (op === 'update') {
-          if (rows.length === 0) return { data: null, error: null };
-          Object.assign(rows[0], patch);
-          log.updates.push({ table: tableName, id: rows[0].id, patch: { ...patch } });
-          return { data: { id: rows[0].id }, error: null };
-        }
-        return { data: rows[0] || null, error: null };
-      },
-      then(resolve) {
-        if (op === 'delete') {
-          const before = tables[tableName].length;
-          tables[tableName] = tables[tableName].filter(row => !filters.every(f => f(row)));
-          log.deletes.push({ table: tableName, removed: before - tables[tableName].length });
-          return Promise.resolve({ error: null }).then(resolve);
-        }
-        let rows = tables[tableName].filter(row => filters.every(f => f(row)));
-        if (limit) rows = rows.slice(0, limit);
-        return Promise.resolve({ data: rows, error: null }).then(resolve);
-      },
-    };
-    return api;
-  }
-  const admin = {
-    from(tableName) {
-      return {
-        select: () => builder(tableName, 'select'),
-        update: patch => builder(tableName, 'update', patch),
-        delete: () => builder(tableName, 'delete'),
-      };
-    },
-  };
-  return { admin, tables, log };
-}
-
-async function run({ seed, plaidBehavior = 'success', tokenSource = 'vault', configured = true, userId = 'user-1', body = { connected_account_id: 'acct-1' } }) {
+async function run({
+  userId = 'user-1', body = { connected_account_id: 'acct-1' },
+  claim = { provider: 'plaid', provider_item_id: 'item-1', already_disconnected: false, sibling_active: false },
+  claimError = null,
+  tokenResult = { token: 'token-acct-1' }, tokenThrows = null,
+  plaidBehavior = 'success', deleteError = null,
+  configured = true,
+}) {
   let handler;
-  const { admin, tables, log } = makeAdmin(seed);
+  const log = { itemRemoveCalls: 0, deletes: [], rpcCalls: [] };
   class PlaidApi {
     itemRemove = async ({ access_token }) => {
       log.itemRemoveCalls++;
@@ -65,15 +37,26 @@ async function run({ seed, plaidBehavior = 'success', tokenSource = 'vault', con
       return { data: {} };
     };
   }
+  const admin = {
+    rpc: async (name, args) => {
+      log.rpcCalls.push({ name, args });
+      if (claimError) return { data: null, error: claimError };
+      return { data: [claim], error: null };
+    },
+    from(table) {
+      assert.equal(table, 'plaid_credentials', 'the handler must never touch any other table directly - ownership and status live entirely behind the RPC now');
+      return {
+        delete: () => ({
+          eq: async () => { log.deletes.push(1); return { error: deleteError }; },
+        }),
+      };
+    },
+  };
   const sandbox = {
     Deno: { serve: fn => { handler = fn; }, env: { get: key => (configured ? 'fixture' : (key === 'PLAID_CLIENT_ID' || key === 'PLAID_SECRET' ? null : 'fixture')) } },
     getUser: async () => (userId ? { id: userId } : null),
     serviceClient: () => admin,
-    getPlaidAccessToken: async (_admin, id) => {
-      const cred = tables.plaid_credentials.find(c => c.connected_account_id === id);
-      if (!cred) return { token: null, source: 'none' };
-      return { token: cred.access_token, source: tokenSource };
-    },
+    getPlaidAccessToken: async () => { if (tokenThrows) throw tokenThrows; return tokenResult; },
     Configuration: class {}, PlaidEnvironments: { production: 'https://production.plaid.com' }, PlaidApi,
     handleOptions: () => null,
     jsonResponse: (body, status = 200) => ({ status, body }),
@@ -83,126 +66,105 @@ async function run({ seed, plaidBehavior = 'success', tokenSource = 'vault', con
   };
   vm.runInNewContext(js, sandbox);
   const response = await handler({ method: 'POST', json: async () => body });
-  return { response, tables, log };
+  return { response, log };
 }
 
-const baseSeed = () => ({
-  connected_accounts: [
-    { id: 'acct-1', user_id: 'user-1', provider: 'plaid', provider_item_id: 'item-1', sync_status: 'connected' },
-  ],
-  plaid_credentials: [
-    { connected_account_id: 'acct-1', access_token: 'token-acct-1' },
-  ],
-});
-
-// --- auth and ownership ---
+// --- auth and RPC-reported not-found/not-owned ---
 {
-  const { response } = await run({ seed: baseSeed(), userId: null });
+  const { response } = await run({ userId: null });
   assert.equal(response.status, 401);
 }
 {
-  const seed = baseSeed();
-  const { response, tables } = await run({ seed, userId: 'someone-else' });
-  assert.equal(response.status, 404, 'not owned reads the same as not found');
-  assert.equal(tables.connected_accounts[0].sync_status, 'connected', 'nothing touched for a non-owner');
-}
-{
-  const { response } = await run({ seed: baseSeed(), body: { connected_account_id: 'does-not-exist' } });
+  const { response, log } = await run({ claimError: { message: 'not found' } });
   assert.equal(response.status, 404);
+  assert.equal(log.itemRemoveCalls, 0); assert.equal(log.deletes.length, 0);
+}
+{
+  // The RPC call itself is where ownership is enforced now (p_user_id) -
+  // confirm the handler actually passes the authenticated user's own id,
+  // not anything client-supplied.
+  const { log } = await run({ userId: 'the-real-user', body: { connected_account_id: 'acct-1' } });
+  assert.equal(log.rpcCalls[0].args.p_user_id, 'the-real-user');
+  assert.equal(log.rpcCalls[0].args.p_account_id, 'acct-1');
 }
 
-// --- idempotent: already disconnected ---
+// --- Defect 1 (Codex, reproduced/fixed): cleanup failure must recover on retry ---
 {
-  const seed = baseSeed(); seed.connected_accounts[0].sync_status = 'disconnected';
-  const { response, log } = await run({ seed });
-  assert.equal(response.status, 200); assert.equal(response.body.success, true);
-  assert.equal(log.itemRemoveCalls, 0, 'an already-disconnected account must not re-attempt revocation');
-  assert.equal(log.updates.length, 0);
+  // First attempt: Plaid succeeds but the credential delete fails.
+  const first = await run({ claim: { provider: 'plaid', provider_item_id: 'item-1', already_disconnected: false, sibling_active: false }, deleteError: { message: 'synthetic cleanup outage' } });
+  assert.equal(first.response.status, 503, 'a failed cleanup must not report success with the credential still in the vault');
+  assert.equal(first.log.itemRemoveCalls, 1);
+  // Retry: claim_bank_disconnect now reports already_disconnected - the OLD
+  // handler short-circuited to success here without ever touching Plaid or
+  // the credential again, which is exactly how the leak became permanent.
+  const retry = await run({ claim: { provider: 'plaid', provider_item_id: 'item-1', already_disconnected: true, sibling_active: false }, plaidBehavior: 'not-found' });
+  assert.equal(retry.response.status, 200, 'a retry must still finish the job, not skip it because sync_status already reads disconnected');
+  assert.equal(retry.log.itemRemoveCalls, 1, 'retry must re-attempt revocation, not assume it already happened');
+  assert.equal(retry.log.deletes.length, 1, 'retry must re-attempt the credential cleanup that failed last time');
 }
 
-// --- happy path: no sibling, token exists, Plaid confirms removal ---
+// --- Defect 2 (Codex, reproduced/fixed): concurrent siblings must not both skip revocation ---
+// Simulates the two outcomes a correctly-serializing claim_bank_disconnect
+// produces for two accounts sharing one Item disconnected at the same
+// moment (see the migration's own reasoning) - not a live concurrency test.
 {
-  const { response, tables, log } = await run({ seed: baseSeed() });
-  assert.equal(response.status, 200); assert.equal(response.body.success, true);
-  assert.equal(log.itemRemoveCalls, 1); assert.equal(log.lastToken, 'token-acct-1');
-  assert.equal(tables.connected_accounts[0].sync_status, 'disconnected');
-  assert.equal(tables.plaid_credentials.length, 0, 'the disconnected account\'s own token copy must be removed');
+  const a = await run({ body: { connected_account_id: 'acct-a' }, claim: { provider: 'plaid', provider_item_id: 'item-1', already_disconnected: false, sibling_active: true } });
+  const b = await run({ body: { connected_account_id: 'acct-b' }, claim: { provider: 'plaid', provider_item_id: 'item-1', already_disconnected: false, sibling_active: false } });
+  assert.equal(a.response.status, 200); assert.equal(b.response.status, 200);
+  assert.equal(a.log.itemRemoveCalls, 0, 'the account told a sibling is still active must not call Plaid');
+  assert.equal(b.log.itemRemoveCalls, 1, 'exactly one of the two must actually revoke the shared Item');
+  assert.equal(a.log.deletes.length, 1, 'the sibling-protected account still cleans up its OWN redundant credential copy');
+  assert.equal(b.log.deletes.length, 1);
 }
 
-// --- already removed at Plaid (ITEM_NOT_FOUND) is treated as success, not failure ---
+// --- Defect 3 (Codex, reproduced/fixed): a token-read failure must fail closed ---
 {
-  const { response, tables, log } = await run({ seed: baseSeed(), plaidBehavior: 'not-found' });
-  assert.equal(response.status, 200); assert.equal(response.body.success, true);
-  assert.equal(log.itemRemoveCalls, 1);
-  assert.equal(tables.connected_accounts[0].sync_status, 'disconnected');
-}
-
-// --- a genuine provider failure must not mark disconnected or delete the token ---
-{
-  const { response, tables, log } = await run({ seed: baseSeed(), plaidBehavior: 'error' });
-  assert.equal(response.status, 503);
-  assert.equal(tables.connected_accounts[0].sync_status, 'connected', 'a failed revocation must leave the account exactly as it was, so a retry starts over cleanly');
-  assert.equal(tables.plaid_credentials.length, 1, 'the token must still be there for a retry');
-  assert.equal(log.updates.length, 0);
-}
-
-// --- missing Plaid config (no sibling) fails safely, no false completion ---
-{
-  const { response, tables } = await run({ seed: baseSeed(), configured: false });
-  assert.equal(response.status, 503);
-  assert.equal(tables.connected_accounts[0].sync_status, 'connected');
-}
-
-// --- a sibling account on the same Item must block revocation, but this account still disconnects ---
-{
-  const seed = baseSeed();
-  seed.connected_accounts.push({ id: 'acct-2', user_id: 'user-1', provider: 'plaid', provider_item_id: 'item-1', sync_status: 'connected' });
-  seed.plaid_credentials.push({ connected_account_id: 'acct-2', access_token: 'token-acct-1' }); // same underlying Item, its own row
-  const { response, tables, log } = await run({ seed });
-  assert.equal(response.status, 200); assert.equal(response.body.success, true);
-  assert.equal(log.itemRemoveCalls, 0, 'a still-connected sibling on the same Item must block Plaid revocation entirely');
-  assert.equal(tables.connected_accounts.find(a => a.id === 'acct-1').sync_status, 'disconnected');
-  assert.equal(tables.connected_accounts.find(a => a.id === 'acct-2').sync_status, 'connected', 'the sibling must be completely untouched');
-  assert.equal(tables.plaid_credentials.find(c => c.connected_account_id === 'acct-1'), undefined, 'this account\'s own token copy is still removed');
-  assert.equal(tables.plaid_credentials.find(c => c.connected_account_id === 'acct-2').access_token, 'token-acct-1', 'the sibling keeps its own copy of the still-live token');
-}
-
-// --- a sibling that is ALREADY disconnected does not count - revocation proceeds normally ---
-{
-  const seed = baseSeed();
-  seed.connected_accounts.push({ id: 'acct-2', user_id: 'user-1', provider: 'plaid', provider_item_id: 'item-1', sync_status: 'disconnected' });
-  const { response, log } = await run({ seed });
-  assert.equal(response.status, 200);
-  assert.equal(log.itemRemoveCalls, 1, 'an already-disconnected sibling must not block revoking the shared Item');
-}
-
-// --- no token on file at all (legacy/edge case): nothing to revoke, still disconnects cleanly ---
-{
-  const seed = baseSeed(); seed.plaid_credentials = [];
-  const { response, tables, log } = await run({ seed });
-  assert.equal(response.status, 200);
+  const { response, log } = await run({ tokenThrows: new Error('synthetic token-store outage') });
+  assert.equal(response.status, 503, 'a failed credential read must never be treated as "nothing to revoke"');
   assert.equal(log.itemRemoveCalls, 0);
-  assert.equal(tables.connected_accounts[0].sync_status, 'disconnected');
+  assert.equal(log.deletes.length, 0, 'must not delete a credential it could not even confirm the contents of');
 }
 
-// --- a non-Plaid provider skips revocation entirely ---
+// --- already-removed at Plaid is success, not failure ---
 {
-  const seed = baseSeed(); seed.connected_accounts[0].provider = 'teller';
-  const { response, log } = await run({ seed });
+  const { response, log } = await run({ plaidBehavior: 'not-found' });
+  assert.equal(response.status, 200); assert.equal(log.itemRemoveCalls, 1); assert.equal(log.deletes.length, 1);
+}
+
+// --- a genuine provider failure must not delete the credential ---
+{
+  const { response, log } = await run({ plaidBehavior: 'error' });
+  assert.equal(response.status, 503);
+  assert.equal(log.deletes.length, 0, 'a live, unrevoked credential must not be deleted');
+}
+
+// --- missing Plaid config fails safely ---
+{
+  const { response, log } = await run({ configured: false });
+  assert.equal(response.status, 503);
+  assert.equal(log.itemRemoveCalls, 0); assert.equal(log.deletes.length, 0);
+}
+
+// --- no token on file at all (legitimately nothing to revoke) ---
+{
+  const { response, log } = await run({ tokenResult: { token: null } });
   assert.equal(response.status, 200);
-  assert.equal(log.itemRemoveCalls, 0, 'no Plaid API call exists for a non-plaid provider');
+  assert.equal(log.itemRemoveCalls, 0); assert.equal(log.deletes.length, 0, 'nothing to delete either');
 }
 
-// --- retry after a failure self-heals once Plaid actually confirms removal on the next attempt ---
+// --- non-Plaid provider never touches Plaid or reads a token ---
 {
-  const seed = baseSeed();
-  const first = await run({ seed, plaidBehavior: 'error' });
-  assert.equal(first.response.status, 503);
-  // Same seed's underlying tables were mutated in place only by the failed run (nothing committed);
-  // simulate a second, independent request against that same still-untouched state.
-  const second = await run({ seed, plaidBehavior: 'not-found' }); // the earlier failed attempt's own retry against Plaid now finds it already gone
-  assert.equal(second.response.status, 200);
-  assert.equal(second.tables.connected_accounts[0].sync_status, 'disconnected');
+  const { response, log } = await run({ claim: { provider: 'teller', provider_item_id: null, already_disconnected: false, sibling_active: false } });
+  assert.equal(response.status, 200);
+  assert.equal(log.itemRemoveCalls, 0); assert.equal(log.deletes.length, 0);
 }
 
-console.log('PASS bank disconnect: ownership enforced, idempotent retries, shared-Item siblings protected, provider failures never falsely report completion, token cleanup only after confirmed disconnect');
+// --- integration: the migration exists, is idempotent to reapply, and is exactly what the function relies on ---
+const migrationSource = fs.readFileSync('supabase/migrations/20260927120000_atomic_bank_disconnect_claim.sql', 'utf8');
+assert.match(migrationSource, /create or replace function public\.claim_bank_disconnect/);
+assert.match(migrationSource, /pg_advisory_xact_lock/);
+assert.match(migrationSource, /user_id = p_user_id/);
+assert.match(migrationSource, /grant execute on function public\.claim_bank_disconnect\(uuid, uuid\) to service_role;/);
+assert.match(source, /admin\.rpc\('claim_bank_disconnect'/);
+
+console.log('PASS bank disconnect: RPC-reported not-found/ownership, cleanup-failure retry recovery (defect 1), simulated correctly-serialized sibling outcomes (defect 2), fail-closed token-read errors (defect 3), already-removed/provider-failure/missing-config/no-token/non-plaid paths, and migration presence');

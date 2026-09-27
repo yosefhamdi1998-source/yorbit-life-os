@@ -26,33 +26,36 @@ Deno.serve(async (req) => {
     }
 
     const admin = serviceClient();
-    // Same response for "does not exist" and "not yours" used by every
-    // other account-scoped function here, so neither case confirms the other.
-    const { data: account } = await admin.from('connected_accounts')
-      .select('id, user_id, provider, provider_item_id, sync_status')
-      .eq('id', accountId).eq('user_id', user.id).maybeSingle();
-    if (!account) return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
 
-    // Idempotent: a retry after a partial earlier failure, or a duplicate
-    // request, has nothing left to do and must not report an error.
-    if (account.sync_status === 'disconnected') return jsonResponse({ success: true }, 200, {}, req);
+    // Atomically decides whether THIS request is responsible for revoking
+    // the shared Plaid Item, and marks this account disconnected - see
+    // migration 20260927120000_atomic_bank_disconnect_claim.sql. Ownership
+    // is enforced inside the function itself (p_user_id), which also gives
+    // "does not exist" and "not yours" the same response.
+    const { data, error: claimError } = await admin.rpc('claim_bank_disconnect', {
+      p_user_id: user.id, p_account_id: accountId,
+    });
+    if (claimError) return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
+    const claim = data?.[0];
+    if (!claim) return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
 
-    if (account.provider === 'plaid') {
-      const { token } = await getPlaidAccessToken(admin, accountId);
+    // Whether or not THIS call is the one that just flipped sync_status -
+    // it may already have been flipped by an earlier attempt whose own
+    // cleanup below failed partway through - always re-attempt revocation
+    // and credential cleanup. A retry has to actually finish the job, not
+    // silently skip it just because the account already reads disconnected.
+    if (claim.provider === 'plaid') {
+      let token: string | null;
+      try {
+        ({ token } = await getPlaidAccessToken(admin, accountId));
+      } catch (err) {
+        // A failed read must never be mistaken for "nothing to revoke" -
+        // that would let a real, live credential go unrevoked and then get
+        // silently deleted anyway, which is exactly the bug this replaces.
+        return errorResponse("We couldn't confirm the disconnect. Please try again.", 503, { internal: err, fn: 'plaid-disconnect-account', req });
+      }
       if (token) {
-        // One Plaid Item can back several of this user's connected_accounts
-        // rows at once - save_plaid_accounts_private creates one row per
-        // account returned from a single Link session, all sharing the same
-        // item/access token (checking + savings from one bank login, for
-        // example). Revoking the Item revokes it for all of them, so this
-        // only actually calls Plaid once no sibling row still needs it.
-        const { data: siblings, error: siblingError } = await admin.from('connected_accounts')
-          .select('id').eq('user_id', user.id).eq('provider_item_id', account.provider_item_id)
-          .neq('id', accountId).neq('sync_status', 'disconnected').limit(1);
-        if (siblingError) {
-          return errorResponse("We couldn't confirm the disconnect. Please try again.", 503, { internal: siblingError, fn: 'plaid-disconnect-account', req });
-        }
-        if (!siblings?.length) {
+        if (!claim.sibling_active) {
           const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
           const plaidSecret = Deno.env.get('PLAID_SECRET');
           if (!plaidClientId || !plaidSecret) {
@@ -69,30 +72,24 @@ Deno.serve(async (req) => {
             // earlier attempt - not a failure, the goal is already met.
             const alreadyRemoved = err?.response?.data?.error_code === 'ITEM_NOT_FOUND';
             if (!alreadyRemoved) {
+              // Do not delete the credential below - a live token with
+              // nowhere left to read it from can never be revoked on retry.
               return errorResponse("We couldn't confirm the disconnect with your bank. Please try again.", 503, { internal: err, fn: 'plaid-disconnect-account', req });
             }
           }
         }
+        // Reached only once Plaid has actually confirmed the Item is gone
+        // (or was already gone), or a sibling account still needs it - this
+        // account's own copy is unused either way. Checking the error here
+        // (rather than firing-and-forgetting it) is what makes a retry
+        // actually finish the job instead of silently reporting success
+        // with the credential still sitting in the vault.
+        const { error: deleteError } = await admin.from('plaid_credentials').delete().eq('connected_account_id', accountId);
+        if (deleteError) {
+          return errorResponse("We couldn't confirm the disconnect. Please try again.", 503, { internal: deleteError, fn: 'plaid-disconnect-account', req });
+        }
       }
     }
-
-    // Only mark disconnected once revocation is confirmed (or wasn't
-    // needed) - never the other way around. If anything above failed, the
-    // account is untouched here and a retry safely starts over.
-    const { error: updateError } = await admin.from('connected_accounts')
-      .update({ sync_status: 'disconnected' })
-      .eq('id', accountId).eq('user_id', user.id).neq('sync_status', 'disconnected')
-      .select('id').maybeSingle();
-    if (updateError) {
-      return errorResponse("We couldn't confirm the disconnect. Please try again.", 503, { internal: updateError, fn: 'plaid-disconnect-account', req });
-    }
-
-    // This account will never sync again, so its own copy of the token is
-    // never needed again either way - regardless of whether the Item itself
-    // stays live for a sibling account. Best-effort: the disconnect above is
-    // already durable without this succeeding, and nothing reads a token
-    // for an account whose sync_status is 'disconnected'.
-    await admin.from('plaid_credentials').delete().eq('connected_account_id', accountId).then(() => {}).catch(() => {});
 
     return jsonResponse({ success: true }, 200, {}, req);
   } catch (error) {

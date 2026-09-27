@@ -131,7 +131,10 @@ const OWNERSHIP = [
   ['plaid-sync-transactions', /account\.user_id\s*!==\s*user\.id/],
   ['plaid-sync-holdings', /account\.user_id\s*!==\s*user\.id/],
   ['plaid-create-link-token', /account\.user_id\s*!==\s*user\.id/],
-  ['plaid-disconnect-account', /\.eq\('id',\s*accountId\)\.eq\('user_id',\s*user\.id\)/],
+  // Ownership is enforced inside claim_bank_disconnect itself now (see the
+  // migration), not by a select-then-compare in the function - confirm the
+  // authenticated user's own id is what's actually passed to it.
+  ['plaid-disconnect-account', /p_user_id:\s*user\.id/],
   ['ai-coach', /\.eq\('id',\s*conversation_id\)\s*\.eq\('user_id',\s*userId\)/],
 ];
 for (const [fn, re] of OWNERSHIP) {
