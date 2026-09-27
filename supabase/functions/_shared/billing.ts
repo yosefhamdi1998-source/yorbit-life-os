@@ -1,10 +1,15 @@
 // Keep the web checkout and webhook on the same product mapping.
+// This release is authorized for sandbox billing only. A live secret alone
+// must never activate checkout or live webhook writes. Enabling real billing
+// requires a separately approved code release after sandbox verification.
+export const LIVE_BILLING_ENABLED = false;
 
 // Live-mode prices on the Yorbit Stripe account. Test mode (or a Stripe
 // sandbox) has its own price ids, so a test key must be paired with
 // STRIPE_PRICE_PRO_MONTHLY and STRIPE_PRICE_PRO_YEARLY; without them billing
 // stays off instead of sending live price ids to test mode. The web app sends
-// a plan name, never a price id, so it works unchanged in either mode.
+// a plan name plus a transitional legacy id; the server selects the price.
+// Live defaults below remain gated off in this sandbox-only release.
 export const LIVE_PRICES: Record<string, string> = {
   pro_monthly: 'price_1UDXISA4mvP1HWCKCxoL3PcL',
   pro_yearly: 'price_1UDXJiA4mvP1HWCKDQ18B5bX',
@@ -22,7 +27,7 @@ export function stripeMode(key: string | undefined): 'live' | 'test' | null {
 // configured for that mode.
 export function billingPrices(key: string | undefined, env: (name: string) => string | undefined): Record<string, string> | null {
   const mode = stripeMode(key);
-  if (!mode) return null;
+  if (!mode || (mode === 'live' && !LIVE_BILLING_ENABLED)) return null;
   const monthly = env('STRIPE_PRICE_PRO_MONTHLY')?.trim();
   const yearly = env('STRIPE_PRICE_PRO_YEARLY')?.trim();
   if (monthly || yearly) {
@@ -36,13 +41,13 @@ export function billingPrices(key: string | undefined, env: (name: string) => st
   return mode === 'live' ? { ...LIVE_PRICES } : null;
 }
 
-// The live site runs whatever key is configured, so while it holds a test key
+// While the site holds a test key,
 // anyone could otherwise "subscribe" with Stripe's public test card and get
 // Pro free. Test-mode checkout is limited to STRIPE_TEST_CHECKOUT_EMAILS:
 // comma-separated exact addresses or @domain suffixes. Unset = nobody.
 export function checkoutAllowed(key: string | undefined, email: string | undefined, env: (name: string) => string | undefined): boolean {
   const mode = stripeMode(key);
-  if (mode !== 'test') return mode === 'live';
+  if (mode !== 'test') return mode === 'live' && LIVE_BILLING_ENABLED;
   const address = (email ?? '').trim().toLowerCase();
   if (!address.includes('@')) return false;
   return (env('STRIPE_TEST_CHECKOUT_EMAILS') ?? '').split(',').map(entry => entry.trim().toLowerCase()).filter(Boolean)

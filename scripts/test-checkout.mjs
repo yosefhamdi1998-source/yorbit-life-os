@@ -22,12 +22,14 @@ assert.equal(policy.LIVE_PRICES.pro_yearly,'price_1UDXJiA4mvP1HWCKDQ18B5bX');
 // Price selection by key mode. Keys here are obviously fake prefixes only.
 const TEST_PRICES={STRIPE_PRICE_PRO_MONTHLY:'price_test_monthly',STRIPE_PRICE_PRO_YEARLY:'price_test_yearly'};
 const envOf=vars=>name=>vars[name];
-assert.deepEqual(policy.billingPrices('sk_live_FAKE',envOf({})),policy.LIVE_PRICES);
-assert.deepEqual(policy.billingPrices('rk_live_FAKE',envOf({})),policy.LIVE_PRICES);
+assert.equal(policy.LIVE_BILLING_ENABLED,false,'this release is sandbox-only');
+assert.equal(policy.billingPrices('sk_live_FAKE',envOf({})),null);
+assert.equal(policy.billingPrices('rk_live_FAKE',envOf({})),null);
+assert.equal(policy.billingPrices('rk_live_FAKE',envOf(TEST_PRICES)),null,'adding a live key and valid prices cannot activate billing');
 assert.equal(policy.billingPrices('rk_test_FAKE',envOf({})),null,'a test key never falls back to live price ids');
 assert.equal(policy.billingPrices('rk_test_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'price_test_monthly'})),null,'half-configured is not configured');
 assert.equal(policy.billingPrices('rk_test_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'price_same',STRIPE_PRICE_PRO_YEARLY:'price_same'})),null,'monthly and yearly must not charge the same configured price');
-assert.equal(policy.billingPrices('rk_live_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'prod_wrong',STRIPE_PRICE_PRO_YEARLY:'price_yearly'})),null,'invalid overrides must not enable billing or fall back to live defaults');
+assert.equal(policy.billingPrices('rk_test_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'prod_wrong',STRIPE_PRICE_PRO_YEARLY:'price_yearly'})),null,'invalid overrides must not enable billing or fall back to live defaults');
 
 assert.deepEqual(policy.billingPrices('rk_test_FAKE',envOf(TEST_PRICES)),{pro_monthly:'price_test_monthly',pro_yearly:'price_test_yearly'});
 assert.equal(policy.billingPrices('not-a-stripe-key',envOf({})),null);
@@ -36,9 +38,9 @@ assert.equal(policy.billingPrices(undefined,envOf({})),null);
 assert.equal(policy.planForPrice(policy.LIVE_PRICES,'price_1UDXJiA4mvP1HWCKDQ18B5bX'),'pro_yearly');
 assert.equal(policy.planForPrice(policy.LIVE_PRICES,undefined),undefined);
 
-// Test-mode checkout only for listed test accounts; live mode is open to everyone.
+// Sandbox release: test checkout only for listed accounts; live keys stay off.
 const allowList=envOf({STRIPE_TEST_CHECKOUT_EMAILS:' Tester@Yorbit.example , @billing.example.test '});
-assert.equal(policy.checkoutAllowed('rk_live_FAKE','anyone@gmail.com',envOf({})),true);
+assert.equal(policy.checkoutAllowed('rk_live_FAKE','anyone@gmail.com',envOf({})),false);
 assert.equal(policy.checkoutAllowed('rk_test_FAKE','anyone@gmail.com',envOf({})),false,'unset list = nobody');
 assert.equal(policy.checkoutAllowed('rk_test_FAKE','tester@yorbit.example',allowList),true);
 assert.equal(policy.checkoutAllowed('rk_test_FAKE','qa1@billing.example.test',allowList),true);
@@ -70,18 +72,21 @@ const lastPrice=()=>created.at(-1).line_items[0].price;
 env={STRIPE_SECRET_KEY:'rk_live_FAKE'};
 assert.equal(await status({plan:'monthly',...returns}),401);
 user={id:'test-user',email:'test@example.test'};
+for (const key of ['rk_live_FAKE','sk_live_FAKE']) {
+  env={STRIPE_SECRET_KEY:key,...TEST_PRICES,STRIPE_TEST_CHECKOUT_EMAILS:'test@example.test'};
+  assert.equal(await status({plan:'monthly',...returns}),501,'live billing cannot activate by changing secrets');
+  assert.equal(created.length,0,'live keys never reach Stripe');
+}
+env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TEST_PRICES,STRIPE_TEST_CHECKOUT_EMAILS:'test@example.test'};
 assert.equal(await status({plan:'weekly',...returns}),400);
 assert.equal(await status({priceId:'price_unknown',...returns}),400);
 assert.equal(await status({plan:'monthly',...returns,successUrl:'https://evil.test'}),400);
 assert.equal(created.length,0);
-
-// Live mode: plan names map to the live prices; older web builds sending a live price id still work.
-assert.equal(await status({plan:'monthly',...returns}),200); assert.equal(lastPrice(),policy.LIVE_PRICES.pro_monthly);
-assert.equal(await status({plan:'yearly',...returns}),200); assert.equal(lastPrice(),policy.LIVE_PRICES.pro_yearly);
+assert.equal(await status({plan:'monthly',...returns}),200); assert.equal(lastPrice(),'price_test_monthly');
 assert.equal(created.at(-1).client_reference_id,'test-user');
 assert.equal(created.at(-1).subscription_data.trial_period_days,7);
-assert.equal(await status({priceId:policy.LIVE_PRICES.pro_yearly,...returns}),200); assert.equal(lastPrice(),policy.LIVE_PRICES.pro_yearly);
-assert.equal(await status({plan:'monthly',priceId:policy.LIVE_PRICES.pro_yearly,...returns}),200); assert.equal(lastPrice(),policy.LIVE_PRICES.pro_monthly,'the plan name is authoritative');
+assert.equal(await status({priceId:'price_test_yearly',...returns}),200); assert.equal(lastPrice(),'price_test_yearly');
+assert.equal(await status({plan:'monthly',priceId:'price_test_yearly',...returns}),200); assert.equal(lastPrice(),'price_test_monthly','the plan name is authoritative');
 
 // Test mode: off until test prices exist, then only test prices are used,
 // and only for listed test accounts.
@@ -112,8 +117,8 @@ assert.equal(lastPrice(),'price_test_monthly','the plan wins over the transition
 
 env={};
 assert.equal(await status({plan:'monthly',...returns}),501);
-env={STRIPE_SECRET_KEY:'rk_live_FAKE'};
+env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TEST_PRICES,...TESTERS};
 shouldFail=true;
 assert.equal(await status({plan:'monthly',...returns}),500);
 delete globalThis.__checkoutTest;
-console.log('PASS: checkout requires identity, sends plan names, uses the price for the key\'s Stripe mode (never live prices in test mode), limits test mode to listed test accounts, restricts returns, and handles provider failure');
+console.log('PASS: checkout requires identity, sends plan names, rejects live keys in this sandbox release and uses configured test prices, limits test mode to listed test accounts, restricts returns, and handles provider failure');

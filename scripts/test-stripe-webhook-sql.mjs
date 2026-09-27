@@ -64,13 +64,13 @@ function queryBuilder(table, op, payload) {
 const admin = { from: table => ({ select: cols => queryBuilder(table, 'select').select(cols), update: p => queryBuilder(table, 'update', p), insert: p => queryBuilder(table, 'insert', p) }) };
 
 const truth = new Map(); // subscription id -> Stripe's current state
-const setTruth = (id, customer, status, price = 'price_1UDXISA4mvP1HWCKCxoL3PcL') =>
+const setTruth = (id, customer, status, price = 'price_test_monthly') =>
   truth.set(id, { id, customer, status, items: { data: [{ price: { id: price } }] }, current_period_end: 1893456000, cancel_at_period_end: false });
 
 // Obviously fake key prefixes: only the mode matters to the handler.
 const LIVE_ENV = { STRIPE_SECRET_KEY: 'rk_live_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE' };
 const TEST_ENV = { STRIPE_SECRET_KEY: 'rk_test_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE', STRIPE_PRICE_PRO_MONTHLY: 'price_test_monthly', STRIPE_PRICE_PRO_YEARLY: 'price_test_yearly' };
-async function makeHandler(env = LIVE_ENV) {
+async function makeHandler(env = TEST_ENV) {
   const policyJs = (await transform(read('supabase/functions/_shared/billing.ts').replace(/^export /gm, ''), { loader: 'ts' })).code;
   const src = read('supabase/functions/stripe-webhook/index.ts').replace(/^import .*;\r?\n/gm, '');
   const js = (await transform(src, { loader: 'ts' })).code;
@@ -91,8 +91,8 @@ async function makeHandler(env = LIVE_ENV) {
   vm.runInNewContext(js, sandbox);
   return (event, signature = 'valid-synthetic-signature') => handler({ text: async () => JSON.stringify(event), headers: { get: () => signature } });
 }
-const checkout = (sub, customer, user, livemode = true) => ({ type: 'checkout.session.completed', livemode, data: { object: { subscription: sub, customer, client_reference_id: user } } });
-const subEvent = (type, sub, customer, payloadStatus, livemode = true) => ({ type: `customer.subscription.${type}`, livemode, data: { object: { id: sub, customer, status: payloadStatus } } });
+const checkout = (sub, customer, user, livemode = false) => ({ type: 'checkout.session.completed', livemode, data: { object: { subscription: sub, customer, client_reference_id: user } } });
+const subEvent = (type, sub, customer, payloadStatus, livemode = false) => ({ type: `customer.subscription.${type}`, livemode, data: { object: { id: sub, customer, status: payloadStatus } } });
 
 let seq = 0;
 async function newUser() { const id = `00000000-0000-4000-9000-${String(++seq).padStart(12, '0')}`; await pool.query('insert into auth.users(id) values ($1)', [id]); return { id, customer: `cus_synthetic_${seq}` }; }
@@ -137,7 +137,7 @@ try {
     await send(checkout('sub_b1', u.customer, u.id));
     setTruth('sub_b1', u.customer, 'canceled');
     await send(subEvent('deleted', 'sub_b1', u.customer, 'canceled'));
-    setTruth('sub_b2', u.customer, 'active', 'price_1UDXJiA4mvP1HWCKDQ18B5bX');
+    setTruth('sub_b2', u.customer, 'active', 'price_test_yearly');
     await send(checkout('sub_b2', u.customer, u.id));
     assert.equal((await send(subEvent('deleted', 'sub_b1', u.customer, 'canceled'))).status, 200);
     assert.equal((await send(subEvent('updated', 'sub_b1', u.customer, 'active'))).status, 200);
@@ -187,16 +187,22 @@ try {
     assert.equal(rows.length, 1); assert.equal(rows[0].plan, 'pro_yearly'); assert.ok(entitled(rows));
 
     setTruth('sub_h1', u.customer, 'canceled', 'price_test_yearly');
-    assert.equal((await testSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled'))).status, 500, 'a live event reaching the test-mode handler');
+    assert.equal((await testSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled', true))).status, 500, 'a live event reaching the test-mode handler');
     assert.ok(entitled(await rowsFor(u.id)), 'the mismatched event wrote nothing');
-    assert.equal((await send(subEvent('deleted', 'sub_h1', u.customer, 'canceled', false))).status, 500, 'a test event reaching the live-mode handler');
+    for (const key of ['rk_live_FAKE','sk_live_FAKE']) {
+      const liveSend = await makeHandler({ ...TEST_ENV, ...LIVE_ENV, STRIPE_SECRET_KEY: key });
+      for (const livemode of [true,false]) {
+        assert.equal((await liveSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled', livemode))).status, 501, 'live keys cannot activate webhook writes');
+        assert.ok(entitled(await rowsFor(u.id)), 'disabled live billing wrote nothing');
+      }
+    }
     assert.ok(entitled(await rowsFor(u.id)));
     assert.equal((await testSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled', false))).status, 200);
     assert.ok(!entitled(await rowsFor(u.id)));
 
     const noTestPrices = await makeHandler({ STRIPE_SECRET_KEY: 'rk_test_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE' });
     assert.equal((await noTestPrices(checkout('sub_h1', u.customer, u.id, false))).status, 501);
-    ok('test mode maps its own prices, refuses live-mode events (and live refuses test events) without writing, and stays off without test prices');
+    ok('test mode maps its prices; live events are refused; live keys stay disabled even with prices; missing test prices stay off');
   }
   {
     let single = 0;
