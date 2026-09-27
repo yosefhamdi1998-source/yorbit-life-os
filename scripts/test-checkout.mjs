@@ -26,6 +26,9 @@ assert.deepEqual(policy.billingPrices('sk_live_FAKE',envOf({})),policy.LIVE_PRIC
 assert.deepEqual(policy.billingPrices('rk_live_FAKE',envOf({})),policy.LIVE_PRICES);
 assert.equal(policy.billingPrices('rk_test_FAKE',envOf({})),null,'a test key never falls back to live price ids');
 assert.equal(policy.billingPrices('rk_test_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'price_test_monthly'})),null,'half-configured is not configured');
+assert.equal(policy.billingPrices('rk_test_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'price_same',STRIPE_PRICE_PRO_YEARLY:'price_same'})),null,'monthly and yearly must not charge the same configured price');
+assert.equal(policy.billingPrices('rk_live_FAKE',envOf({STRIPE_PRICE_PRO_MONTHLY:'prod_wrong',STRIPE_PRICE_PRO_YEARLY:'price_yearly'})),null,'invalid overrides must not enable billing or fall back to live defaults');
+
 assert.deepEqual(policy.billingPrices('rk_test_FAKE',envOf(TEST_PRICES)),{pro_monthly:'price_test_monthly',pro_yearly:'price_test_yearly'});
 assert.equal(policy.billingPrices('not-a-stripe-key',envOf({})),null);
 assert.equal(policy.billingPrices('not-a-stripe-key',envOf(TEST_PRICES)),null,'an unrecognised key disables billing even with prices set');
@@ -85,6 +88,16 @@ assert.equal(await status({plan:'monthly',priceId:policy.LIVE_PRICES.pro_yearly,
 const TESTERS={STRIPE_TEST_CHECKOUT_EMAILS:'@example.test'};
 env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TESTERS};
 const before=created.length;
+for (const prices of [
+  {STRIPE_PRICE_PRO_MONTHLY:'price_same',STRIPE_PRICE_PRO_YEARLY:'price_same'},
+  {STRIPE_PRICE_PRO_MONTHLY:'prod_wrong',STRIPE_PRICE_PRO_YEARLY:'price_yearly'},
+]) {
+  env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TESTERS,...prices};
+  assert.equal(await status({plan:'yearly',...returns}),501,'bad price settings disable checkout');
+  assert.equal(created.length,before,'bad price settings never reach Stripe');
+}
+env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TESTERS};
+
 assert.equal(await status({plan:'monthly',...returns}),501);
 assert.equal(created.length,before,'no checkout is attempted with live prices in test mode');
 env={STRIPE_SECRET_KEY:'rk_test_FAKE',...TEST_PRICES};

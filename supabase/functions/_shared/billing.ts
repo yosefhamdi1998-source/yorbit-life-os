@@ -25,7 +25,14 @@ export function billingPrices(key: string | undefined, env: (name: string) => st
   if (!mode) return null;
   const monthly = env('STRIPE_PRICE_PRO_MONTHLY')?.trim();
   const yearly = env('STRIPE_PRICE_PRO_YEARLY')?.trim();
-  if (monthly || yearly) return monthly && yearly ? { pro_monthly: monthly, pro_yearly: yearly } : null;
+  if (monthly || yearly) {
+    // Reject incomplete, malformed or duplicate overrides. Reusing one price
+    // for both intervals charges the wrong plan and makes webhook mapping
+    // ambiguous. A bad override must not silently enable live defaults.
+    const isPrice = (value: string | undefined): value is string => /^price_[A-Za-z0-9_]+$/.test(value ?? '');
+    return isPrice(monthly) && isPrice(yearly) && monthly !== yearly
+      ? { pro_monthly: monthly, pro_yearly: yearly } : null;
+  }
   return mode === 'live' ? { ...LIVE_PRICES } : null;
 }
 
