@@ -126,8 +126,8 @@ try {
     create policy "subscriptions_select_own" on public.subscriptions for select using (auth.uid() = user_id);`);
   await pool.query('grant all on public.subscriptions, public.profiles to authenticated, service_role');
   await pool.query(read('supabase/migrations/20260908234547_restrict_subscription_writes.sql'));
-  await pool.query(read('supabase/migrations/20260927130000_unique_stripe_subscription_rows.sql'));
-  await pool.query(read('supabase/migrations/20260927140000_app_store_subscriptions.sql'));
+  await pool.query(read('supabase/migrations/20260927213555_unique_stripe_subscription_rows.sql'));
+  await pool.query(read('supabase/migrations/20260927213604_app_store_subscriptions.sql'));
   webhook = await load('revenuecat-webhook');
   console.log('Real PostgreSQL: profiles + subscriptions from schema.sql and real migrations; real handlers; fake RevenueCat API.\n');
 

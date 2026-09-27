@@ -26,9 +26,15 @@ const FREE_LIMITS = [
   { label: 'Savings goals', free: `${FREE_GOAL_LIMIT} goals`, pro: '✓ Unlimited' },
 ];
 
+// Display only. Checkout sends the plan name and the server picks the Stripe
+// price for its mode (see supabase/functions/_shared/billing.ts).
+// The live price id is also sent only for create-checkout versions deployed
+// before plan names existed; newer versions ignore it when the plan is valid.
+// Remove once the plan-name create-checkout is deployed.
+const LEGACY_LIVE_PRICE_IDS = { monthly: 'price_1UDXISA4mvP1HWCKCxoL3PcL', yearly: 'price_1UDXJiA4mvP1HWCKDQ18B5bX' };
 const PRICES = {
-  monthly: { id: 'price_1UDXISA4mvP1HWCKCxoL3PcL', amount: '$4.99', period: '/month', annual: null, badge: null, note: 'Billed monthly' },
-  yearly:  { id: 'price_1UDXJiA4mvP1HWCKDQ18B5bX', amount: '$29.99', period: '/year', annual: '$2.50/mo', badge: 'BEST VALUE · Save 50%', note: 'Billed annually' },
+  monthly: { amount: '$4.99', period: '/month', annual: null, badge: null, note: 'Billed monthly' },
+  yearly:  { amount: '$29.99', period: '/year', annual: '$2.50/mo', badge: 'BEST VALUE · Save 50%', note: 'Billed annually' },
 };
 
 export default function Upgrade() {
@@ -105,7 +111,7 @@ export default function Upgrade() {
     const cancelUrl = `${window.location.origin}${appBase}/upgrade`;
     try {
       // The create-checkout Edge Function returns { url, sessionId } directly
-      const res = await base44.functions.invoke('createCheckout', { priceId: PRICES[plan].id, successUrl, cancelUrl });
+      const res = await base44.functions.invoke('createCheckout', { plan, priceId: LEGACY_LIVE_PRICE_IDS[plan], successUrl, cancelUrl });
       if (res?.url) {
         window.location.href = res.url;
       } else {

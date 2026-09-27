@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     // Moves the account to 'disconnecting' (visible and retryable, never
     // hidden) and decides under a per-Item lock whether this call must revoke
-    // the shared Plaid Item. See migration 20260927120000. Ownership is
+    // the shared Plaid Item. See migration 20260927212600. Ownership is
     // enforced inside the function via p_user_id.
     const { data, error: claimError } = await admin.rpc('claim_bank_disconnect', {
       p_user_id: user.id, p_account_id: accountId,

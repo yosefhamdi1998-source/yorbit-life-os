@@ -21,7 +21,7 @@ const { Pool } = pgPkg;
 const read = p => fs.readFileSync(p, 'utf8');
 const schema = read('supabase/schema.sql');
 const ddl = name => schema.match(new RegExp(`create table if not exists public\\.${name} \\([\\s\\S]*?\\n\\);`))[0];
-const MIGRATION = 'supabase/migrations/20260927120000_atomic_bank_disconnect_claim.sql';
+const MIGRATION = 'supabase/migrations/20260927212600_atomic_bank_disconnect_claim.sql';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yorbit-disconnect-sql-'));
 const port = 55000 + Math.floor(Math.random() * 4000);

@@ -1,5 +1,5 @@
 import { jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { PRICE_TO_PLAN } from '../_shared/billing.ts';
+import { billingPrices, planForPrice, stripeMode } from '../_shared/billing.ts';
 import { serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
 
@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!stripeKey || !webhookSecret) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501, {}, req);
+    const prices = billingPrices(stripeKey, name => Deno.env.get(name));
+    if (!stripeKey || !webhookSecret || !prices) return jsonResponse({ error: 'Billing is not enabled yet.' }, 501, {}, req);
 
     const stripe = new Stripe(stripeKey);
     const body = await req.text();
@@ -39,6 +40,11 @@ Deno.serve(async (req) => {
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
       return jsonResponse({ error: 'Invalid signature' }, 400, {}, req);
+    }
+    // A test-mode event with a live key (or the reverse) means the secrets
+    // are mixed up; write nothing and fail so Stripe shows the delivery failing.
+    if (event.livemode !== (stripeMode(stripeKey) === 'live')) {
+      throw new Error('Event mode does not match STRIPE_SECRET_KEY mode');
     }
 
     const admin = serviceClient();
@@ -59,7 +65,7 @@ Deno.serve(async (req) => {
       const fields = {
         stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
-        plan: status === 'canceled' ? 'free' : (PRICE_TO_PLAN[priceId || ''] || 'free'),
+        plan: status === 'canceled' ? 'free' : (planForPrice(prices, priceId) || 'free'),
         status,
         current_period_end: subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString() : null,

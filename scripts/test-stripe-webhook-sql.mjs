@@ -67,7 +67,10 @@ const truth = new Map(); // subscription id -> Stripe's current state
 const setTruth = (id, customer, status, price = 'price_1UDXISA4mvP1HWCKCxoL3PcL') =>
   truth.set(id, { id, customer, status, items: { data: [{ price: { id: price } }] }, current_period_end: 1893456000, cancel_at_period_end: false });
 
-async function makeHandler({ configured = true } = {}) {
+// Obviously fake key prefixes: only the mode matters to the handler.
+const LIVE_ENV = { STRIPE_SECRET_KEY: 'rk_live_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE' };
+const TEST_ENV = { STRIPE_SECRET_KEY: 'rk_test_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE', STRIPE_PRICE_PRO_MONTHLY: 'price_test_monthly', STRIPE_PRICE_PRO_YEARLY: 'price_test_yearly' };
+async function makeHandler(env = LIVE_ENV) {
   const policyJs = (await transform(read('supabase/functions/_shared/billing.ts').replace(/^export /gm, ''), { loader: 'ts' })).code;
   const src = read('supabase/functions/stripe-webhook/index.ts').replace(/^import .*;\r?\n/gm, '');
   const js = (await transform(src, { loader: 'ts' })).code;
@@ -79,7 +82,7 @@ async function makeHandler({ configured = true } = {}) {
   }
   let handler;
   const sandbox = {
-    Deno: { serve: fn => { handler = fn; }, env: { get: () => (configured ? 'synthetic' : undefined) } },
+    Deno: { serve: fn => { handler = fn; }, env: { get: name => env[name] } },
     Stripe, serviceClient: () => admin,
     jsonResponse: (body, status = 200) => ({ status, body }), errorResponse: (message, status) => ({ status, body: { error: message } }),
     console: { log() {}, error() {}, warn() {} },
@@ -88,8 +91,8 @@ async function makeHandler({ configured = true } = {}) {
   vm.runInNewContext(js, sandbox);
   return (event, signature = 'valid-synthetic-signature') => handler({ text: async () => JSON.stringify(event), headers: { get: () => signature } });
 }
-const checkout = (sub, customer, user) => ({ type: 'checkout.session.completed', data: { object: { subscription: sub, customer, client_reference_id: user } } });
-const subEvent = (type, sub, customer, payloadStatus) => ({ type: `customer.subscription.${type}`, data: { object: { id: sub, customer, status: payloadStatus } } });
+const checkout = (sub, customer, user, livemode = true) => ({ type: 'checkout.session.completed', livemode, data: { object: { subscription: sub, customer, client_reference_id: user } } });
+const subEvent = (type, sub, customer, payloadStatus, livemode = true) => ({ type: `customer.subscription.${type}`, livemode, data: { object: { id: sub, customer, status: payloadStatus } } });
 
 let seq = 0;
 async function newUser() { const id = `00000000-0000-4000-9000-${String(++seq).padStart(12, '0')}`; await pool.query('insert into auth.users(id) values ($1)', [id]); return { id, customer: `cus_synthetic_${seq}` }; }
@@ -106,8 +109,8 @@ try {
     create policy "subscriptions_select_own" on public.subscriptions for select using (auth.uid() = user_id);`);
   await pool.query('grant all on public.subscriptions to authenticated, service_role');
   await pool.query(read('supabase/migrations/20260908234547_restrict_subscription_writes.sql'));
-  await pool.query(read('supabase/migrations/20260927130000_unique_stripe_subscription_rows.sql'));
-  await pool.query(read('supabase/migrations/20260927140000_app_store_subscriptions.sql'));
+  await pool.query(read('supabase/migrations/20260927213555_unique_stripe_subscription_rows.sql'));
+  await pool.query(read('supabase/migrations/20260927213604_app_store_subscriptions.sql'));
   const send = await makeHandler();
   console.log('Real PostgreSQL: subscriptions table from schema.sql + real migrations; real stripe-webhook handler; fake Stripe.\n');
 
@@ -170,9 +173,30 @@ try {
 
     assert.equal((await send(checkout('sub_d1', u.customer, u.id), 'forged')).status, 400);
     assert.equal((await rowsFor(u.id)).length, 0);
-    const unconfigured = await makeHandler({ configured: false });
+    const unconfigured = await makeHandler({});
     assert.equal((await unconfigured(checkout('sub_d1', u.customer, u.id))).status, 501);
     ok('an invalid signature is rejected before any write; missing configuration returns 501');
+  }
+  {
+    // Stripe test mode: its own price ids, and never live prices or live events.
+    const testSend = await makeHandler(TEST_ENV);
+    const u = await newUser();
+    setTruth('sub_h1', u.customer, 'trialing', 'price_test_yearly');
+    assert.equal((await testSend(checkout('sub_h1', u.customer, u.id, false))).status, 200);
+    let rows = await rowsFor(u.id);
+    assert.equal(rows.length, 1); assert.equal(rows[0].plan, 'pro_yearly'); assert.ok(entitled(rows));
+
+    setTruth('sub_h1', u.customer, 'canceled', 'price_test_yearly');
+    assert.equal((await testSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled'))).status, 500, 'a live event reaching the test-mode handler');
+    assert.ok(entitled(await rowsFor(u.id)), 'the mismatched event wrote nothing');
+    assert.equal((await send(subEvent('deleted', 'sub_h1', u.customer, 'canceled', false))).status, 500, 'a test event reaching the live-mode handler');
+    assert.ok(entitled(await rowsFor(u.id)));
+    assert.equal((await testSend(subEvent('deleted', 'sub_h1', u.customer, 'canceled', false))).status, 200);
+    assert.ok(!entitled(await rowsFor(u.id)));
+
+    const noTestPrices = await makeHandler({ STRIPE_SECRET_KEY: 'rk_test_FAKE', STRIPE_WEBHOOK_SECRET: 'whsec_FAKE' });
+    assert.equal((await noTestPrices(checkout('sub_h1', u.customer, u.id, false))).status, 501);
+    ok('test mode maps its own prices, refuses live-mode events (and live refuses test events) without writing, and stays off without test prices');
   }
   {
     let single = 0;
