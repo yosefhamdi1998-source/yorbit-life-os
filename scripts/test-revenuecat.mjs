@@ -5,7 +5,7 @@ const info={entitlements:{active:{pro:{}}},activeSubscriptions:['yearly']};
 globalThis.__revenuecatTest={configure:async()=>{calls++;},getOfferings:async()=>({all:{},current:{id:'test'}}),getCustomerInfo:async()=>({customerInfo:info}),restorePurchases:async()=>({customerInfo:info}),purchasePackage:async()=>({customerInfo:info})};
 const source=fs.readFileSync('src/lib/revenuecat.js','utf8').replace(/^import .*;\r?\n/gm,'');
 globalThis.__serverSyncCalls=[];
-const prelude="const supabase={auth:{getSession:async()=>({data:{session:{user:{id:'test-user'}}}})},functions:{invoke:async(name,opts)=>{globalThis.__serverSyncCalls.push({name,body:opts?.body});return {data:null,error:null};}}}; const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
+const prelude="const supabase={auth:{getSession:async()=>({data:{session:{user:{id:'test-user'},access_token:'synthetic-token'}}})},functions:{invoke:async(name,opts)=>{globalThis.__serverSyncCalls.push({name,body:opts?.body});return {data:{isPro:true,plan:'pro_yearly'},error:null};}}}; const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
 const api=await import('data:text/javascript;base64,'+Buffer.from(prelude+source).toString('base64'));
 await Promise.all([api.getOfferings(),api.getOfferings()]);
 assert.equal(calls,1,'Concurrent callers configure only once');
@@ -44,8 +44,9 @@ const upgradeSource = fs.readFileSync('src/pages/Upgrade.jsx', 'utf8');
 const handlerBody = upgradeSource.match(/const handleIOSPurchase = async \(\) => \{([\s\S]*?)\n  \};/);
 assert.ok(handlerBody, 'Native purchase handler must be available for regression coverage');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-const runPurchase = new AsyncFunction('iosOfferings', 'plan', 'toast', 'setLoading', 'purchasePackage', 'navigate', 'getNativePlan', handlerBody[1]);
+const runPurchase = new AsyncFunction('iosOfferings', 'plan', 'toast', 'setLoading', 'purchasePackage', 'navigate', 'getNativePlan', 'setPurchasePending', handlerBody[1]);
 for (const [result, expectedTitle, expectedNavigation] of [
+  [{ isPro: true, serverSyncPending: true, error: null }, 'Purchase received — confirmation pending', []],
   [{ isPro: true, error: null }, 'Welcome to Yorbit Pro! 🎉', ['/settings']],
   [{ isPro: false, error: null }, 'Pro access not confirmed', []],
   [{ cancelled: true, error: null }, null, []],
@@ -57,7 +58,7 @@ for (const [result, expectedTitle, expectedNavigation] of [
   await runPurchase(
     availableOffering,
     'yearly', message => messages.push(message), value => loadingStates.push(value),
-    async () => result, destination => destinations.push(destination), getNativePlan,
+    async () => result, destination => destinations.push(destination), getNativePlan, () => {},
   );
   assert.deepEqual(destinations, expectedNavigation);
   assert.equal(messages[0]?.title ?? null, expectedTitle);
@@ -91,20 +92,21 @@ console.log('PASS: late successful offerings clear timeout errors; disposed requ
 // Unexpected bridge rejections must release the screen lock without claiming payment failed definitively.
 const rejectedMessages=[];
 const rejectedLoading=[];
-await runPurchase(availableOffering,'yearly',m=>rejectedMessages.push(m),v=>rejectedLoading.push(v),async()=>{throw new Error('Bridge unavailable');},()=>{throw new Error('Unexpected navigation');},getNativePlan);
+await runPurchase(availableOffering,'yearly',m=>rejectedMessages.push(m),v=>rejectedLoading.push(v),async()=>{throw new Error('Bridge unavailable');},()=>{throw new Error('Unexpected navigation');},getNativePlan,()=>{});
 assert.deepEqual(rejectedLoading,[true,false]);
 assert.match(rejectedMessages[0].description,/Restore Purchases/);
 const restoreBody=upgradeSource.match(/const handleRestore = async \(\) => \{([\s\S]*?)\n  \};/);
 assert.ok(restoreBody);
-const runRestore=new AsyncFunction('setRestoring','restorePurchases','toast','navigate',restoreBody[1]);
+const runRestore=new AsyncFunction('setRestoring','restorePurchases','toast','navigate','setPurchasePending',restoreBody[1]);
 for(const [result,title,route] of [
+  [{isPro:true,serverSyncPending:true,error:null},'Purchase found — confirmation pending',null],
   [{isPro:true,error:null},'Pro restored! 🎉','/settings'],
   [{isPro:false,error:null},'No purchases found',null],
   [{error:'Synthetic error'},'Restore failed',null],
   [null,'Restore failed',null],
 ]) {
   const states=[],messages=[],routes=[];
-  await runRestore(v=>states.push(v),async()=>{if(result===null)throw new Error('Bridge unavailable');return result;},m=>messages.push(m),r=>routes.push(r));
+  await runRestore(v=>states.push(v),async()=>{if(result===null)throw new Error('Bridge unavailable');return result;},m=>messages.push(m),r=>routes.push(r),()=>{});
   assert.deepEqual(states,[true,false]);
   assert.equal(messages[0].title,title);
   assert.deepEqual(routes,route?[route]:[]);
@@ -115,7 +117,7 @@ const settingsSource=fs.readFileSync('src/pages/Settings.jsx','utf8');
 const settingsRestoreBody=settingsSource.match(/const handleRestoreIOS = async \(\) => \{([\s\S]*?)\n  \};/);
 assert.ok(settingsRestoreBody);
 const runSettingsRestore=new AsyncFunction('setRestoring','rcRestorePurchases','toast','refreshSubscriptionStatus',settingsRestoreBody[1]);
-for(const [result,title] of [[{isPro:true,error:null},'Pro restored! 🎉'],[{isPro:false,error:null},'No purchases found'],[{error:'Returned error'},'Restore failed'],[null,'Restore failed']]) {
+for(const [result,title] of [[{isPro:true,serverSyncPending:true,error:null},'Purchase found — confirmation pending'],[{isPro:true,error:null},'Pro restored! 🎉'],[{isPro:false,error:null},'No purchases found'],[{error:'Returned error'},'Restore failed'],[null,'Restore failed']]) {
  const states=[],messages=[],refreshes=[];
  await runSettingsRestore(v=>states.push(v),async()=>{if(result===null)throw new Error('SDK rejection');return result;},m=>messages.push(m),()=>refreshes.push(true));
  assert.equal(refreshes.length,result && !result.error ? 1 : 0);
@@ -125,3 +127,4 @@ for(const [result,title] of [[{isPro:true,error:null},'Pro restored! 🎉'],[{is
 console.log('PASS: Settings restore releases controls for returned and thrown errors, and only confirms active Pro');
 
 await import('./test-purchase-identity.mjs');
+await import('./test-purchase-confirmation.mjs');

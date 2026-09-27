@@ -34,7 +34,7 @@ async function withCurrentAccount(operation) {
       configuredUserId = requestedUserId;
     }
     await assertSameAccount();
-    const result = await operation();
+    const result = await operation({ assertSameAccount, userId: requestedUserId });
     await assertSameAccount();
     return result;
   });
@@ -42,12 +42,43 @@ async function withCurrentAccount(operation) {
   return run;
 }
 
-// Asks the server to re-check this account with RevenueCat right away (the
-// RevenueCat webhook does too, a little later). Sends nothing but the session:
-// the server never takes purchase data from the app. Best-effort - a failure
-// never changes what the app shows, which comes from the SDK.
-async function syncServerEntitlement() {
-  try { await supabase.functions.invoke('revenuecat-sync', { body: {} }); } catch { /* webhook is the backstop */ }
+// The SDK can confirm Apple's purchase before the server sees it. Bound this
+// check so a network outage never traps the screen or suggests buying twice.
+async function syncServerEntitlement(userId) {
+  const controller = new AbortController();
+  let timer;
+  try {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (sessionError || session?.user?.id !== userId || !session.access_token) return false;
+    const deadline = new Promise(resolve => {
+      timer = setTimeout(() => { controller.abort(); resolve(false); }, 8000);
+    });
+    const confirmation = supabase.functions.invoke('revenuecat-sync', {
+      body: {}, signal: controller.signal,
+      // Bind the request to the account that completed the SDK operation.
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    }).then(({ data, error }) => !error && data?.isPro === true &&
+      ['pro_monthly', 'pro_yearly'].includes(data.plan)).catch(() => false);
+    return await Promise.race([confirmation, deadline]);
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function completePurchase(operation) {
+  return withCurrentAccount(async ({ assertSameAccount, userId }) => {
+    const { customerInfo } = await operation();
+    await assertSameAccount();
+    const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
+    const serverConfirmed = await syncServerEntitlement(userId);
+    return {
+      isPro, plan: isPro ? detectPlanFromPurchases(customerInfo) : 'free',
+      serverSyncPending: isPro && !serverConfirmed, error: null,
+    };
+  });
 }
 
 export async function getOfferings() {
@@ -81,11 +112,7 @@ function detectPlanFromPurchases(customerInfo) {
 
 export async function purchasePackage(pkg) {
   try {
-    const { customerInfo } = await withCurrentAccount(() => Purchases.purchasePackage({ aPackage: pkg }));
-    void syncServerEntitlement();
-    const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
-    const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
-    return { isPro, plan, error: null };
+    return await completePurchase(() => Purchases.purchasePackage({ aPackage: pkg }));
   } catch (err) {
     if (String(err?.code) === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR || err?.userCancelled === true) {
       return { error: null, cancelled: true };
@@ -96,11 +123,7 @@ export async function purchasePackage(pkg) {
 
 export async function restorePurchases() {
   try {
-    const { customerInfo } = await withCurrentAccount(() => Purchases.restorePurchases());
-    void syncServerEntitlement();
-    const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
-    const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
-    return { isPro, plan, error: null };
+    return await completePurchase(() => Purchases.restorePurchases());
   } catch {
     return { isPro: false, plan: 'free', error: 'Could not restore purchases. Please try again.' };
   }

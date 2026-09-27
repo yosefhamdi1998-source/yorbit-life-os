@@ -44,6 +44,7 @@ export default function Upgrade() {
   const [checkoutError, setCheckoutError] = useState('');
   const [iosOfferings, setIosOfferings] = useState(null);
   const [restoring, setRestoring] = useState(false);
+  const [purchasePending, setPurchasePending] = useState(false);
   const [offeringsAttempt, setOfferingsAttempt] = useState(0);
   const nativeIOS = isNativeIOS();
   const nativePlans = { monthly: getNativePlan(iosOfferings, 'monthly'), yearly: getNativePlan(iosOfferings, 'yearly') };
@@ -146,7 +147,11 @@ export default function Upgrade() {
     }
     if (result.error) {
       toast({ title: "Purchase failed", description: result.error, variant: 'destructive' });
+    } else if (!result.cancelled && result.isPro && result.serverSyncPending) {
+      setPurchasePending(true);
+      toast({ title: 'Purchase received — confirmation pending', description: 'Apple shows Pro, but Yorbit could not confirm server access yet. Do not buy again. Use Restore Purchases to retry.' });
     } else if (!result.cancelled && result.isPro) {
+      setPurchasePending(false);
       toast({ title: "Welcome to Yorbit Pro! 🎉", description: "Your subscription is now active." });
       navigate('/settings');
     } else if (!result.cancelled) {
@@ -166,7 +171,11 @@ export default function Upgrade() {
     }
     if (result.error) {
       toast({ title: "Restore failed", description: result.error, variant: 'destructive' });
+    } else if (result.isPro && result.serverSyncPending) {
+      setPurchasePending(true);
+      toast({ title: 'Purchase found — confirmation pending', description: 'Apple shows Pro, but server access is still pending. Check your connection and use Restore Purchases to retry. Do not buy again.' });
     } else if (result.isPro) {
+      setPurchasePending(false);
       toast({ title: "Pro restored! 🎉", description: "Your subscription is active again." });
       navigate('/settings');
     } else {
@@ -334,7 +343,7 @@ export default function Upgrade() {
           <>
             <Button
               onClick={handleIOSPurchase}
-              disabled={loading || restoring || !nativePlans[plan]}
+              disabled={loading || restoring || purchasePending || !nativePlans[plan]}
               className="w-full h-14 rounded-2xl text-base font-bold text-white shadow-xl shadow-primary/30 gap-2 active:scale-[0.98] transition-all"
               style={{ background: 'linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)' }}
             >
@@ -379,6 +388,14 @@ export default function Upgrade() {
               7 days free, then {PRICES[plan].amount}{PRICES[plan].period} · Cancel anytime · No hidden fees
             </p>
           </>
+        )}
+
+        {nativeIOS && purchasePending && (
+          <div role="status" className="mt-3 rounded-xl border border-border bg-secondary p-4 text-sm">
+            <p className="font-semibold">Purchase received. Server confirmation is pending.</p>
+            <p className="mt-1 text-muted-foreground">Do not buy again. Check your connection and use Restore Purchases below to retry confirmation.</p>
+            <Link to="/support" className="inline-flex min-h-[44px] items-center font-semibold text-primary underline">Contact support</Link>
+          </div>
         )}
 
         {/* Restore Purchases — Apple App Store requirement */}

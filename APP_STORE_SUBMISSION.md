@@ -38,8 +38,8 @@ enough data to be sure.
 Yorbit helps you plan your personal budget when income changes from month to month. See your recorded income, spending, bills, and goals in one place.
 
 CONNECT YOUR ACCOUNTS
-Link your bank securely through Plaid and your transactions import on their
-own. Prefer not to connect? Upload a CSV statement instead, or add
+Link a supported bank through Plaid and sync your transactions.
+Prefer not to connect? Upload a CSV statement instead, or add
 transactions by hand. Yorbit never sees or stores your bank login.
 
 SEE WHERE IT ACTUALLY GOES
@@ -82,8 +82,8 @@ are monthly or yearly and renew automatically unless cancelled at least 24
 hours before the period ends. Manage or cancel anytime in your Apple ID
 settings.
 
-Terms: <<TERMS_URL>>
-Privacy: <<PRIVACY_URL>>
+Terms: https://yorbit-life-os.vercel.app/terms-of-use
+Privacy: https://yorbit-life-os.vercel.app/privacy-policy
 ```
 
 ---
@@ -113,6 +113,8 @@ Complete the current questionnaire against the signed app, including AI-generate
 ---
 
 ## App Review notes
+
+These notes become true only after creating and verifying the dedicated reviewer account. Use the guarded `supabase/seed/app_review_demo.sql` once on that empty, explicitly marked account; it grants no Pro entitlement. Verify the login and every advertised flow before copying the notes into App Store Connect. The seed has not been run against production. AI service deployment/configuration and consent must be verified before describing Coach as available.
 
 ```
 DEMO ACCOUNT
@@ -184,7 +186,7 @@ Capture from the demo account so no real data appears.
 | 5 | Coach (Pro) | "Ask questions about your own spending" |
 | 6 | Bills | "Never miss what's due" |
 
-Shoot 5 at minimum; 6 uses the full allowance. The captured Coach screenshot
+Six draft images are prepared per device size; use only accurate, representative images within Apple's allowed count. The captured Coach screenshot
 shows the chat, not the consent step: the fixture profile has already granted
 AI consent. The consent gate itself is real (AiConsentGate on the client,
 has_ai_consent checked fail-closed by ai-coach before any data is sent).
@@ -247,3 +249,17 @@ Restore button or absent auto-renewal wording is a standard rejection.
 | `<<REVIEW_PASSWORD>>` | you set it; give it to Apple, not to anyone else |
 
 A branded support address is optional polish. A working, monitored support contact is necessary; buying a domain is not a prerequisite imposed by this checklist.
+
+## Privacy wording prepared for owner review (not published)
+
+The current policy needs these concrete corrections before submission:
+
+- CSV transactions are stored in the account's hosted database, not only locally on the device. The source CSV is not retained by the import flow.
+- Yorbit stores provider connection tokens on its backend to sync accounts; these differ from bank login passwords. The account-metadata paragraph must not imply no financial credentials of any kind are retained.
+- Name Stripe (web billing), Apple and RevenueCat (App Store subscriptions), Vercel (web hosting), and Sentry when diagnostics is configured, in addition to Supabase, Plaid and Anthropic. Do not claim a provider is active merely because its SDK is installed.
+- The limited Delete My Data action clears the financial tables listed in Settings; full account deletion is a separate action. Do not promise that the limited reset erases notes, maintenance records or AI conversation history.
+- Native exports use the device cache and share sheet; the user chooses the destination. Explain that exported copies remain with the chosen recipient/location after account deletion.
+
+Evidence: src/pages/PrivacyPolicy.jsx; src/api/base44Client.js; src/lib/saveFile.js; src/lib/errorReporting.js; ios/App/App/PrivacyInfo.xcprivacy; the reviewed billing and bank handlers. Sentry initialization is conditional on VITE_SENTRY_DSN and sets tracesSampleRate=0.1; final diagnostics/performance disclosure must match actual release configuration. The source manifest lists email, financial information, purchase history, user ID and crash data. Optional notes/forms/AI chat and SDK-specific collection require final archive and provider review. This is a factual draft, not completed App Store privacy answers or legal approval.
+
+Native source correction September 27: the Filesystem plugin requires the FileTimestamp reason entry; NSPrivacyAccessedAPICategoryFileTimestamp / C617.1 is now included for app-cache exports. The plist parses successfully. [Official plugin requirement](https://capacitorjs.com/docs/apis/filesystem#apple-privacy-manifest-requirements). Verify inclusion in the signed archive, not only this source file.

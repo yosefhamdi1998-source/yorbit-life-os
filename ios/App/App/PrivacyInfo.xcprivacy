@@ -108,6 +108,16 @@
 
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
+		<!-- @capacitor/filesystem writes exported files in this app's cache.
+		     Required by the plugin: https://capacitorjs.com/docs/apis/filesystem -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
 		<!--
 		  UserDefaults. Capacitor stores its own bridge configuration and
 		  plugin state there, and the RevenueCat SDK caches entitlement

@@ -138,6 +138,9 @@ export default function Settings() {
     }
     if (result.error) {
       toast({ title: 'Restore failed', description: result.error, variant: 'destructive' });
+    } else if (result.isPro && result.serverSyncPending) {
+      refreshSubscriptionStatus();
+      toast({ title: 'Purchase found — confirmation pending', description: 'Apple shows Pro, but server access is still pending. Check your connection and use Restore Purchases to retry. Do not buy again.' });
     } else if (result.isPro) {
       refreshSubscriptionStatus();
       toast({ title: 'Pro restored! 🎉', description: 'Your subscription is active again.' });

@@ -1,5 +1,5 @@
 # Yorbit launch status
-Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat backend release. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat backend release. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## Readiness decisions
 | Release | Decision | Why |
@@ -11,7 +11,7 @@ Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat
 ## What is deployed, and where
 | Where | State |
 |---|---|
-| Web (Vercel, yorbit-life-os.vercel.app) | Claude's fbe2c5b / 7847b30 frontend release has a successful Vercel deployment: https://vercel.com/yorbit/yorbit-life-os/AAr7jcPmtyoACm7v3iuJKGwcntg9 . It preserves restored Disconnect and native exports and sends plan names plus the transitional live price ID for backend compatibility. Backend billing changes are not implied by that web deployment. |
+| Web (Vercel, yorbit-life-os.vercel.app) | Last verified release before this work: 2342e12, Vercel success https://vercel.com/yorbit/yorbit-life-os/6n5G1vRytGSL9sjmPJ6wuUi2fq8G . It preserves restored Disconnect and native exports and sends plan names plus the transitional live price ID for backend compatibility. Backend billing changes are not implied by that web deployment. |
 | Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v13; all ACTIVE with verify_jwt=true. create-checkout v4 and revenuecat-sync v1 are also ACTIVE with verify_jwt=true. stripe-webhook v3 and revenuecat-webhook v1 are ACTIVE with gateway JWT off and their provider authentication checks in the handlers. All three new schema migrations applied. |
 | Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
@@ -65,3 +65,7 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 - Successfully deployed create-checkout v4, stripe-webhook v3, revenuecat-sync v1 and revenuecat-webhook v1. JWT remains required on user endpoints; Stripe signatures / constant-time RevenueCat header authentication protect the webhooks once configured.
 - Actual hosted checks: disposable-user password sign-in succeeded, anonymous checkout 401, signed-in checkout with deliberately invalid input 501, unsigned Stripe webhook 501, RevenueCat webhook 501. This establishes current disabled/incomplete configuration, not a working payment flow. Prior v3 checkout's sole 501 branch confirmed STRIPE_SECRET_KEY was absent without reading its value. No secret was retrieved or configured.
 - Removed the disposable user; auth users, profiles, subscriptions and rate-limit counters for that fixture are all zero. No provider call, checkout session, real payment, real bank mutation or AI processing occurred.
+
+
+## Current five-item completion batch
+Purchase/restore confirmation now waits for an account-bound server result and reports a recoverable pending state on errors/timeouts. Reviewer seeding is corrected and guarded against existing-account overwrite, with local real-schema verification. Native export privacy reason C617.1 is present and parses. Focused tests, strict lint and production build pass. Hands-on synthetic browser checks cover purchase pending, restore pending on Upgrade/Settings, and confirmed navigation. Public privacy wording remains a prepared owner-review draft. No Apple/device/provider lifecycle result is invented. APP_STORE_READINESS.md is the fixed acceptance checklist; completion/deployment evidence for this batch is in C:/Users/Yosef/Yorbit-Main-Handoff/2026-09-27/five-item-release.md. No backend redeploy or credential change was needed for these client/source fixes.
