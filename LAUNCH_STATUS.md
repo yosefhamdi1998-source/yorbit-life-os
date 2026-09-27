@@ -1,26 +1,26 @@
 # Yorbit launch status
-Updated September 27, 2026 after the Codex bank-backend deployment and hosted verification. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat backend release. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## Readiness decisions
 | Release | Decision | Why |
 |---|---|---|
-| Paid web launch | **Not ready** | Billing has never run end to end (Stripe test-key and webhook-redeploy approvals unresolved). Bank backend and all three schema migrations are deployed; webhook, AI allowance and RevenueCat endpoints remain pending. Cron credentials still need repair. Scheduled bank sync has not run since 2026-09-14. |
-| TestFlight | **Not ready** | No signed build. Needs Apple team/signing, a Mac with Xcode 26, the backend deployed, RevenueCat credentials, and native redirect registration. |
-| App Store submission | **Not ready** | Everything TestFlight needs, plus signed-device verification, a production reviewer account, the privacy policy update, final privacy answers, and a device-family decision. A working website or passing build does not establish any of this. |
+| Paid web launch | **Not ready** | Billing has never run end to end. Approved sandbox Stripe and RevenueCat endpoints are deployed, but provider configuration is incomplete; real Stripe billing is deliberately disabled in code. AI allowance deployment remains pending. Cron credentials still need repair. Scheduled bank sync has not run since 2026-09-14. |
+| TestFlight | **Not ready** | No signed build. Needs Apple team/signing, a Mac with Xcode 26, remaining backend configuration, RevenueCat credentials, and native redirect registration. |
+| App Store submission | **Not ready** | Everything TestFlight needs, plus signed-device verification, a production reviewer account, the privacy policy update, final privacy answers, and the screenshots for the current universal iPhone/iPad target. A working website or passing build does not establish any of this. |
 
 ## What is deployed, and where
 | Where | State |
 |---|---|
-| Web (Vercel, yorbit-life-os.vercel.app) | This release restores Disconnect after hosted auth, ownership, synthetic disconnect and retry checks. Existing native export and RevenueCat client work is preserved. Production deployment evidence is recorded in the September 27 bank deployment handoff. |
-| Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v13; all ACTIVE with verify_jwt=true. All three new schema migrations applied. |
-| Committed, NOT deployed | revenuecat-sync, revenuecat-webhook, stripe-webhook and ai-coach. Existing Stripe/AI/webhook approvals and provider configuration remain unresolved. No real provider transaction or bulk revocation was performed. |
+| Web (Vercel, yorbit-life-os.vercel.app) | Claude's fbe2c5b / 7847b30 frontend release has a successful Vercel deployment: https://vercel.com/yorbit/yorbit-life-os/AAr7jcPmtyoACm7v3iuJKGwcntg9 . It preserves restored Disconnect and native exports and sends plan names plus the transitional live price ID for backend compatibility. Backend billing changes are not implied by that web deployment. |
+| Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v13; all ACTIVE with verify_jwt=true. create-checkout v4 and revenuecat-sync v1 are also ACTIVE with verify_jwt=true. stripe-webhook v3 and revenuecat-webhook v1 are ACTIVE with gateway JWT off and their provider authentication checks in the handlers. All three new schema migrations applied. |
+| Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
 
 ## What was actually tested
-All against a real, local, throwaway PostgreSQL 17.10 with the schema built from schema.sql plus the real migrations, the real Edge Function handlers, and recording fakes for Plaid, Stripe and RevenueCat. No real accounts, payments, bank connections or production data.
+The bank, Stripe and RevenueCat server suites use real local throwaway PostgreSQL 17.10, the real schema/migrations and handlers, with fake providers. The export and checkout suites use local fakes. These local tests do not establish provider end-to-end success. Hosted synthetic checks are listed separately below.
 - **Bank disconnect** (26 checks; independently rerun by Codex): simultaneous sibling claims, observed lock contention, duplicates, cleanup/credential-read/provider failures leaving a visible retryable state, sync and reconnect races, client guard. Fails against the reported retry bug and without the lock.
-- **Stripe webhook** (10 checks; 9 independently rerun by Codex): stale events after cancellation, replays for an old subscription, payment failure and recovery, unexpected statuses, concurrent duplicates, coexistence with App Store rows.
-- **RevenueCat server verification** (13 checks): header auth, trial, cancel at period end, grace period then expiry, replays after expiry, refund, transfer, aliases, unknown users, outages, 8/8 concurrent deliveries converging on one row, Stripe coexistence, and a sync that only touches the caller. Fails without the grace period, without concurrent-insert recovery, or ignoring a transfer's source.
+- **Stripe webhook** (11 checks; all independently rerun by Codex after fbe2c5b): stale events after cancellation, replays for an old subscription, payment failure and recovery, unexpected statuses, concurrent duplicates, coexistence with App Store rows.
+- **RevenueCat server verification** (13 checks; all independently rerun by Codex): header auth, trial, cancel at period end, grace period then expiry, replays after expiry, refund, transfer, aliases, unknown users, outages, 8/8 concurrent deliveries converging on one row, Stripe coexistence, and a sync that only touches the caller. Fails without the grace period, without concurrent-insert recovery, or ignoring a transfer's source.
 - **Cron repair script**: the whole fix runs against real Postgres with stubbed cron/net - re-points bank sync and reminders to Vault with schedules kept, leaves the AI job untouched, and each rewritten job sends exactly the trimmed key.
 - **Exports**: the save helper's web path, native path (exact bytes, 70 KB), dismissal and failures; web CSV/PDF and budget PDF exports confirmed in the fixture build.
 - Full suite 64 scripts, strict lint, production build pass. Codex subsequently ran the existing enum validator against live metadata read through its connector: all 27 checks pass after the three migrations. The CLI itself remains unauthenticated.
@@ -28,9 +28,9 @@ All against a real, local, throwaway PostgreSQL 17.10 with the schema built from
 ## Scheduled jobs (diagnosed live, read-only, by Codex)
 Bank sync's stored bearer is malformed or truncated; the reminders and weekly-analysis jobs hold non-JWT secret keys; retained responses are 401 UNAUTHORIZED_INVALID_JWT_FORMAT. Not a rotated key. scripts/cron-auth-fix.sql (Vault-sourced legacy service_role key) is ready for the two non-AI jobs; the AI job waits on its approval.
 
-## Unfinished engineering (all needs access, credentials, approval or a device - none is done)
+## Remaining implementation and verification
 - Bank deployment and hosted synthetic disconnect verification are complete; no real Plaid revocation was tested. Remaining hosted checks: authenticated cron dry run after credential repair, RevenueCat sandbox purchase verification, and real-provider sandbox lifecycle checks.
-- Billing end to end in Stripe test mode (checkout, replays, cancellation, payment failure, deletion) - blocked on the test-key approval.
+- Billing end to end in Stripe test mode (checkout, replays, cancellation, payment failure, deletion) - blocked on secure sandbox key/price/webhook/test-email configuration. Sandbox deployment approval is resolved; real billing activation is not authorized.
 - Signed-device verification: auth return, bank return, purchase/restore and server sync, export share sheet, keyboard/safe areas, offline recovery, deletion.
 - Legacy disconnected accounts still holding live Plaid credentials: count read-only, then an authorized cleanup.
 - Hosted end to end: real signup, cross-account sessions, bank sync, account deletion.
@@ -49,4 +49,19 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 - Two disposable email/password users and one synthetic teller row (no provider credentials) tested the actual hosted HTTP endpoint: signed-in wrong owner 404, no JWT 401, owner disconnect 200/success, repeat 200/success. Ordinary-user dispatcher dry_run returned 403. No Plaid/Teller/Stripe/AI call occurred.
 - Confirmed the fixture became disconnected, then removed both users and their fixture rows; remaining fixture users, profiles and bank rows are all zero. This was not signup/email-delivery or real-bank E2E verification.
 - Local fixture browser: restored Disconnect button removed the synthetic row and showed the empty state. Focused bank UI test, lint and production build passed.
-- Connector-assigned migration versions: atomic_bank_disconnect_claim 20260927212600 (local file 20260927120000); unique_stripe_subscription_rows 20260927213555 (local 20260927130000); app_store_subscriptions 20260927213604 (local 20260927140000). These exact saved migrations are already applied: reconcile this mapping before any future blanket CLI db push; do not reapply blindly.
+- Connector-assigned migration versions: atomic_bank_disconnect_claim 20260927212600; unique_stripe_subscription_rows 20260927213555; app_store_subscriptions 20260927213604. Claude renamed the source files to these exact deployed versions in fbe2c5b. The migrations are already applied; do not reapply them.
+
+
+## September 27 takeover verification and billing configuration correction
+- Independently confirmed GitHub commit 7847b30 has Vercel success; Supabase inventory still has create-checkout v3, stripe-webhook v2 and ai-coach v13. A frontend deploy does not deploy Edge Functions.
+- Deployed revenuecat-sync v1 from the reviewed saved code, JWT verification enabled. Hosted anonymous and malformed-token POST requests return 401; native-origin OPTIONS returns 200 with capacitor://localhost allowed. Authenticated no-configuration behavior is covered locally, not claimed as a live 501 check. No purchase or RevenueCat API request was made.
+- Found and reproduced a remaining billing configuration defect: identical monthly/yearly price IDs were accepted, making price-to-plan mapping ambiguous and potentially selecting the wrong billing interval. Shared configuration now rejects duplicate or malformed overrides without falling back to live defaults. Regression failed before the fix, passed afterward; checkout handler assertions verify Stripe is never called on bad settings. This correction is deployed in create-checkout v4 and stripe-webhook v3 after sandbox-only approval and the live-billing code lock below.
+- Stripe checkout, 11 Stripe webhook SQL cases and 13 RevenueCat SQL cases independently passed. The 64-script full-suite/build claim is Claude's recorded evidence; Codex did not repeat that broad run. No signed-device or real-provider E2E claim is made.
+
+
+## Final backend release and hosted evidence
+- Owner explicitly approved the reviewed Stripe checkout/webhook and RevenueCat webhook deployments and disposable sandbox lifecycle tests once credentials are configured. This did not approve live charges, AI processing or real-bank changes.
+- Automatic approval review rejected the original checkout release because it could activate live subscriptions after a later secret change. A safe narrower release (34b575a) sets LIVE_BILLING_ENABLED=false in shared code. Both live key types stay at 501 even with otherwise valid settings; no Stripe session or webhook entitlement write occurs. Changing secrets alone cannot enable real billing. Checkout and all 11 webhook SQL checks passed with this boundary, as did strict lint.
+- Successfully deployed create-checkout v4, stripe-webhook v3, revenuecat-sync v1 and revenuecat-webhook v1. JWT remains required on user endpoints; Stripe signatures / constant-time RevenueCat header authentication protect the webhooks once configured.
+- Actual hosted checks: disposable-user password sign-in succeeded, anonymous checkout 401, signed-in checkout with deliberately invalid input 501, unsigned Stripe webhook 501, RevenueCat webhook 501. This establishes current disabled/incomplete configuration, not a working payment flow. Prior v3 checkout's sole 501 branch confirmed STRIPE_SECRET_KEY was absent without reading its value. No secret was retrieved or configured.
+- Removed the disposable user; auth users, profiles, subscriptions and rate-limit counters for that fixture are all zero. No provider call, checkout session, real payment, real bank mutation or AI processing occurred.

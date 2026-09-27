@@ -1680,3 +1680,29 @@ Enabled BANK_DISCONNECT_AVAILABLE only after hosted verification. Updated the ex
 The unchanged enum validator ran against fresh live connector metadata through an in-memory CLI adapter. Its first substantive run identified two missing subscription constraints; after applying the saved schema migrations all 27 checks passed. No app code was changed to bypass the validator. Full suite was not rerun for the release-switch-only frontend edit.
 
 Outstanding: cron credential repair and authenticated dry-run verification; Stripe/AI/RevenueCat approvals/configuration and hosted lifecycle tests; signed native build/device verification. All automations remain paused. Optional legacy cleanup tooling and link-file generator are deferred to avoid expanding this release.
+
+
+## September 27, 2026 — Codex takeover after Claude's billing release
+
+Owner requested continuation because Claude exhausted usage. Starting canonical master 7847b30 (code fbe2c5b), no tracked changes; existing untracked .codex-production-audit.json and output/ preserved. No agents or automations started.
+
+Claude's mode-aware Stripe plan/price mapping, test-email allowlist, event-mode check and frontend backward compatibility are useful saved changes. GitHub reports Vercel success for 7847b30 at https://vercel.com/yorbit/yorbit-life-os/AAr7jcPmtyoACm7v3iuJKGwcntg9 . Its statement that nothing deployed applies to the Supabase billing backend, not the frontend. Supabase inventory confirmed create-checkout v3, stripe-webhook v2 and ai-coach v13 unchanged. Migration filenames now match the three already-applied connector versions; do not repeat those migrations.
+
+Independently ran focused checkout tests, all 11 Stripe webhook real-Postgres/fake-Stripe checks and all 13 RevenueCat real-Postgres/fake-provider checks: pass. Claude's full 64-script suite and build remain attributed to Claude rather than claimed as repeated. No real payment, bank connection, AI prompt or RevenueCat purchase was made.
+
+Reviewed and deployed revenuecat-sync v1 (JWT enabled; bundle 79c2b6e90de4554d8b89c52877fb96710d3458303bbabbc4d3c3cda2af0e19e2). Hosted missing/invalid JWT POSTs returned 401 and native-origin OPTIONS returned 200 with the expected origin. Local tests cover caller-only synchronization and unconfigured behavior; live authenticated no-secret behavior and real sandbox purchase remain unverified. The RevenueCat webhook, Stripe releases and AI update remain separately gated.
+
+One additional billing defect reproduced and corrected: duplicate monthly/yearly configured prices were accepted, making plan mapping ambiguous and potentially charging the wrong interval. Shared billingPrices now refuses incomplete, malformed or duplicate overrides and never silently falls back when an override is bad. Added failing-first regression and handler checks that no Stripe call occurs for bad settings. Checkout and the 11 webhook cases pass after the fix. The fix awaits the same restricted Stripe deployment approval; no backend restriction bypassed.
+
+Updated LAUNCH_STATUS.md / OWNER_ACTIONS.md to distinguish web deployment, backend deployment and provider/device evidence, correct test counts and remove stale migration filename mismatch. Kept all other saved work. Remaining priorities: secure cron credential repair/dry run, approved sandbox billing/provider lifecycle, and signed Apple/device/reviewer preparation. No paid-launch or App Store readiness claim.
+
+
+### Same-turn follow-through: sandbox approval and four backend deployments
+
+Owner explicitly approved the Stripe checkout/webhook and RevenueCat webhook releases and disposable sandbox tests once credentials exist, excluding live payments/AI/real-bank changes. Automatic review initially denied live-capable checkout because a future live key could activate real subscriptions. An authenticated, deliberately invalid request to old v3 returned its missing-key 501 without retrieving secrets or creating a session; review still required a stricter future boundary. Implemented the safer sandbox-only code release 34b575a with LIVE_BILLING_ENABLED=false. Both live key types, even with valid prices, stay disabled; tests verify no Stripe call or subscription write. Checkout, 11 webhook SQL checks and strict lint passed. RevenueCat's unchanged 13 SQL cases had passed independently earlier in this turn.
+
+Deployments succeeded: create-checkout v4 (JWT true; d6c2cc4096cc316ab6cff6433d041547a392cedbf981af94df19ba792bf3311c), stripe-webhook v3 (JWT false, signature authentication; 47e8d2caf37684f74175fb489e6aa5142bdcd9ced38858be7e49354cd2862f22), revenuecat-sync v1 (JWT true; hash above), revenuecat-webhook v1 (JWT false, constant-time configured header authentication; 0bb8e80d99ab18f5294aec129e8bf37ebed82e2b99abf2b1121b5ed11baa0c14). The original rejected live-capable deployment was not bypassed; only the narrower sandbox release was deployed.
+
+Hosted final checks: anonymous checkout 401; one disposable signed-in user sent invalid checkout inputs and received 501; unsigned Stripe and RevenueCat webhook POSTs returned 501. Native RevenueCat preflight 200 and absent/invalid JWT 401 were verified earlier. Provider configuration is incomplete, so no real checkout, webhook signature delivery, Apple purchase or restore was tested. All created auth users/profiles/subscriptions/rate counters were cleaned (zero remain for the fixture). No provider request, real financial mutation, payment, AI request or new cost was triggered. No key was retrieved or configured.
+
+Updated owner steps: the approved sandbox deployments are complete and should not be requested again. Configure sandbox provider settings securely, then verify real sandbox lifecycle. Live Stripe billing requires its own later approved code release; changing secrets alone cannot activate it. AI approval, cron credential repair and Apple signing/device/reviewer evidence remain distinct. Automations remain paused.
