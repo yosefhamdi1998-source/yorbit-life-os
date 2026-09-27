@@ -93,7 +93,7 @@ export const BANK_SYNC_STATUSES = ['success', 'partial', 'failed'];
 // a value in quotes is parsed as a member - which is exactly how the first
 // version of this change reported drift against itself.
 export const CONNECTED_ACCOUNT_SYNC_STATUSES = [
-  'not_connected', 'connected', 'syncing', 'error', 'reconnect_required', 'disconnected',
+  'not_connected', 'connected', 'syncing', 'error', 'reconnect_required', 'disconnecting', 'disconnected',
 ];
 export const AI_INSIGHT_TYPES = ['briefing', 'coach'];
 export const ADVISOR_MESSAGE_ROLES = ['user', 'assistant'];

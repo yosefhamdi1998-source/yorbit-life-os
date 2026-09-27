@@ -23,6 +23,9 @@ const STATUS_CONFIG = {
   // red because nothing is broken and no data is lost; it is an expected
   // part of the lifecycle of every bank connection.
   reconnect_required: { icon: AlertCircle, color: 'text-amber-500', label: 'Sign in again' },
+  // A disconnect was requested but not confirmed. Kept visible so it can be
+  // retried - never shown as done, never offered Sync or Reconnect.
+  disconnecting: { icon: AlertCircle, color: 'text-amber-500', label: 'Disconnect not finished' },
   disconnected:  { icon: AlertCircle, color: 'text-muted-foreground', label: 'Disconnected' },
   not_connected: { icon: Clock,       color: 'text-muted-foreground', label: 'Not connected' },
 };
@@ -230,6 +233,9 @@ export default function BankSync() {
       setHoldings(prev => prev.filter(h => h.connected_account_id !== id));
     } catch (err) {
       setError(err?.message || "We couldn't confirm the disconnect. Refresh accounts before trying again.");
+      // The server may have moved the account to 'disconnecting'; show that
+      // real state so the unfinished disconnect is visible and retryable.
+      await loadAccounts();
     } finally {
       setDisconnectingId(null);
     }
@@ -377,7 +383,19 @@ export default function BankSync() {
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          {acct.sync_status === 'reconnect_required' ? (
+                          {acct.sync_status === 'disconnecting' ? (
+                            <Button
+                              variant="outline" size="sm"
+                              className="h-8 text-xs gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400"
+                              onClick={() => disconnect(acct.id)}
+                              aria-label={BANK_DISCONNECT_AVAILABLE ? 'Retry disconnect' : DISCONNECT_UNAVAILABLE_MESSAGE}
+                              title={BANK_DISCONNECT_AVAILABLE ? undefined : DISCONNECT_UNAVAILABLE_MESSAGE}
+                              disabled={!BANK_DISCONNECT_AVAILABLE || !!disconnectingId || !!syncingId || connecting}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Retry disconnect
+                            </Button>
+                          ) : acct.sync_status === 'reconnect_required' ? (
                             // Sync can't fix this — Plaid needs a fresh sign-in,
                             // not another sync attempt against the same expired
                             // credentials.
@@ -401,7 +419,7 @@ export default function BankSync() {
                               {isSyncing ? 'Syncing' : 'Sync'}
                             </Button>
                           )}
-                          <Button
+                          {acct.sync_status !== 'disconnecting' && <Button
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             onClick={() => disconnect(acct.id)}
@@ -410,7 +428,7 @@ export default function BankSync() {
                             disabled={!BANK_DISCONNECT_AVAILABLE || !!disconnectingId || !!syncingId || connecting}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          </Button>}
                         </div>
                       </div>
                     );
@@ -426,7 +444,7 @@ export default function BankSync() {
               time — this re-asks for everything. */}
           <Button
             onClick={async () => {
-              for (const a of accounts.filter(x => x.account_type !== 'investment' && x.sync_status !== 'reconnect_required')) {
+              for (const a of accounts.filter(x => x.account_type !== 'investment' && x.sync_status !== 'reconnect_required' && x.sync_status !== 'disconnecting')) {
                 await syncAccount(a.id, a.account_type, true);
               }
             }}

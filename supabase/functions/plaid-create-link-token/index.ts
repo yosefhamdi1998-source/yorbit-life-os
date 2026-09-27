@@ -40,11 +40,16 @@ Deno.serve(async (req) => {
     if (body?.connected_account_id) {
       const admin = serviceClient();
       const { data: account } = await admin
-        .from('connected_accounts').select('user_id').eq('id', body.connected_account_id).single();
+        .from('connected_accounts').select('user_id, sync_status').eq('id', body.connected_account_id).single();
       // Same response for "does not exist" and "not yours" as the sync
       // functions use, so neither case confirms the other.
       if (!account || account.user_id !== user.id) {
         return jsonResponse({ error: "We couldn't find this account. Please reconnect your bank." }, 404, {}, req);
+      }
+      // Re-authenticating an account that is being (or has been) disconnected
+      // would revive a connection the user asked to remove.
+      if (account.sync_status === 'disconnecting' || account.sync_status === 'disconnected') {
+        return jsonResponse({ error: 'This account is being disconnected. Finish disconnecting it first.' }, 409, {}, req);
       }
       const { token } = await getPlaidAccessToken(admin, body.connected_account_id);
       if (!token) {

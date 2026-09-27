@@ -41,6 +41,8 @@
         "connected",
         "syncing",
         "error",
+        "reconnect_required",
+        "disconnecting",
         "disconnected"
       ],
       "default": "not_connected"

@@ -107,6 +107,12 @@ export const SCENARIOS = {
  'holdings-retry': holdingsFixture,
   default: base,
   'bank-recovery': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
+  // Two accounts on one bank login: one whose disconnect did not finish
+  // (stays visible and retryable), one still connected.
+  'bank-disconnecting': { ...base, connected_accounts: [
+    {id:'fixture-bank-a', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'disconnecting'},
+    {id:'fixture-bank-b', institution_name:'Fixture Bank', account_name:'Savings', account_type:'savings', sync_status:'connected'},
+  ] },
   'bank-load-retry': { ...base, connected_accounts: [{id:'fixture-bank', institution_name:'Fixture Bank', account_name:'Checking', account_type:'checking', sync_status:'connected'}] },
   'category-accuracy': {
     ...base,

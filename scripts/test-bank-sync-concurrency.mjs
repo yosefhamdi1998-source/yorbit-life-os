@@ -214,6 +214,21 @@ console.log('\nA disconnect is authoritative even against a stale caller snapsho
   ok('a disconnect that happened after the caller read the row is still honoured');
 }
 
+{
+  // Same, for a disconnect that started but has not finished: the account
+  // is 'disconnecting' and must stay that way until the disconnect is
+  // retried or finalized - a sync claiming it would hide the unfinished
+  // disconnect and then complete it back to 'connected'.
+  const row = { id: 'fixture-account', user_id: 'fixture-owner', sync_status: 'disconnecting', updated_date: ABANDONED };
+  const admin = makeAdmin(row);
+  await assert.rejects(
+    beginBankSync(admin, { id: row.id, user_id: row.user_id, sync_status: 'connected' }),
+    /disconnected/i,
+  );
+  assert.equal(row.sync_status, 'disconnecting', 'must not claim an account whose disconnect is unfinished');
+  ok('an unfinished disconnect cannot be claimed by a sync, even with a stale caller snapshot');
+}
+
 console.log('\nRetry after a genuine failure, and existing state is preserved throughout\n');
 
 {

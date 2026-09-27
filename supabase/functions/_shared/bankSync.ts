@@ -56,7 +56,7 @@ const STALE_SYNC_MINUTES = 15;
 // even when that snapshot is stale (read moments ago, since changed by a
 // disconnect, another sync starting, or a previous sync finishing).
 export async function beginBankSync(admin: Admin, account: { id: string; user_id: string; sync_status: string }): Promise<BankSyncContext> {
-  if (account.sync_status === 'disconnected') throw new Error('Bank is disconnected');
+  if (account.sync_status === 'disconnected' || account.sync_status === 'disconnecting') throw new Error('Bank is disconnected');
 
   const staleCutoff = new Date(Date.now() - STALE_SYNC_MINUTES * 60 * 1000).toISOString();
 
@@ -70,6 +70,8 @@ export async function beginBankSync(admin: Admin, account: { id: string; user_id
     .eq('id', account.id)
     .eq('user_id', account.user_id)
     .neq('sync_status', 'disconnected')
+    // A disconnect in progress owns this row until it finishes or is retried.
+    .neq('sync_status', 'disconnecting')
     .or(`sync_status.neq.syncing,updated_date.lt.${staleCutoff}`)
     .select('id')
     .maybeSingle();
@@ -82,7 +84,7 @@ export async function beginBankSync(admin: Admin, account: { id: string; user_id
     const { data: current } = await admin.from('connected_accounts')
       .select('sync_status').eq('id', account.id).maybeSingle();
     if (current?.sync_status === 'syncing') throw new SyncInProgressError();
-    if (current?.sync_status === 'disconnected') throw new Error('Bank is disconnected');
+    if (current?.sync_status === 'disconnected' || current?.sync_status === 'disconnecting') throw new Error('Bank is disconnected');
     throw new Error('Could not mark sync in progress');
   }
   return { admin, accountId: account.id, userId: account.user_id, startedAt: new Date().toISOString(), imported: 0, skipped: 0, failed: 0 };

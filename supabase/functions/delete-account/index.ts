@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Confirm bank revocation before discarding the credentials needed to retry.
     try {
       const { data: accounts, error: accountError } = await admin.from('connected_accounts')
-        .select('id').eq('user_id', userId).eq('provider', 'plaid');
+        .select('id, sync_status').eq('user_id', userId).eq('provider', 'plaid');
       if (accountError || !Array.isArray(accounts)) throw new Error('Bank connection lookup failed');
       if (accounts.length) {
         const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
@@ -67,7 +67,14 @@ Deno.serve(async (req) => {
         const removedTokens = new Set<string>();
         for (const account of accounts) {
           const { token } = await getPlaidAccessToken(admin, account.id);
-          if (!token) throw new Error('Bank credential unavailable');
+          if (!token) {
+            // plaid-disconnect-account deletes the credential in the same
+            // transaction that marks the account disconnected, after its
+            // revocation settled - nothing left to revoke. Any other account
+            // without a credential is unexpected: stop rather than guess.
+            if (account.sync_status === 'disconnected') continue;
+            throw new Error('Bank credential unavailable');
+          }
           if (removedTokens.has(token)) continue;
           const res = await fetch('https://production.plaid.com/item/remove', {
             method: 'POST',

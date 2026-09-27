@@ -6,7 +6,7 @@ const source=fs.readFileSync('supabase/functions/delete-account/index.ts','utf8'
 const js=(await transform(source.replace(/^import .*;\r?\n/gm,''),{loader:'ts'})).code;
 for(const fails of [false,true]) {
  let handler; const requests=[],lookups=[]; const failure=new Error('synthetic deletion failure');
- const admin={from(table){return {select(columns){if(table==='subscriptions') return {eq:async()=>({data:[],error:null})};assert.equal(table,'connected_accounts');assert.equal(columns,'id');const q={eq(field,value){if(field==='user_id'){assert.equal(value,'fixture-user');return q;}assert.equal(field,'provider');return Promise.resolve({data:[{id:'vault-only'}]});}};return q;},delete(){return {eq:async()=>({error:null,count:0})};}}},auth:{admin:{deleteUser:async id=>{assert.equal(id,'fixture-user');return {error:fails?failure:null};}}}};
+ const admin={from(table){return {select(columns){if(table==='subscriptions') return {eq:async()=>({data:[],error:null})};assert.equal(table,'connected_accounts');assert.equal(columns,'id, sync_status');const q={eq(field,value){if(field==='user_id'){assert.equal(value,'fixture-user');return q;}assert.equal(field,'provider');return Promise.resolve({data:[{id:'vault-only'}]});}};return q;},delete(){return {eq:async()=>({error:null,count:0})};}}},auth:{admin:{deleteUser:async id=>{assert.equal(id,'fixture-user');return {error:fails?failure:null};}}}};
  vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:key=>key==='STRIPE_SECRET_KEY'?null:'fixture'}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async(_b,_i,_r,msg,req)=>{assert.equal(msg,undefined);assert.ok(req);return null;},identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async(_admin,id)=>{lookups.push(id);return {token:'synthetic-vault-token',source:'vault'};},fetch:async(_url,opts)=>{requests.push(JSON.parse(opts.body));return {ok:true,status:200,json:async()=>({removed:true})};},jsonResponse:(body,status)=>({body,status}),errorResponse:(msg,status,opts)=>{assert.equal(opts.internal,failure);return {body:{error:msg},status};},console:{log(){},error(){},warn(){}}});
  const response=await handler({});assert.equal(response.status,fails?500:200);assert.deepEqual(lookups,['vault-only']);assert.equal(requests[0].access_token,'synthetic-vault-token');
 }
@@ -47,3 +47,20 @@ for (const scenario of ['lookup-error','missing-config','missing-token','network
   if(scenario==='duplicate-token')assert.equal(removals,1);
 }
 console.log('PASS: bank removal failures preserve records; current success, already-removed retries and shared-token deduplication work');
+
+// plaid-disconnect-account deletes an account's credential in the same
+// transaction that marks it disconnected. Such an account must not block
+// account deletion forever with 'Bank credential unavailable'; a
+// non-disconnected account with no credential still must (see above).
+for (const status of ['disconnected','connected']) {
+  let handler; let authDeletes=0; let removals=0;
+  const admin={from(table){return {
+    select(){const q={eq(){if(table==='subscriptions')return Promise.resolve({data:[],error:null});return q;},then(resolve){return Promise.resolve({data:[{id:'gone',sync_status:status},{id:'live',sync_status:'connected'}],error:null}).then(resolve);}};return q;},
+    delete(){return {eq:async()=>({error:null,count:0})};}
+  };},auth:{admin:{deleteUser:async()=>{authDeletes++;return {error:null};}}}};
+  vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:()=>'fixture'}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async()=>null,identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async(_a,id)=>({token:id==='gone'?null:'synthetic-live-token'}),fetch:async()=>{removals++;return {ok:true,status:200,json:async()=>({request_id:'synthetic'})};},jsonResponse:(body,status)=>({body,status}),errorResponse:(message,status)=>({body:{error:message},status}),console:{log(){},error(){},warn(){}}});
+  const result=await handler({});
+  if(status==='disconnected'){assert.equal(result.status,200,'an already-disconnected account without a credential must not block deletion');assert.equal(authDeletes,1);assert.equal(removals,1,'the remaining live account is still revoked');}
+  else{assert.equal(result.status,503,'an active account missing its credential still stops deletion');assert.equal(authDeletes,0);}
+}
+console.log('PASS: fully disconnected accounts (credential already removed) do not block deletion; active accounts missing a credential still do');

@@ -53,19 +53,25 @@ assert.match(source,/const BANK_DISCONNECT_AVAILABLE = false;/,'containment must
 // source, once the corrected backend is deployed and verified) is provably
 // still correct today, not just assumed to still work.
 for(const outcome of ['success','failure','unconfirmed']) {
- let removed=0,error=null,busy='untouched';
+ let removed=0,error=null,busy='untouched',reloads=0;
  await disconnect({id:'fixture',setDisconnectingId:v=>busy=v,setError:v=>error=v,setAccounts:()=>removed++,setHoldings:()=>removed++,
- BANK_DISCONNECT_AVAILABLE:true,
+ loadAccounts:async()=>{reloads++;},BANK_DISCONNECT_AVAILABLE:true,
  base44:{functions:{invoke:async()=>{if(outcome==='failure')throw new Error('Synthetic');return outcome==='unconfirmed'?{}:{success:true};}}}});
  assert.equal(removed,outcome==='success'?2:0);assert.equal(Boolean(error),outcome!=='success');assert.equal(busy,null);
+ // A failed or unconfirmed disconnect may have left the account 'disconnecting'
+ // on the server; reloading is what makes that unfinished state visible.
+ assert.equal(reloads,outcome==='success'?0:1,'failure must reload so an unfinished disconnect is shown, not hidden');
 }
 // The server's own message (e.g. a blocked-by-sibling or provider failure)
 // must reach the screen unmodified, not a fixed string - matching connectBank/syncAccount.
 {
  let error=null;
  await disconnect({id:'fixture',setDisconnectingId:()=>{},setError:v=>error=v,setAccounts:()=>{},setHoldings:()=>{},
- BANK_DISCONNECT_AVAILABLE:true,
+ loadAccounts:async()=>{},BANK_DISCONNECT_AVAILABLE:true,
  base44:{functions:{invoke:async()=>{throw new Error("We couldn't confirm the disconnect with your bank. Please try again.");}}}});
  assert.equal(error,"We couldn't confirm the disconnect with your bank. Please try again.");
 }
+assert.match(source,/disconnecting: \{ icon: AlertCircle/,'disconnecting needs its own visible status label');
+assert.match(source,/acct\.sync_status === 'disconnecting' \? \(/,'a disconnecting account must get its own action (retry), checked before Sync/Reconnect');
+assert.match(source,/x\.sync_status !== 'disconnecting'\)/,'bulk full-history sync must skip accounts that are mid-disconnect');
 console.log('PASS bank UI: failed/unconfirmed sync refreshes status, success confirmed, disconnect containment fails safe with no network call, and the underlying disconnect path (force-enabled) still retains records, releases controls, and surfaces the server\'s own message');
