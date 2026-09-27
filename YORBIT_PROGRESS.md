@@ -1665,3 +1665,18 @@ Native exports (2e5cf70). Every export used an a[download] blob link or jsPDF's 
 Also checked: the iOS paywall already shows auto-renew terms and Terms/Privacy links; the app icon is a real 1024x1024 image without alpha. The Privacy Policy omits Stripe, Apple/RevenueCat, Sentry and Vercel although the privacy manifest declares purchase history and crash data - drafted wording for owner approval in OWNER_ACTIONS.md item 7, not published.
 
 Production: Vercel serves 2e5cf70 (index-CehPRJHx.js); the live saveFile chunk contains the cache write, share call and dismissal handling; disconnect still contained with no call to the undeployed function. Full suite 64 scripts (check:enums needs live DB), strict lint, build: pass. No real accounts, purchases, payments, bank connections or production data were touched; automations remain paused. Readiness unchanged: paid web, TestFlight and App Store submission not ready (LAUNCH_STATUS.md).
+
+
+## September 27, 2026 — Codex: bank backend deployed; Disconnect restored
+
+Canonical starting commit 550e553, no tracked changes or active implementation claimed. Applied the exact saved bank, unique-Stripe-row and App Store schema migrations; connector versions/source timestamp mapping is recorded in LAUNCH_STATUS.md. No duplicate Stripe subscription IDs existed before creating the unique index. Schema additions do not activate payments or new provider access.
+
+Deployed plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v13 and new plaid-disconnect-account v1, all ACTIVE with verify_jwt=true. Stripe webhook, RevenueCat endpoints and AI endpoints remain unchanged/pending; no approval restriction was bypassed.
+
+Hosted checks used two temporary synthetic users and a synthetic non-Plaid row without bank credentials: actual password sign-in succeeded, anonymous disconnect returned 401, wrong-owner returned 404, owner success and repeated success returned 200, ordinary-user sync-all-accounts dry_run returned 403. Database status and cleanup confirmed. Both fixture users, profiles and account row were then removed (all zero remaining). No real bank request, payment, AI request, email, signup flow or account-deletion endpoint was used. Local real-Postgres/fake-Plaid coverage from the previous review remains applicable; this does not establish real Plaid sandbox E2E verification.
+
+Enabled BANK_DISCONNECT_AVAILABLE only after hosted verification. Updated the existing UI test to exercise the actual release flag while retaining the disabled-path check. The focused test, strict lint and production build passed. Hands-on local synthetic browser: Disconnect account was enabled; clicking it removed the fixture row and showed Connect your bank. This run did not repeat unrelated routes/mobile/theme coverage.
+
+The unchanged enum validator ran against fresh live connector metadata through an in-memory CLI adapter. Its first substantive run identified two missing subscription constraints; after applying the saved schema migrations all 27 checks passed. No app code was changed to bypass the validator. Full suite was not rerun for the release-switch-only frontend edit.
+
+Outstanding: cron credential repair and authenticated dry-run verification; Stripe/AI/RevenueCat approvals/configuration and hosted lifecycle tests; signed native build/device verification. All automations remain paused. Optional legacy cleanup tooling and link-file generator are deferred to avoid expanding this release.

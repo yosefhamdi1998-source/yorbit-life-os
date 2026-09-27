@@ -30,14 +30,10 @@ const STATUS_CONFIG = {
   not_connected: { icon: Clock,       color: 'text-muted-foreground', label: 'Not connected' },
 };
 
-// TEMPORARY: the corrected server-side disconnect (real Plaid revocation,
-// concurrency-safe, fails closed on a credential-read error) is built and
-// tested but not yet deployed - see YORBIT_PROGRESS.md, 2026-09-27. Showing
-// an honest unavailable state here is safer than either calling a function
-// that doesn't exist yet, or silently falling back to the old status-only
-// path and presenting that as a real disconnect. Flip back to true once the
-// corrected function is deployed and verified in production.
-const BANK_DISCONNECT_AVAILABLE = false;
+// Enabled after the bank migration and all six bank functions were deployed
+// and the hosted endpoint passed disposable-user auth, ownership, disconnect
+// and retry checks on 2026-09-27. Keep the switch for safe containment.
+const BANK_DISCONNECT_AVAILABLE = true;
 const DISCONNECT_UNAVAILABLE_MESSAGE = "Disconnecting is temporarily unavailable while we finish a fix. Your account stays connected and no data is affected — please try again soon.";
 
 export default function BankSync() {

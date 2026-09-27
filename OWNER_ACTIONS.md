@@ -1,23 +1,18 @@
 # Yorbit owner actions
-Updated September 27, 2026 (master 2e5cf70). Ordered by what unblocks the most. Nothing has been purchased, signed, paid, submitted, or revoked. Never paste a key, token or password into chat, code or a report.
+Updated September 27, 2026 after bank-backend deployment. Ordered by what unblocks the most. Nothing has been purchased, signed, paid, submitted, or revoked. Never paste a key, token or password into chat, code or a report.
 
-## 1. Let the committed backend be deployed (unblocks almost everything)
-This environment's Supabase CLI has no login. Either:
-- run `npx supabase login` yourself in a terminal on this machine (it opens a browser for you to approve; the CLI stores the session in your Windows profile), then tell me; or
-- explicitly authorize Codex to deploy through its Supabase connector, if that connector has deployment permission (only read access is confirmed).
+## 1. Remaining backend deployments — bank deployment is complete
+Codex deployed and verified the bank backend through its existing connector; a new CLI login is not required to repeat that work. All three schema migrations are applied. Disconnect is restored in the accompanying frontend release after disposable hosted auth/ownership/disconnect/retry checks. See LAUNCH_STATUS.md for versions and migration-history mapping.
 
-The deploy set, in this order - apply exactly these, and check `supabase migration list --linked` before any blanket `db push`:
-1. Migrations `20260927120000_atomic_bank_disconnect_claim.sql`, `20260927130000_unique_stripe_subscription_rows.sql` (fails loudly if duplicate subscription rows already exist), then `20260927140000_app_store_subscriptions.sql`.
-2. Functions: plaid-disconnect-account (new), plaid-sync-transactions, plaid-sync-holdings, sync-all-accounts, plaid-create-link-token, delete-account, revenuecat-sync (new).
-3. **Not** in this set: stripe-webhook (item 3), ai-coach (item 4), and revenuecat-webhook (item 5 - it runs with gateway JWT off and checks its own header, so it needs the same explicit approval stripe-webhook needed).
+Still pending: revenuecat-sync (requires provider configuration for real verification), revenuecat-webhook, stripe-webhook and ai-coach. The separate approvals below remain unchanged. Do not redeploy the bank set or reapply migrations just because the CLI reports different timestamped filenames; first reconcile the recorded connector/source mapping.
 
-After deploying: confirm versions and verify_jwt, confirm the two RPCs exist, check the endpoint refuses an unauthenticated call and another user's account id, and disconnect a synthetic account on a disposable test user. Only then flip `BANK_DISCONNECT_AVAILABLE` to true and release the frontend. Also run, read-only: `select count(*) from connected_accounts ca join plaid_credentials pc on pc.connected_account_id = ca.id where ca.sync_status = 'disconnected';` - accounts disconnected by the old client-only path whose Plaid credentials are still live. Revoking them in bulk changes real connections and needs your go-ahead.
+Real Plaid revocation and legacy-account cleanup were not run. Keep real connections untouched until their specific authorized workflow. No new cleanup utility or generator is needed to repeat the completed bank deployment.
 
 ## 2. Fix the scheduled jobs' authentication
 Confirmed by Codex's read-only diagnosis (2026-09-27): the bank job's stored bearer is malformed or truncated; the reminders and weekly-analysis jobs hold non-JWT secret keys; retained responses are 401 UNAUTHORIZED_INVALID_JWT_FORMAT. Not a rotated key.
 1. In the dashboard, add a Vault secret named `cron_service_role_jwt` holding the **legacy** service_role key (API Keys, "Legacy API keys" tab; starts with eyJ). If legacy keys are disabled on this project, stop and tell me - that needs a different, code-level fix.
 2. Run `scripts/cron-auth-fix.sql`. It refuses anything but a complete service_role JWT, then points bank sync and reminders at Vault, keeping their schedules, and leaves the weekly AI job untouched.
-3. After item 1's sync-all-accounts deploy, run `scripts/cron-auth-verify.sql`: a dry run through the job's exact auth path (no Plaid call, no write). Pass = 200 with `{"dry_run":true,"authenticated":true,...}`.
+3. The sync-all-accounts dry-run code is now deployed. After credential repair, run `scripts/cron-auth-verify.sql`: a dry run through the job's exact auth path (no Plaid call, no write). Pass = 200 with `{"dry_run":true,"authenticated":true,...}`.
 4. After the next 4-hourly run, re-run queries 3-4 of the diagnosis: 200 = all synced; 502 = partial failure with per-account results.
 5. Decide separately whether to re-point the weekly AI job. Re-enabling it starts scheduled AI analysis of users' data.
 
