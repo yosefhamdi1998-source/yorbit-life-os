@@ -1,6 +1,6 @@
 # Yorbit — App Store submission pack
 
-**Draft — not submission-ready (September 14, 2026).** Verify the signed iPhone build, reviewer account, purchases, account deletion, and privacy answers before submitting. Placeholders must be completed; synthetic browser fixtures do not prove a reviewer account exists in production.
+**Draft — not submission-ready (reviewed against the app September 27, 2026).** Verify the signed iPhone build, reviewer account, purchases, account deletion, and privacy answers before submitting. Placeholders must be completed; synthetic browser fixtures do not prove a reviewer account exists in production.
 
 Current Apple references: [App Review](https://developer.apple.com/app-store/review/), [Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), and [Privacy and Data Use](https://developer.apple.com/app-store/user-privacy-and-data-use/). Review requires usable account access where sign-in is needed; privacy declarations must cover the app and third parties.
 
@@ -56,11 +56,9 @@ BILLS AND SUBSCRIPTIONS
 Track what's due, what's overdue, and what recurs every month. See your real
 monthly commitment and what it adds up to over a year.
 
-INVESTMENTS AND CRYPTO
-Import your exchange history and see realized profit and loss calculated with
-FIFO cost basis. Gains and losses are
-broken out by year. Sales with no recorded purchase are reported separately
-and never counted as profit.
+INVESTMENTS
+Link a supported brokerage or crypto account through Plaid to see your
+holdings and their values, with totals kept separate by currency.
 
 AN AI COACH, ON YOUR TERMS
 Ask questions about your spending and get answers grounded in your actual
@@ -76,7 +74,10 @@ PRIVACY
 Your financial data is yours. It is never sold, and never shared for
 advertising. Bank login passwords are handled by Plaid. Yorbit stores connection tokens to sync linked accounts.
 
-Yorbit Pro includes AI coaching and briefings, budgets for all categories, and unlimited savings goals. AI availability and usage limits must be confirmed before this draft is published. Subscriptions
+Yorbit Pro unlocks budgets for every category, unlimited savings goals, and
+the AI Coach. The AI Coach works only with your permission, has monthly usage
+limits, and depends on the AI service being available; Pro does not guarantee
+unlimited or daily AI use. Subscriptions
 are monthly or yearly and renew automatically unless cancelled at least 24
 hours before the period ends. Manage or cancel anytime in your Apple ID
 settings.
@@ -123,12 +124,14 @@ person's information is present. You do not need to connect a bank to review
 the app — sign in and every screen is populated.
 
 WHAT TO LOOK AT
-- Home: income, spending, savings rate and net cash for the selected period.
-  Use the period selector (1W / 1M / 3M / 6M / Year) to change the range.
+Bottom tabs: Home, Money, Invest, Plan, Coach.
+- Home: income, spending, savings rate and net cash for the selected period;
+  the chart has 1M / 3M / 6M / 1Y ranges.
 - Money: full transaction list with search, filters and categories.
-- Budget: per-category limits against actual spending for this month.
-- Bills: upcoming, overdue and paid, including recurring items.
-- Invest: realized profit and loss by year, FIFO cost basis.
+- Plan > Budget: per-category limits against actual spending this month.
+- Plan > Bills: upcoming, overdue and paid, including recurring items.
+- Invest: holdings from linked investment accounts (the demo account has
+  fictional holdings; no brokerage connection is needed).
 - Coach: our AI assistant. FIRST USE SHOWS A CONSENT SCREEN — this is
   deliberate. It explains that transaction descriptions, budgets and bills
   would be sent to Anthropic for analysis, and lets the reviewer accept or
@@ -137,8 +140,10 @@ WHAT TO LOOK AT
 
 SUBSCRIPTIONS
 Yorbit Pro is offered monthly and yearly via In-App Purchase. The free tier is
-fully usable; Pro adds AI coaching and briefings, budgets for all categories, and unlimited savings goals. The
-paywall is reachable from Settings > Upgrade.
+fully usable; Pro unlocks budgets for every category, unlimited savings goals
+and the AI Coach (consent required, monthly usage limits). The demo account
+needs Pro access to show the Coach. The paywall is reachable from Settings >
+Upgrade; Restore Purchases is in Settings.
 
 BANK CONNECTIONS
 Bank linking uses Plaid. Yorbit does not store bank login passwords; it stores connection tokens for syncing.
@@ -147,7 +152,10 @@ present.
 
 DATA DELETION
 Settings > Delete Account permanently removes the account and all associated
-data, and revokes any linked bank connections at Plaid.
+data, cancels a web (Stripe) subscription, and revokes any linked bank
+connections at Plaid. It tells App Store subscribers that Apple billing
+continues until they cancel with Apple, and links to Apple's subscription
+page, before deleting.
 
 Contact for review questions: <<SUPPORT_EMAIL>>
 ```
@@ -156,8 +164,14 @@ Contact for review questions: <<SUPPORT_EMAIL>>
 
 ## Screenshot plan
 
-Required: **6.9"** (1320 × 2868) and **6.5"** (1242 × 2688). Apple accepts
-scaling down from the largest size, so shoot 6.9" and let it scale.
+Required: **6.9"** iPhone (accepted 1320 × 2868, 1290 × 2796 or 1260 × 2736;
+6.5" is only required when 6.9" is not provided). PNG or JPEG, no alpha
+channel, 1-10 per size. The Xcode target is currently universal
+(TARGETED_DEVICE_FAMILY = 1,2), which also requires **13" iPad** screenshots
+(2064 × 2752 or 2048 × 2732) unless the build is made iPhone-only.
+
+Synthetic captures from the fixture build (no real data) are in
+`store-assets/screenshots/` - see its README for how they were made.
 
 Capture from the demo account so no real data appears.
 
@@ -166,13 +180,14 @@ Capture from the demo account so no real data appears.
 | 1 | Home, 1M selected | "See where your money actually goes" |
 | 2 | Money, transaction list | "Every transaction, sorted and searchable" |
 | 3 | Budget | "Budgets that tell you the truth" |
-| 4 | Invest, gains/losses chart | "Real profit and loss, FIFO cost basis" |
-| 5 | Coach consent screen | "AI on your terms — you decide what's shared" |
+| 4 | Invest, holdings | "Your investments, in one place" |
+| 5 | Coach (Pro) | "Ask questions about your own spending" |
 | 6 | Bills | "Never miss what's due" |
 
-Shoot 5 at minimum; 6 uses the full allowance. Screenshot 5 is deliberately
-the consent screen — it turns a compliance requirement into a selling point
-and pre-answers the reviewer's privacy question.
+Shoot 5 at minimum; 6 uses the full allowance. The captured Coach screenshot
+shows the chat, not the consent step: the fixture profile has already granted
+AI consent. The consent gate itself is real (AiConsentGate on the client,
+has_ai_consent checked fail-closed by ai-coach before any data is sent).
 
 ---
 

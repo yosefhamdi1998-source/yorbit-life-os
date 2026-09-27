@@ -5,10 +5,11 @@ const source=fs.readFileSync('supabase/functions/ai-coach/index.ts','utf8').repl
 const budgetSource=source.slice(0,source.indexOf('// The $15 cap'))+'\nexport {checkSpendLimits,loadMonthlyAiSpend};';
 const js=(await transform(budgetSource,{loader:'ts',format:'esm'})).code;
 const {checkSpendLimits,loadMonthlyAiSpend}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
-let failure=null, dailyCount=0, requests=0, rows=[], pages=[];
+let failure=null, dailyCount=0, requests=0, rows=[], pages=[], subs=[], profileTier='free';
 const response=(kind,data)=>({data,error:failure===kind?Error('synthetic'):null});
 const admin={from:table=>({select:(columns,options)=>{
- if(table==='profiles')return {eq:()=>({single:async()=>response('profile',{ai_tier:'free'})})};
+ if(table==='profiles')return {eq:()=>({single:async()=>response('profile',{ai_tier:profileTier})})};
+ if(table==='subscriptions'){assert.equal(columns,'plan, status');return {eq:async()=>response('subscriptions',subs)};}
  if(table==='ai_user_budgets'){const q={eq:()=>q,maybeSingle:async()=>response('personal',{requests,spend_usd:0})};return q;}
  assert.equal(table,'ai_usage_log');
  if(options?.head)return {eq:()=>({gte:async()=>({count:dailyCount,error:failure==='daily'?Error('synthetic'):null})})};
@@ -16,7 +17,7 @@ const admin={from:table=>({select:(columns,options)=>{
  return {gte:()=>({order:(column)=>{assert.equal(column,'created_at');return {order:(tie)=>{assert.equal(tie,'id');return {range:async(start,end)=>{pages.push([start,end]);return response('monthly',rows.slice(start,end+1));}};}};}})};
 }})};
 assert.equal(await checkSpendLimits(admin,'fixture-user'),null);
-for(const kind of ['daily','profile','personal','monthly']) {failure=kind;await assert.rejects(()=>checkSpendLimits(admin,'fixture-user'),/Could not verify/);}failure=null;
+for(const kind of ['daily','profile','personal','monthly','subscriptions']) {failure=kind;await assert.rejects(()=>checkSpendLimits(admin,'fixture-user'),/Could not verify/);}failure=null;
 dailyCount=null;await assert.rejects(()=>checkSpendLimits(admin,'fixture-user'),/daily AI/);dailyCount=0;
 rows=Array.from({length:1000},()=>({estimated_cost_usd:0.001})).concat([{estimated_cost_usd:20}]);pages=[];
 assert.match(await checkSpendLimits(admin,'fixture-user'),/usage budget/);
@@ -27,6 +28,14 @@ assert.equal(pages.length,3);
 rows=[{estimated_cost_usd:'bad'}];await assert.rejects(()=>loadMonthlyAiSpend(admin,'2026-09-01'),/Invalid/);
 rows=[];dailyCount=40;pages=[];assert.match(await checkSpendLimits(admin,'fixture-user'),/today/);assert.equal(pages.length,0);dailyCount=0;
 requests=15;assert.match(await checkSpendLimits(admin,'fixture-user'),/free AI/);requests=0;
+// A paid web subscription carries the Pro allowance (Coach is a Pro feature);
+// profile.ai_tier alone never reflected a purchase.
+subs=[{plan:'pro_monthly',status:'active'}];requests=15;assert.equal(await checkSpendLimits(admin,'fixture-user'),null,'a paying user is not held to the free allowance');
+requests=300;assert.match(await checkSpendLimits(admin,'fixture-user'),/your AI Coach limit/);
+subs=[{plan:'pro_yearly',status:'trialing'}];requests=15;assert.equal(await checkSpendLimits(admin,'fixture-user'),null);
+for(const s of [{plan:'free',status:'canceled'},{plan:'pro_monthly',status:'past_due'},{plan:'pro_monthly',status:'canceled'},{plan:'free',status:'active'}]){subs=[s];requests=15;assert.match(await checkSpendLimits(admin,'fixture-user'),/free AI/,JSON.stringify(s));}
+subs=[{plan:'pro_monthly',status:'active'}];profileTier='unlimited';requests=300;assert.equal(await checkSpendLimits(admin,'fixture-user'),null,'an admin-granted higher tier is not lowered by a subscription');
+subs=[];profileTier='free';requests=0;
 
 // Execute the actual edge handler with a failing budget query. No provider request is allowed.
 let handler,providerCalls=0;

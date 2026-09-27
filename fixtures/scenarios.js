@@ -122,6 +122,17 @@ export const SCENARIOS = {
     ],
     budgets: [{id:'qa-budget',category:'food',monthly_limit:100,month:'2026-09'}],
   },
+  // App Store screenshots: base data plus neutral, entirely fictional holdings.
+  store: { ...base,
+    // Pro, so the Coach screenshot shows its consent step rather than the paywall.
+    subscriptions: [{ id: 'store-sub', plan: 'pro_yearly', status: 'active', cancel_at_period_end: false }],
+    connected_accounts: [{ id: 'store-broker', institution_name: 'Brokerage', account_name: 'Individual', account_type: 'investment', sync_status: 'connected', last_synced_at: '2026-09-08T14:00:00Z' }],
+    investment_holdings: [
+      { id: 'h1', connected_account_id: 'store-broker', security_name: 'Total Stock Market Index Fund', ticker_symbol: 'TSM', quantity: 42.5, institution_value: 12384.2, currency: 'USD' },
+      { id: 'h2', connected_account_id: 'store-broker', security_name: 'International Index Fund', ticker_symbol: 'INTL', quantity: 60, institution_value: 3912.6, currency: 'USD' },
+      { id: 'h3', connected_account_id: 'store-broker', security_name: 'Bitcoin', ticker_symbol: 'BTC', quantity: 0.035, institution_value: 2105.75, currency: 'USD' },
+      { id: 'h4', connected_account_id: 'store-broker', security_name: 'Money Market Fund', ticker_symbol: 'MMF', quantity: 1500, institution_value: 1500, currency: 'USD' },
+    ] },
   starter: { ...base, budgets: [] },
   // No overdue bills, so Home's recommendation falls through to the
   // spending tip and its own destination.

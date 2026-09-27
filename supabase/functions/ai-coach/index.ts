@@ -64,6 +64,7 @@ const TIER_MONTHLY_USD: Record<string, number> = {
   pro: 6.00,
   unlimited: 100.00,
 };
+const TIER_RANK: Record<string, number> = { free: 0, pro: 1, unlimited: 2 };
 const TIER_MONTHLY_REQUESTS: Record<string, number> = {
   free: 15,
   pro: 300,
@@ -105,9 +106,10 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
       admin.from('profiles').select('ai_tier').eq('id', userId).single(),
       admin.from('ai_user_budgets').select('requests, spend_usd')
         .eq('user_id', userId).eq('month', month).maybeSingle(),
+      admin.from('subscriptions').select('plan, status').eq('user_id', userId),
     ]);
   if (results.some(result => result.error)) throw new Error('Could not verify AI usage limits.');
-  const [{ count: dailyCount }, { data: profile }, { data: budgetRow }] = results;
+  const [{ count: dailyCount }, { data: profile }, { data: budgetRow }, { data: subscriptions }] = results;
   if (!Number.isFinite(dailyCount) || dailyCount < 0) throw new Error('Invalid daily AI usage count.');
 
   if (dailyCount >= DAILY_REQUEST_LIMIT_PER_USER) {
@@ -117,7 +119,15 @@ async function checkSpendLimits(admin: ReturnType<typeof serviceClient>, userId:
   // Per-user ceiling, checked BEFORE the shared one so a user who has
   // exhausted their own allowance gets a message about their allowance
   // rather than a confusing global outage notice.
-  const tier = profile?.ai_tier || 'free';
+  // Coach is a Pro feature in the app, so a paid web subscription must carry
+  // the Pro allowance here too - profile.ai_tier alone was never set by a
+  // purchase, leaving paying users on the free allowance. The subscriptions
+  // table is written only by stripe-webhook (clients cannot write it).
+  // profile.ai_tier still wins when higher (admin-granted 'unlimited').
+  // App Store purchases are not yet verified server-side (RevenueCat).
+  const profileTier = profile?.ai_tier || 'free';
+  const paid = (subscriptions || []).some(s => ['active', 'trialing'].includes(s.status) && s.plan && s.plan !== 'free');
+  const tier = paid && (TIER_RANK[profileTier] ?? 0) < TIER_RANK.pro ? 'pro' : profileTier;
   const userSpend = Number(budgetRow?.spend_usd ?? 0);
   const userRequests = Number(budgetRow?.requests ?? 0);
   if (!Number.isFinite(userSpend) || !Number.isFinite(userRequests) || userSpend < 0 || userRequests < 0) throw new Error('Invalid personal AI usage total.');
