@@ -1,11 +1,11 @@
 # Yorbit launch status
-Verified September 23, 2026; updated September 26, 2026. This report replaces older launch-readiness claims, not the historical evidence in YORBIT_PROGRESS.md.
+Verified September 23, 2026; updated September 27, 2026. This report replaces older launch-readiness claims, not the historical evidence in YORBIT_PROGRESS.md.
 
 ## Verdict
 The website is live. Public paid launch and App Store submission are not yet verified ready. A Vercel deployment does not create an iPhone App Store release.
 
-## Known broken right now
-- Disconnecting a bank account from Bank Sync currently fails for every user: the frontend was deployed calling a new Edge Function (plaid-disconnect-account) that isn't deployed yet, blocked on restoring this session's Supabase CLI access. See OWNER_ACTIONS.md item 8 - it's the top priority.
+## Contained, not yet resolved
+- Disconnecting a bank account from Bank Sync is temporarily unavailable by design (an honest message, not a broken button) while its corrected backend - fixing three real defects an independent review (Codex) found in the first version before it could be deployed - waits on this session's Supabase CLI access to actually deploy. See OWNER_ACTIONS.md item 8.
 
 ## Live and verified
 - Web release ef26e4a deployed successfully through GitHub to Vercel. The production bundles contain account-bound import/export checks, holdings retry and separate currency totals.
@@ -39,7 +39,7 @@ The website is live. Public paid launch and App Store submission are not yet ver
 
 ## Remaining engineering and end-to-end evidence
 - Payment checkout, webhook ordering, entitlements, cancellation and subscribed-account deletion: re-verified this session that create-checkout, stripe-webhook, create-billing-portal and delete-account's Stripe-cancellation step are correctly implemented, with synthetic test coverage that already exercises every status/failure path reachable without a real key. No code defect found - what remains is the approved test-mode key (item 1) and then running the concrete 7-step checklist now in OWNER_ACTIONS.md item 1, not further engineering.
-- Bank disconnect lifecycle: fixed and tested (release 0326219) - the new plaid-disconnect-account function actually revokes the Plaid connection (protecting sibling accounts sharing the same Item), enforces ownership, and never falsely reports completion on a provider failure. Not yet deployed - see "Known broken right now" above and OWNER_ACTIONS.md item 8.
+- Bank disconnect lifecycle: release 0326219's first version was reviewed by Codex before deployment, which reproduced three real defects (cleanup couldn't recover from a partial failure, concurrent sibling disconnects could both skip revoking a shared Item, a database read error was misread as "nothing to revoke"). All three fixed in 02c562b, with a new migration adding an advisory-lock-serialized claim function. Not yet deployed or verified against production - see "Contained, not yet resolved" above and OWNER_ACTIONS.md item 8. The migration's own locking has not been run against a real Postgres (no local Docker/Postgres available here) - reasoned through in its own comments, not yet execution-verified.
 - Native bank linking's OAuth deep-link resume (for banks like Chase/USAA that require a sign-in step outside Plaid's own screen) is implemented, tested against synthetic fixtures, and deployed (release dc194ff): redirect_uri passthrough, pending-link persistence across an app kill/relaunch, strict deep-link validation, and the exact same exchange/sync path as an in-page link. What's left is entirely owner/device-side, not engineering: registering the redirect with Plaid and Apple/Google, and physical-device verification once that's done — see OWNER_ACTIONS.md item 7. Native authentication, offline/error handling, safe areas, keyboard and purchases still separately require a signed build.
 - Real signup, cross-account browser sessions, bank sync and account deletion remain untested in a disposable hosted environment.
 - Privacy answers, reviewer login/data, screenshots and listing claims need verification against the signed release and current service configuration. Do not submit the draft listing as finished.
