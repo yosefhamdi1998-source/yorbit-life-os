@@ -1,52 +1,46 @@
 # Yorbit launch status
-Verified September 23, 2026; updated September 27, 2026. This report replaces older launch-readiness claims, not the historical evidence in YORBIT_PROGRESS.md.
+Updated September 27, 2026 (master 7f4d46f). Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
-## Verdict
-The website is live. Public paid launch and App Store submission are not yet verified ready. A Vercel deployment does not create an iPhone App Store release.
+## Readiness decisions
+| Release | Decision | Why |
+|---|---|---|
+| Paid web launch | **Not ready** | Billing has never run end to end (Stripe test-key approval unresolved). Corrected billing, entitlement, disconnect and cron code is committed but not deployed. Scheduled bank sync has not run since 2026-09-14. |
+| TestFlight | **Not ready** | No signed build exists. Needs Apple account/team, signing, a Mac/Xcode 26 build, native auth redirect registration, and the backend above deployed. |
+| App Store submission | **Not ready** | Everything TestFlight needs, plus signed-device verification, a production reviewer account, final privacy answers, and a device-family decision (see below). A working website or passing build does not establish any of this. |
 
-## Contained, not yet resolved
-- Disconnecting a bank account from Bank Sync is temporarily unavailable by design (an honest message, not a broken button) while its corrected backend - fixing three real defects an independent review (Codex) found in the first version before it could be deployed - waits on this session's Supabase CLI access to actually deploy. See OWNER_ACTIONS.md item 8.
+## What is deployed, and where
+| Where | State |
+|---|---|
+| Web (Vercel, yorbit-life-os.vercel.app) | master 7f4d46f, bundle index-CaKPW_Jf.js, verified live. Bank disconnect shows an honest "temporarily unavailable" state; the minified bundle contains no call to the undeployed disconnect function. |
+| Supabase Edge Functions (last verified 2026-09-23) | plaid-sync-transactions v23, plaid-sync-holdings v10, sync-all-accounts v9, plaid-create-link-token v10 - all older than the committed fixes below. stripe-webhook v2 and ai-coach are older still. |
+| Committed, NOT deployed | Migrations 20260927120000 (server-side disconnect) and 20260927130000 (one subscription row per Stripe subscription). Functions: plaid-disconnect-account (new), plaid-sync-transactions/holdings (shared sync guard), sync-all-accounts (authenticated dry run), plaid-create-link-token (reconnect guard), delete-account (disconnected accounts no longer block deletion), stripe-webhook (replay-safe; redeploy needs explicit approval), ai-coach (paid AI allowance; redeploy carries native-app origins, so it waits on the AI approval). |
+| Blocker for all backend deploys | This environment's Supabase CLI has no login (401). Codex reports working read access through its own connector; deployment permission is not confirmed for either agent. |
+| Native iOS | No signed build, no TestFlight, nothing submitted. |
 
-## Live and verified
-- Web release ef26e4a deployed successfully through GitHub to Vercel. The production bundles contain account-bound import/export checks, holdings retry and separate currency totals.
-- Profile authority: client attempts to change role, AI tier and profile identity are rejected; owner consent/onboarding and trusted service administration still work. Seven rollback-only database checks passed.
-- Child ownership: messages must belong to an owned conversation; custom records cannot be moved into another user's form. Six rollback-only database checks passed. Existing mismatch counts were zero.
-- Bank transactions v22: authorized failure cleanup, reconnect state, checked writes and bounded complete pagination. The bank screen exposes recoverable errors and keeps accounts visible on a failed disconnect.
-- Holdings v9: complete snapshots replace one account's positions atomically using provider security IDs. Eighteen database checks passed, including a forced mid-insert failure, repeated/empty snapshots and account isolation. Previous holdings survive failed saves.
-- Legacy administrator bulk cleanup v8 is disabled with HTTP 410. It cannot read or delete financial records.
-- Production assets and backend source/JWT settings were checked. These are configuration and code-deployment checks, not a real bank connection or payment test.
+## What was actually tested (September 27)
+Against a real, local, throwaway PostgreSQL 17.10 (the production major version), with schema built from schema.sql plus the real migrations:
+- **Bank disconnect** (scripts/test-disconnect-sql.mjs, 26 checks): the migration and the real Edge Function handler together; Plaid is a recording fake. Covers ownership, duplicate requests, 25/25 simultaneous sibling claims (exactly one revokes a shared Item), an observed advisory-lock wait, cleanup / credential-read / provider failures leaving a visible retryable state, sync and reconnect races, and the client-side guard. Fails against a migration with the reported retry bug and against one without the lock. The previously committed migration was shown to fail on every call (ambiguous columns).
+- **Stripe webhook** (scripts/test-stripe-webhook-sql.mjs, 9 checks): real handler, fake Stripe. A stale event after cancellation no longer restores access; replayed events for an old subscription no longer overwrite a newer paid one; payment failure removes and recovery restores access; unexpected Stripe statuses no longer violate the CHECK constraint; 8/8 duplicate concurrent deliveries leave one row. The old handler fails the stale-event case.
+- **Cron auth SQL** (scripts/test-cron-auth-sql.mjs): the read-only diagnosis classifies bearer formats without printing them; the fix's pre-check accepts only a complete service_role JWT. It caught a real bug in the fix (a pasted trailing newline).
+- Unit/handler tests: paid-subscription AI allowance (fails against old code), sync refusing a mid-disconnect account, sync-all-accounts dry run, disconnect UI states, account deletion with a disconnected account. Full suite 62 scripts (check:enums excluded: needs live DB access; it will report drift until migration 20260927120000 is deployed), strict lint and production build pass.
+- Browser (fixture build): the "Disconnect not finished / Retry disconnect" state renders and stays disabled under containment. 12 synthetic App Store screenshots captured and reviewed.
 
-## Final web release verified live
-- Release e051c1b passed Vercel deployment; the public index-DcnMty2S.js bundle contains the updated router. Native packaging is saved in GitHub; no native build was triggered.
-- React Router updated to 7.18.4 for the upstream security fix. The current production-dependency audit reports zero advisories. Three moderate advisory entries remain in the native build tool chain through xcode/uuid; no forced downgrade or incompatible override was applied.
-- Installed the Keyboard, SplashScreen and StatusBar plugins already referenced by native configuration. Capacitor iOS source/assets sync succeeded on Windows. Portable Swift paths are normalized after sync; native auth/plugin checks pass.
-- The manual Mac build workflow now checks for Xcode 26 and iOS SDK 26 or later before building. Apple has required these upload minimums since April 28, 2026. No paid build or submission was triggered.
+None of this used real accounts, real bank connections, real payments or production data.
 
-## Tested customer interactions
-- Synthetic bank load retry, failed sync/reconnect, failed disconnect, and phone/dark layout.
-- Home date filters, chart month drill-down, previous/next month and transaction navigation with matching synthetic totals.
-- Settings synthetic export; Simple mode navigation; light phone layout; holdings load retry and separate EUR/USD totals.
-- Transaction amount and blank-date validation using real keyboard input, plus form cancellation.
-- Import parsing, review and confirmed import of exactly three sample-statement rows in the isolated in-memory fixture app; the result displayed September 1-3 and View Transactions preserved those dates. Account-change and dedup behavior also have actual-handler tests.
-- The final combined full test suite, strict lint, production build and Capacitor source sync passed after the router and native packaging changes. This is not an iOS compilation or signing result.
-- Browser screenshots showed capture resize artifacts. These checks do not establish physical-iPhone safe areas or keyboard behavior.
-
-## Live and verified (continued)
-- Sync concurrency and abandoned syncing-state recovery: release dc7ea29, pushed to master and deployed. beginBankSync now claims an account with one atomic, race-safe UPDATE instead of a pre-mark the child function's own check could no longer see past; a row stuck at 'syncing' by a crashed worker is reclaimable after 15 minutes instead of excluded from every future scheduled run forever. 8 new unit-level checks plus 35 existing handler checks and a rewritten dispatcher test all pass; verified in the browser against synthetic fixtures. plaid-sync-transactions (v23), plaid-sync-holdings (v10) and sync-all-accounts (v9) redeployed to Supabase, ACTIVE, verify_jwt preserved. The frontend message fix was confirmed present in the live production bundle (the lazy-loaded BankSync route chunk), not just assumed from a successful deploy. See YORBIT_PROGRESS.md for the full account, including a reproduction of the original defect and confirmation the new tests fail against the unmodified code. This did not touch or fix the cron scheduling issue below, which predates it.
-
-## Open finding: scheduled bank sync is not currently running at all
-- As of September 23: verified read-only that the sync-all-accounts-4h cron job is active with real values, not template placeholders, but its last 3 days of dispatches were answered 401 UNAUTHORIZED_INVALID_JWT_FORMAT by Supabase's own gateway. "Most likely cause: a rotated service-role key" was this session's working theory, not a confirmed root cause - it was never actually re-verified against the live cron.job/net._http_response data. September 26: re-investigation was explicitly requested to establish the actual cause rather than assume, but could not start - this session's own Supabase CLI access was unavailable (see OWNER_ACTIONS.md item 8). Treat the rotated-key theory as unconfirmed until it's actually checked. A user's own manual Sync button is unaffected either way - it authenticates with the signed-in session, not this stored key.
-
-## Remaining engineering and end-to-end evidence
-- Payment checkout, webhook ordering, entitlements, cancellation and subscribed-account deletion: re-verified this session that create-checkout, stripe-webhook, create-billing-portal and delete-account's Stripe-cancellation step are correctly implemented, with synthetic test coverage that already exercises every status/failure path reachable without a real key. No code defect found - what remains is the approved test-mode key (item 1) and then running the concrete 7-step checklist now in OWNER_ACTIONS.md item 1, not further engineering.
-- Bank disconnect lifecycle: release 0326219's first version was reviewed by Codex before deployment, which reproduced three real defects (cleanup couldn't recover from a partial failure, concurrent sibling disconnects could both skip revoking a shared Item, a database read error was misread as "nothing to revoke"). All three fixed in 02c562b, with a new migration adding an advisory-lock-serialized claim function. Not yet deployed or verified against production - see "Contained, not yet resolved" above and OWNER_ACTIONS.md item 8. The migration's own locking has not been run against a real Postgres (no local Docker/Postgres available here) - reasoned through in its own comments, not yet execution-verified.
-- Native bank linking's OAuth deep-link resume (for banks like Chase/USAA that require a sign-in step outside Plaid's own screen) is implemented, tested against synthetic fixtures, and deployed (release dc194ff): redirect_uri passthrough, pending-link persistence across an app kill/relaunch, strict deep-link validation, and the exact same exchange/sync path as an in-page link. What's left is entirely owner/device-side, not engineering: registering the redirect with Plaid and Apple/Google, and physical-device verification once that's done — see OWNER_ACTIONS.md item 7. Native authentication, offline/error handling, safe areas, keyboard and purchases still separately require a signed build.
-- Real signup, cross-account browser sessions, bank sync and account deletion remain untested in a disposable hosted environment.
-- Privacy answers, reviewer login/data, screenshots and listing claims need verification against the signed release and current service configuration. Do not submit the draft listing as finished.
-- AI origin-only deployment remains pending specific approval. No real financial test payload was sent to Anthropic.
+## Remaining engineering, blocked or untested
+- **Scheduled bank sync**: root cause not yet confirmed. The gateway error (UNAUTHORIZED_INVALID_JWT_FORMAT) means the stored bearer is not a JWT, and this project uses Supabase's newer non-JWT keys - so a pasted sb_secret_ key is the leading hypothesis, not a rotated key. scripts/cron-auth-diagnose.sql confirms it read-only; cron-auth-fix.sql and cron-auth-verify.sql are prepared. The reminders and weekly AI jobs use the same template and are probably failing too.
+- **Billing end to end**: checkout, webhook delivery/replays in Stripe itself, cancellation, payment failure and subscribed-account deletion still need the approved test key and disposable accounts (OWNER_ACTIONS.md item 3).
+- **iOS entitlements server-side**: App Store purchases are verified only in the app (RevenueCat). The server does not know about them, so iOS Pro users get the free AI allowance. Needs a RevenueCat server integration (webhook or REST, with a RevenueCat secret key) - engineering plus an owner credential.
+- **Legacy disconnected accounts**: accounts disconnected by the old client-only path still hold live Plaid credentials. A new disconnect request (once deployed) or account deletion revokes them; a bulk revocation would change real connections and needs your authorization. Count them read-only first (OWNER_ACTIONS.md item 1).
+- **Hosted end to end**: real signup, cross-account browser sessions, bank sync and account deletion in a disposable hosted environment remain untested.
+- **Native**: signed build, device checks (auth return, bank return, keyboard/safe areas, purchases/restore, deletion), native bank-link redirect registration, Supabase auth redirect for app.yorbit://auth/callback.
+- **Device family**: the Xcode target is universal (iPhone + iPad), which makes iPad screenshots mandatory and iPad review likely. Both screenshot sets exist; making it iPhone-only is a one-line change if preferred.
+- **Listing**: APP_STORE_SUBMISSION.md was corrected against the app (no in-app trade import, real navigation, Pro includes Coach). Privacy answers remain a draft to reconcile against the signed build. The Home screenshot shows a negative synthetic savings rate and Invest shows $0 trading activity - honest, not flattering.
+- **AI**: native-origin AI deployment remains pending your approval; no financial payload was sent to Anthropic.
 
 ## Evidence sources
-- Full work log and coverage: YORBIT_PROGRESS.md.
+- Work log: YORBIT_PROGRESS.md. Codex's disconnect review: C:\Users\Yosef\Yorbit-Main-Handoff\2026-09-26\disconnect-review.md.
+- Supabase API keys (new keys are not JWTs): https://supabase.com/docs/guides/api/api-keys
+- Apple screenshot specifications: https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
 - Apple upload requirements: https://developer.apple.com/news/upcoming-requirements/
 - Apple review and account deletion: https://developer.apple.com/app-store/review/guidelines/ and https://developer.apple.com/support/offering-account-deletion-in-your-app/
-- Router advisory: https://github.com/remix-run/react-router/security/advisories/GHSA-wrjc-x8rr-h8h6

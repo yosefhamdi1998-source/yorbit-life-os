@@ -1,63 +1,61 @@
 # Yorbit owner actions
-Verified September 23, 2026, updated the same evening. Nothing below has been purchased, signed, paid or submitted by this work session.
+Updated September 27, 2026 (master 7f4d46f). Ordered by what unblocks the most. Nothing has been purchased, signed, paid, submitted, or revoked. Never paste a key, token or password into chat, code or a report.
 
-## 1. Resolve the exact Stripe test-key approval
-Review the existing restricted-key proposal: TEST MODE first; Checkout Sessions, Customers and Customer portal write; Subscriptions read/write; Products and Prices read; everything else None. Store the approved key only as STRIPE_SECRET_KEY in Supabase Edge Function secrets. Do not paste any key into chat, source code or a report.
+## 1. Let the committed backend be deployed (unblocks almost everything)
+This environment's Supabase CLI has no login. Either:
+- run `npx supabase login` yourself in a terminal on this machine (it opens a browser for you to approve; the CLI stores the session in your Windows profile), then tell me; or
+- explicitly authorize Codex to deploy through its Supabase connector, if that connector has deployment permission (only read access is confirmed).
 
-Approval of a key is only the first gate. After it is configured, engineering still must prove checkout, webhook replay/order handling, entitlements, cancellation and deletion using disposable test users and a test subscription. Existing live Stripe webhook/portal deployments were left unchanged after automatic approval review rejected their redeployment. No paid launch is claimed.
+The deploy set, in this order - apply exactly these, and check `supabase migration list --linked` before any blanket `db push`:
+1. Migrations `20260927120000_atomic_bank_disconnect_claim.sql`, then `20260927130000_unique_stripe_subscription_rows.sql` (the second fails loudly if duplicate subscription rows already exist).
+2. Functions: plaid-disconnect-account (new), plaid-sync-transactions, plaid-sync-holdings, sync-all-accounts, plaid-create-link-token, delete-account.
+3. **Not** in this set: stripe-webhook (item 3) and ai-coach (item 4).
 
-Verified this session (2026-09-23): re-read create-checkout, stripe-webhook, create-billing-portal and delete-account's Stripe-cancellation step end to end, and their synthetic test coverage (test-checkout.mjs, test-billing-portal.mjs, test-account-deletion.mjs) - all pass, and between them already exercise missing/invalid config, auth, rate limits, hostile input, ambiguous/duplicate customers, provider failures, and every terminal and non-terminal subscription status delete-account can encounter. No code defect was found; nothing here is waiting on engineering. The moment a test key exists, this is what to actually run (not just deploy) before calling billing verified:
-1. Create a disposable Supabase test user. From Upgrade, start checkout with a Stripe test card (4242 4242 4242 4242); confirm redirect to success_url.
-2. Confirm stripe-webhook received checkout.session.completed (Stripe Dashboard > Developers > Events, or `select * from subscriptions where user_id = '<test-user>'` — read-only) and the row's plan/status match the price purchased.
-3. Confirm useProStatus reflects Pro in the UI without a manual refresh (it listens for the SUBSCRIPTION_CHANGED event and window focus).
-4. From Settings > Manage Subscription, open the billing portal and cancel at period end; confirm customer.subscription.updated sets cancel_at_period_end and status stays 'active' - access must continue until the period actually ends.
-5. Use Stripe's dashboard (test mode) to advance/cancel the subscription immediately, or wait for customer.subscription.deleted; confirm the row flips to plan 'free', status 'canceled', and useProStatus drops Pro access.
-6. With an active test subscription, attempt account deletion; confirm delete-account cancels it at Stripe (test mode) before deleting any local rows, and that the response is a real confirmed 'canceled' status, not just a request sent.
-7. Repeat steps 1-2 for the yearly price, and once for a card that Stripe's test suite declines, to confirm the failure path shows a real error and creates no orphaned subscription row.
-None of this touches real money or a real customer; it only requires the approved TEST-mode key from item 1's scope.
+After deploying: confirm versions and verify_jwt, confirm the two RPCs exist, check the endpoint refuses an unauthenticated call and another user's account id, and disconnect a synthetic account on a disposable test user. Only then flip `BANK_DISCONNECT_AVAILABLE` to true and release the frontend. Also run, read-only: `select count(*) from connected_accounts ca join plaid_credentials pc on pc.connected_account_id = ca.id where ca.sync_status = 'disconnected';` - accounts disconnected by the old client-only path whose Plaid credentials are still live. Revoking them in bulk changes real connections and needs your go-ahead.
 
-Separately found this session, real but out of this item's scope: disconnecting a single bank account (Bank Sync > Disconnect) only flips its local status - it never calls Plaid's item/remove, so the access token in plaid_credentials stays valid and the Item stays live at Plaid indefinitely. Account deletion IS unaffected (it revokes every remaining token independently in its own step). This is pure engineering, not an approval gate, and was left unfixed here rather than folded into this batch without being asked - flagging it for a future batch or your call on priority.
+## 2. Fix the scheduled jobs' authentication
+The gateway's UNAUTHORIZED_INVALID_JWT_FORMAT means the stored bearer is not a JWT at all. This project uses Supabase's newer keys, and the sb_secret_ key is not a JWT - so the leading hypothesis is that it was pasted where the legacy service_role key belongs. Not yet confirmed.
+1. Run `scripts/cron-auth-diagnose.sql` (read-only; Codex can run it). It reports each job's bearer *format*, never the value, plus recent responses and sync freshness.
+2. If the sync job's format is "NEW secret key" or "malformed": in the dashboard, add a Vault secret named `cron_service_role_jwt` holding the **legacy** service_role key (API Keys, "Legacy API keys" tab; starts with eyJ). If legacy keys are disabled on this project, stop and tell me - that needs a different, code-level fix.
+3. Run `scripts/cron-auth-fix.sql`. It refuses anything but a complete service_role JWT, then points only sync-all-accounts-4h at Vault, keeping its schedule.
+4. After item 1's sync-all-accounts deploy, run `scripts/cron-auth-verify.sql`: a dry run through the job's exact auth path (no Plaid call, no write). Pass = 200 with `{"dry_run":true,"authenticated":true,...}`.
+5. After the next 4-hourly run, re-run queries 3-4 of the diagnosis: 200 = all synced; 502 = partial failure with per-account results.
+6. Decide separately whether to re-point the reminders and weekly AI jobs, which likely share the fault. Re-enabling the AI job starts scheduled AI analysis of users' data.
 
-## 2. Answer the pending AI deployment question
-The proposed deployment only adds packaged iOS/Android origins to the existing AI endpoints while preserving consent. Those endpoints can send the financial context described in the app to Anthropic, which is why automatic approval review required specific approval. No financial payload was sent during this work. Your earlier statement that you added funds is recorded; current funding and AI service health have not been independently verified and no additional funding is requested here.
+## 3. Resolve the exact Stripe test-key approval, then approve the webhook redeploy
+Restricted TEST-mode key only: Checkout Sessions, Customers and Customer portal write; Subscriptions read/write; Products and Prices read; everything else None. Store it only as STRIPE_SECRET_KEY in Supabase secrets.
 
-## 3. Provide or verify Apple release access and configuration
-Confirm the Apple developer account/entity, ownership of app.yorbit, numeric App Store application ID, signing certificate/profile and permission to use the selected Mac build host. Verify the RevenueCat Apple public SDK key, products app.yorbit.pro.monthly and app.yorbit.pro.yearly, offering and pro entitlement. Public keys may be build settings; private signing credentials belong only in approved secret storage.
+The webhook fix (replay/out-of-order safe, one row per subscription) needs an explicit approval to redeploy, because stripe-webhook runs with gateway JWT verification off and verifies Stripe's signature instead. Then, with disposable test users only:
+1. Checkout with test card 4242 4242 4242 4242 (monthly, then yearly); the subscription row appears with the right plan/status and Pro unlocks without a refresh.
+2. In Stripe test mode, resend (replay) checkout.session.completed and customer.subscription.updated; nothing changes.
+3. Cancel at period end in the billing portal; access continues. Then cancel immediately; access ends. Resend the old updated event; access stays off.
+4. Use a declining test card and a failing renewal (past_due); access ends; recovery restores it.
+5. With an active test subscription, delete the account; Stripe shows it canceled before local data is gone.
+6. With a Pro test account, confirm the Coach allowance is the Pro one (needs item 4's ai-coach deploy).
 
-The owner must personally review any developer membership, agreements, tax, banking, trader-status or other legal/account declarations. No new membership, company formation or purchase is assumed necessary based on an old checklist. Do not incur build costs without checking the existing allowance and approving any expense.
+## 4. Answer the pending AI deployment question
+Any ai-coach redeploy ships the shared CORS list, which includes the native app origin (capacitor://localhost) - that is the native-origin AI deployment awaiting your approval. The committed ai-coach change (paying web subscribers get the Pro AI allowance instead of the free one) waits on this. No financial payload has been sent to Anthropic. AI funding and service health are not independently verified.
 
-## 4. Provide access for signed-device verification
-After the configuration gates are satisfied, the already-authorized engineering work should continue with disposable synthetic accounts, Plaid sandbox and Stripe/Apple sandbox purchases. Provide an iPhone/TestFlight tester for checks that cannot run on this Windows host. The walk must cover sign-in/recovery, bank return, import/file picker, keyboard/safe areas, offline/error recovery, restore/cancel purchases, export and account deletion. Do not use your real financial records for destructive testing.
+## 5. Apple release access and configuration
+- Confirm the Apple developer account/entity, ownership of app.yorbit, the App Store app ID, signing certificate/profile, and use of a Mac with Xcode 26 / iOS SDK 26. Review agreements, tax, banking and trader status yourself; nothing is assumed purchased.
+- RevenueCat: public Apple SDK key, products app.yorbit.pro.monthly / app.yorbit.pro.yearly, offering and the `pro` entitlement. Server-side verification of App Store purchases (so iOS subscribers get the Pro AI allowance) also needs a RevenueCat secret key in Supabase secrets - engineering will build it once that exists.
+- Supabase Auth: add `app.yorbit://auth/callback` to the redirect allow-list.
+- Decide iPhone-only vs universal. The target is universal (iPhone + iPad) today, so iPad screenshots are required and iPad review is likely. Both screenshot sets are in store-assets/screenshots.
 
-## 5. Confirm the actual submission content
-Provide reviewer access to synthetic data and verify the final privacy answers, support details, screenshots, age-rating questions, availability and listing claims against the signed build. Engineering can prepare the materials; the owner approves legal declarations and submission. The current web site being live does not mean App Store acceptance.
+## 6. Register the native bank-link OAuth redirect
+1. Plaid Dashboard (Team Settings > API): add `https://yorbit-life-os.vercel.app/bank-oauth-return` to Allowed redirect URIs; register Android package `app.yorbit`.
+2. Apple: Associated Domains (`applinks:yorbit-life-os.vercel.app`) on the App ID, plus an apple-app-site-association file with the real Team ID.
+3. Android: `.well-known/assetlinks.json` with the release signing certificate's SHA-256, and an `autoVerify` intent filter.
+Until then, an OAuth bank's return lands on a friendly "return to the app" page instead of resuming.
 
-## 6. Restore the scheduled bank-sync cron's authorization (new, found this session)
-Verified read-only: the sync-all-accounts-4h scheduled job is active and correctly configured except for one thing - Supabase's gateway has been rejecting its Authorization header as 401 UNAUTHORIZED_INVALID_JWT_FORMAT on every dispatch sampled from the last 3 days. The job fires on schedule; it just never reaches the function. No connected account has synced automatically since 2026-09-14, matching this exactly. The most likely cause is a service-role key rotation since the job's Authorization header was last set - MIGRATION_STEPS.md documents that value as a one-time manual paste into the cron.schedule() SQL, with nothing that re-syncs it if the key changes afterward.
+## 7. Reviewer account and submission content
+- Create a production reviewer account with synthetic data only (transactions, budgets, bills, some holdings) and Pro access through Apple's sandbox, so the reviewer can reach Coach. Provide the email, password and support email for the review notes - through App Store Connect, not chat.
+- Reconcile the privacy answers (draft in APP_STORE_SUBMISSION.md) against the signed build's privacy report, SDKs and server processing (Plaid, Anthropic, Sentry, RevenueCat, Stripe).
+- Choose screenshots: the synthetic Home capture shows a negative savings rate and Invest shows $0 trading activity; re-capture from the signed build before submitting if the listing should match the device exactly.
+- Complete the age-rating questionnaire against the signed build. Submission is yours to approve.
 
-The fix is pasting the CURRENT service-role key into that SQL statement, run once in the SQL Editor (MIGRATION_STEPS.md, "Set secrets once" / cron section). That is a secret value, so it was not done here. After updating it, the next scheduled run's outcome is visible read-only via `select status_code, count(*) from net._http_response where created > now() - interval '1 hour' group by status_code` - a 200 confirms it, without needing to inspect a real sync's contents.
-
-This is independent of the bank-sync concurrency fix in this same session and predates it. A signed-in user's own manual Sync button is unaffected - it authenticates with their session, not this stored key - so this has been silent rather than something anyone would have noticed clicking around the app.
-
-## 7. Register the native bank-link OAuth redirect with Plaid and Apple/Google (new, found this session)
-The client and server code for native OAuth bank redirects (Chase, USAA and other large banks that require a sign-in step outside Plaid's own Link screen) is implemented and covered by synthetic tests, but three owner-controlled configuration steps remain before it can work on a real device - none of them are things this session could do:
-
-1. Plaid Dashboard (Team Settings -> API): add `https://yorbit-life-os.vercel.app/bank-oauth-return` to Allowed redirect URIs, and register the Android package name `app.yorbit` under Allowed Android package names.
-2. Apple: add the Associated Domains capability to the app's App ID (`applinks:yorbit-life-os.vercel.app`) and host a correct `apple-app-site-association` file at that domain containing the real Apple Team ID - requires the Apple Developer Program access already tracked in item 3.
-3. Android: host `.well-known/assetlinks.json` at the same domain with the SHA-256 fingerprint of the actual release signing certificate, and add an `autoVerify="true"` intent filter for that domain - requires the release keystore.
-
-Until all three exist, a bank that needs this step redirects to that URL and it loads as a plain webpage - a friendly "return to the app" message (src/pages/BankOAuthReturn.jsx), not a broken one - instead of resuming the connection automatically. Institutions that don't need this step (most smaller/regional banks, and Plaid's own Sandbox test institutions) are unaffected either way, and no live redirect_uri is sent unless the client reports it's running natively. This was tested against synthetic fixtures only, not a real Plaid OAuth redirect, which needs a signed device - see item 4.
-
-## 8. Restore this session's Supabase CLI access, then let it deploy the corrected fix (updated 2026-09-27)
-This session's Supabase CLI still has no stored login at all - not a revoked or expired credential, just nothing present (`supabase projects list` itself returns 401; confirmed no SUPABASE_ACCESS_TOKEN anywhere and a freshly-created, empty CLI config directory). This blocks investigating the scheduled-sync auth failure (item 6), and deploying the corrected bank-disconnect Edge Function below.
-
-**No longer live-broken**: the frontend regression from commit 0326219 (Disconnect button calling a function that didn't exist yet) is contained as of 0a6f98e - it now shows an honest "temporarily unavailable" message and makes no network call at all. It stays that way until the corrected backend below is actually deployed and verified.
-
-**Codex reviewed 0326219 and found three real defects** (saved to C:\Users\Yosef\Yorbit-Main-Handoff\2026-09-26\disconnect-review.md) before it could be deployed: a failed credential cleanup couldn't recover on retry, concurrent disconnects on sibling accounts sharing one Plaid Item could both skip revoking it, and a database read failure was silently treated as "no credential to revoke." All three are fixed in commit 02c562b, with a new migration (20260927120000) and new/rewritten tests - not deployed yet, same CLI-access blocker as before. One caveat: the new migration's own row-locking correctness is reasoned through in its comments and tested at the Edge Function's own logic, not executed against a real Postgres - there's no local Docker/Postgres available in this environment to run it against before deploying.
-
-**The fix, no secret needed in chat**: in a terminal you control on this machine (not through me), run `npx supabase login`. It opens a browser for you to approve against your own Supabase account; the CLI stores the resulting session itself, in your own Windows profile (`C:\Users\Yosef\.supabase\`), same as it always has - nothing to paste anywhere. Once done, tell me and I'll deploy the corrected `plaid-disconnect-account` and its migration, verify production, re-enable the frontend only after that's confirmed, and continue the cron investigation with real read access.
-
-If you'd rather this not require a fresh login every time a session starts clean, the more durable alternative is a personal access token: Supabase Dashboard -> Account -> Access Tokens -> generate one, then set it as a persistent Windows environment variable yourself (System Properties -> Environment Variables, or `setx SUPABASE_ACCESS_TOKEN "<value>"` in your own terminal) - again, never pasted here. Either one unblocks this the same way. Codex's own review noted it has separate, working read access through its Supabase connector but has not attempted a deployment and does not have confirmed deployment permission either - if you'd rather have Codex do the deploy once its permission is confirmed, that's your call to make, not something to assume.
+## 8. Signed-device verification
+Provide a TestFlight tester for: sign-in and recovery, bank return, import/file picker, keyboard and safe areas, offline/error recovery, purchase/restore/cancel, export, and account deletion (including the Apple-subscription warning). Use disposable synthetic accounts, Plaid sandbox and Apple sandbox - never your real financial records.
 
 ## Working arrangement
-Continue in YORBIT MAIN 222. Canonical code: C:/Users/Yosef/projects/yorbit-life-os, master on GitHub. Earlier Codex checkout and its uncommitted journal are preserved. Do not restart multiple development agents or overlapping recurring implementation jobs. The concise status is LAUNCH_STATUS.md; detailed evidence is YORBIT_PROGRESS.md.
+One implementer at a time; automations stay paused. Canonical code: C:/Users/Yosef/projects/yorbit-life-os, master on GitHub. Concise status: LAUNCH_STATUS.md. Evidence: YORBIT_PROGRESS.md.
