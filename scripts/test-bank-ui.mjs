@@ -32,9 +32,30 @@ for(const kind of ['checking','investment']) {
 }
 const disconnectBody=source.match(/const disconnect = async \(id\) => \{([\s\S]*?)\n  \};/)[1];
 const disconnect=new AsyncFunction('scope','with(scope){'+disconnectBody+'}');
+
+// Containment: BANK_DISCONNECT_AVAILABLE is currently false in the real
+// source (the corrected backend isn't deployed yet - see YORBIT_PROGRESS.md
+// 2026-09-27). Confirm the button fails safe on its own, without ever
+// calling the missing function, and never engages the busy lock.
+assert.match(source,/const BANK_DISCONNECT_AVAILABLE = false;/,'containment must still be active - do not flip this back without deploying and verifying the corrected backend first');
+{
+ let error=null,busy='untouched',invoked=0;
+ await disconnect({id:'fixture',setDisconnectingId:v=>busy=v,setError:v=>error=v,setAccounts:()=>{},setHoldings:()=>{},
+ BANK_DISCONNECT_AVAILABLE:false,DISCONNECT_UNAVAILABLE_MESSAGE:'fixture unavailable message',
+ base44:{functions:{invoke:async()=>{invoked++;return {success:true};}}}});
+ assert.equal(invoked,0,'must never call the missing backend function while disabled');
+ assert.equal(error,'fixture unavailable message');
+ assert.equal(busy,'untouched','short-circuits before ever engaging the busy lock');
+}
+
+// The real network path, exercised with the flag force-enabled through the
+// harness scope so re-enabling it later (a one-line flip in the real
+// source, once the corrected backend is deployed and verified) is provably
+// still correct today, not just assumed to still work.
 for(const outcome of ['success','failure','unconfirmed']) {
  let removed=0,error=null,busy='untouched';
  await disconnect({id:'fixture',setDisconnectingId:v=>busy=v,setError:v=>error=v,setAccounts:()=>removed++,setHoldings:()=>removed++,
+ BANK_DISCONNECT_AVAILABLE:true,
  base44:{functions:{invoke:async()=>{if(outcome==='failure')throw new Error('Synthetic');return outcome==='unconfirmed'?{}:{success:true};}}}});
  assert.equal(removed,outcome==='success'?2:0);assert.equal(Boolean(error),outcome!=='success');assert.equal(busy,null);
 }
@@ -43,7 +64,8 @@ for(const outcome of ['success','failure','unconfirmed']) {
 {
  let error=null;
  await disconnect({id:'fixture',setDisconnectingId:()=>{},setError:v=>error=v,setAccounts:()=>{},setHoldings:()=>{},
+ BANK_DISCONNECT_AVAILABLE:true,
  base44:{functions:{invoke:async()=>{throw new Error("We couldn't confirm the disconnect with your bank. Please try again.");}}}});
  assert.equal(error,"We couldn't confirm the disconnect with your bank. Please try again.");
 }
-console.log('PASS bank UI: failed/unconfirmed sync refreshes status, success confirmed, failed/unconfirmed disconnect retains records, releases controls, and surfaces the server\'s own message');
+console.log('PASS bank UI: failed/unconfirmed sync refreshes status, success confirmed, disconnect containment fails safe with no network call, and the underlying disconnect path (force-enabled) still retains records, releases controls, and surfaces the server\'s own message');

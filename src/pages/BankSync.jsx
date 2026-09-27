@@ -27,6 +27,16 @@ const STATUS_CONFIG = {
   not_connected: { icon: Clock,       color: 'text-muted-foreground', label: 'Not connected' },
 };
 
+// TEMPORARY: the corrected server-side disconnect (real Plaid revocation,
+// concurrency-safe, fails closed on a credential-read error) is built and
+// tested but not yet deployed - see YORBIT_PROGRESS.md, 2026-09-27. Showing
+// an honest unavailable state here is safer than either calling a function
+// that doesn't exist yet, or silently falling back to the old status-only
+// path and presenting that as a real disconnect. Flip back to true once the
+// corrected function is deployed and verified in production.
+const BANK_DISCONNECT_AVAILABLE = false;
+const DISCONNECT_UNAVAILABLE_MESSAGE = "Disconnecting is temporarily unavailable while we finish a fix. Your account stays connected and no data is affected — please try again soon.";
+
 export default function BankSync() {
   const [accounts, setAccounts] = useState([]);
   const [holdings, setHoldings] = useState([]);
@@ -206,6 +216,7 @@ export default function BankSync() {
   };
 
   const disconnect = async (id) => {
+    if (!BANK_DISCONNECT_AVAILABLE) { setError(DISCONNECT_UNAVAILABLE_MESSAGE); return; }
     setDisconnectingId(id);
     setError(null);
     try {
@@ -394,8 +405,9 @@ export default function BankSync() {
                             variant="ghost" size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             onClick={() => disconnect(acct.id)}
-                            aria-label="Disconnect account"
-                            disabled={!!disconnectingId || !!syncingId || connecting}
+                            aria-label={BANK_DISCONNECT_AVAILABLE ? 'Disconnect account' : DISCONNECT_UNAVAILABLE_MESSAGE}
+                            title={BANK_DISCONNECT_AVAILABLE ? undefined : DISCONNECT_UNAVAILABLE_MESSAGE}
+                            disabled={!BANK_DISCONNECT_AVAILABLE || !!disconnectingId || !!syncingId || connecting}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
