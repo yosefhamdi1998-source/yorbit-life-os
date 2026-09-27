@@ -4,7 +4,7 @@ Updated September 27, 2026 after bank-backend deployment. Ordered by what unbloc
 ## 1. Remaining backend deployments — bank deployment is complete
 Codex deployed and verified the bank backend through its existing connector; a new CLI login is not required to repeat that work. All three schema migrations are applied. Disconnect is restored in the accompanying frontend release after disposable hosted auth/ownership/disconnect/retry checks. See LAUNCH_STATUS.md for versions and migration-history mapping.
 
-Still pending: revenuecat-sync (requires provider configuration for real verification), revenuecat-webhook, stripe-webhook and ai-coach. The separate approvals below remain unchanged. Do not redeploy the bank set or reapply migrations just because the CLI reports different timestamped filenames; first reconcile the recorded connector/source mapping.
+Still pending: create-checkout and stripe-webhook (item 3), revenuecat-sync (safe to deploy now: 501 until RevenueCat secrets exist), revenuecat-webhook and ai-coach. Local migration files were renamed in fbe2c5b to the versions production recorded (20260927212600/213555/213604), so the CLI sees them as applied. The separate approvals below remain unchanged. Do not redeploy the bank set or reapply migrations just because the CLI reports different timestamped filenames; first reconcile the recorded connector/source mapping.
 
 Real Plaid revocation and legacy-account cleanup were not run. Keep real connections untouched until their specific authorized workflow. No new cleanup utility or generator is needed to repeat the completed bank deployment.
 
@@ -16,10 +16,19 @@ Confirmed by Codex's read-only diagnosis (2026-09-27): the bank job's stored bea
 4. After the next 4-hourly run, re-run queries 3-4 of the diagnosis: 200 = all synced; 502 = partial failure with per-account results.
 5. Decide separately whether to re-point the weekly AI job. Re-enabling it starts scheduled AI analysis of users' data.
 
-## 3. Resolve the exact Stripe test-key approval, then approve the webhook redeploy
-Restricted TEST-mode key only: Checkout Sessions, Customers and Customer portal write; Subscriptions read/write; Products and Prices read; everything else None. Store it only as STRIPE_SECRET_KEY in Supabase secrets.
+## 3. HIGHEST PRIORITY: set up Stripe sandbox billing, then approve the two Stripe deploys
+The app's Stripe prices are live-mode prices, so a test key alone would fail at checkout. Since fbe2c5b the server picks prices by key mode and, in test mode, only lets listed test accounts check out (otherwise anyone could get Pro free with Stripe's public test card on the live site). Do this yourself in the dashboards; never paste values into chat.
+1. Stripe Dashboard: switch to a sandbox (account menu, top left; the account's test-mode sandbox is fine).
+2. Product catalog: add product "Yorbit Pro" with two recurring USD prices, $4.99 monthly and $29.99 yearly. Note both price IDs (price_..., not secret).
+3. Settings > Billing > Customer portal (still in the sandbox): save the configuration (cancel at period end, return URL https://yorbit-life-os.vercel.app/settings).
+4. Workbench > Webhooks > Create an event destination > Your account > events checkout.session.completed, customer.subscription.updated, customer.subscription.deleted > Webhook endpoint > URL https://pvjiialxboslqyiiybpe.supabase.co/functions/v1/stripe-webhook. Reveal its signing secret (whsec_...).
+5. API keys > Create restricted key ("building your own integration"): Checkout Sessions Write, Customers Write, Customer portal Write, Subscriptions **Write** (account deletion cancels subscriptions), Products Read, Prices Read, everything else None. Complete Stripe's email/SMS verification yourself; copy the rk_test_ key.
+6. Supabase Dashboard > Edge Functions > Secrets: set STRIPE_SECRET_KEY (the rk_test_ key), STRIPE_WEBHOOK_SECRET (the sandbox whsec_; live billing is off, so replacing the live endpoint's secret is safe), STRIPE_PRICE_PRO_MONTHLY, STRIPE_PRICE_PRO_YEARLY, and STRIPE_TEST_CHECKOUT_EMAILS = one or two exact addresses you control (e.g. plus-addresses of your inbox) that the disposable test users will use.
+7. Tell Codex: "Approved: deploy create-checkout and stripe-webhook from fbe2c5b or later, and run the Stripe sandbox lifecycle below with disposable test users on the listed addresses." Either order is safe: without these secrets both functions return 501; the old deployed checkout fails on live prices in test mode.
 
-The webhook fix (replay/out-of-order safe, one row per subscription) needs an explicit approval to redeploy, because stripe-webhook runs with gateway JWT verification off and verifies Stripe's signature instead. Then, with disposable test users only:
+Later, at launch: replace STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET with live values (live endpoint we_1UFKvQA4mvP1HWCKATh2klwJ), delete STRIPE_PRICE_* and STRIPE_TEST_CHECKOUT_EMAILS, and delete the test users first (their sandbox subscription ids cannot be canceled with a live key).
+
+Lifecycle, with disposable test users only:
 1. Checkout with test card 4242 4242 4242 4242 (monthly, then yearly); the subscription row appears with the right plan/status and Pro unlocks without a refresh.
 2. In Stripe test mode, resend (replay) checkout.session.completed and customer.subscription.updated; nothing changes.
 3. Cancel at period end in the billing portal; access continues. Then cancel immediately; access ends. Resend the old updated event; access stays off.
