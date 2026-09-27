@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/popover';
 import { toast } from '@/components/ui/use-toast';
 import { jsPDF } from 'jspdf';
+import { saveFile } from '@/lib/saveFile';
 
 function buildRows(rows, totalSpent, totalBudget) {
   const header = ['Category', 'Spent', 'Budget Limit', 'Remaining', 'Status'];
@@ -23,15 +24,12 @@ export default function BudgetExportMenu({ rows, totalSpent, totalBudget, month 
   const [open, setOpen] = useState(false);
   const { header, body } = buildRows(rows, totalSpent, totalBudget);
 
-  const exportCSV = () => {
+  const exportCSV = () => deliver(async () => {
     const csv = [header, ...body].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    triggerDownload(blob, `budget-${month}.csv`);
-    setOpen(false);
-    toast({ title: 'Exported', description: `budget-${month}.csv downloaded` });
-  };
+    return saveFile(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `budget-${month}.csv`);
+  }, `budget-${month}.csv`);
 
-  const exportPDF = () => {
+  const exportPDF = () => deliver(async () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text('Monthly Budget Report', 14, 20);
@@ -52,18 +50,18 @@ export default function BudgetExportMenu({ rows, totalSpent, totalBudget, month 
       y += 7;
       if (y > 270) { doc.addPage(); y = 20; }
     });
-    doc.save(`budget-${month}.pdf`);
-    setOpen(false);
-    toast({ title: 'Exported', description: `budget-${month}.pdf downloaded` });
-  };
+    return saveFile(doc.output('blob'), `budget-${month}.pdf`);
+  }, `budget-${month}.pdf`);
 
-  const triggerDownload = (blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Closes the menu and reports the real outcome: saved, dismissed (no
+  // message), or failed - never a success message for a file that went nowhere.
+  const deliver = async (produce, filename) => {
+    setOpen(false);
+    try {
+      if (await produce()) toast({ title: 'Exported', description: `${filename} saved` });
+    } catch {
+      toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
+    }
   };
 
   return (

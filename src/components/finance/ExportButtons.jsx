@@ -5,13 +5,14 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { writeTransactionRows } from '@/lib/pdfTransactionRows';
 import { escapeCSVCell as csvEsc } from '@/lib/csv';
+import { saveFile } from '@/lib/saveFile';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 export default function ExportButtons({ allTransactions, periodTransactions, categoryData, totalSpending, periodLabel }) {
   const [busy, setBusy] = useState(null);
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     setBusy('csv');
     try {
       const rows = [];
@@ -33,13 +34,9 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       });
 
       const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `yorbit-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: 'CSV exported', description: 'Opens in Google Sheets or Excel.' });
+      if (await saveFile(blob, `yorbit-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`)) {
+        toast({ title: 'CSV exported', description: 'Opens in Google Sheets or Excel.' });
+      }
     } catch {
       toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
     } finally {
@@ -94,8 +91,9 @@ export default function ExportButtons({ allTransactions, periodTransactions, cat
       const sorted = [...periodTransactions].sort((a, b) => (a.date < b.date ? 1 : -1));
       writeTransactionRows(doc, sorted, y, fmt);
 
-      doc.save(`yorbit-summary-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-      toast({ title: 'PDF exported', description: 'Saved to your downloads.' });
+      if (await saveFile(doc.output('blob'), `yorbit-summary-${format(new Date(), 'yyyy-MM-dd')}.pdf`)) {
+        toast({ title: 'PDF exported', description: 'Your summary is ready.' });
+      }
     } catch {
       toast({ title: 'Export failed', description: 'Please try again.', variant: 'destructive' });
     } finally {

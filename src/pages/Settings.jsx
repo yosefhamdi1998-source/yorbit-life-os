@@ -7,6 +7,7 @@ import { createAccountOperation } from '@/lib/accountOperation';
 import { getAiConsent, grantAiConsent, withdrawAiConsent, AI_STATES } from '@/lib/aiConsent';
 import { Settings as SettingsIcon, Trash2, LogOut, AlertTriangle, Shield, Download, Lock, FileText, Mail, ChevronRight, Sparkles, Zap, CheckCircle2, Star, Heart, Palette, ALargeSmall, Gauge } from 'lucide-react';
 import { isNativeIOS } from '@/lib/platform';
+import { saveFile } from '@/lib/saveFile';
 import { restorePurchases as rcRestorePurchases } from '@/lib/revenuecat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -246,14 +247,10 @@ export default function Settings() {
         advisor_conversations, advisor_messages,
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `yorbit-export-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setExportDone(true);
-      setTimeout(() => setExportDone(false), 3000);
+      if (await saveFile(blob, `yorbit-export-${new Date().toISOString().split('T')[0]}.json`)) {
+        setExportDone(true);
+        setTimeout(() => setExportDone(false), 3000);
+      }
     } catch (err) {
       toast({ title: "Couldn't export data", description: err?.code === 'ACCOUNT_CHANGED'
         ? 'Your signed-in account changed. Nothing was downloaded. Start the export again from the account you want to use.'

@@ -43,7 +43,7 @@ const run=new AsyncFunction('scope',`with(scope){${body}}`);
 for(const phase of ['normal','refresh','switch','away-and-back','read-failure']){
  const h=authHarness();let downloads=0,reads=0,done=0;const toasts=[];
  const list=async()=>{reads++;if(reads===3){if(phase==='switch'||phase==='away-and-back')h.change('b');if(phase==='away-and-back'||phase==='refresh')h.change('a');if(phase==='read-failure')throw Error('Synthetic page failure');}return [];};
- const scope={user:{id:'a'},createAccountOperation,exportingRef:{current:false},base44:{auth:h.auth,entities:new Proxy({}, {get:()=>({list,listAll:list})})},setExporting:()=>{},setExportDone:v=>{if(v)done++;},toast:v=>toasts.push(v),setTimeout:()=>{},Blob,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:()=>{}},document:{createElement:()=>({click:()=>downloads++})}};
+ const scope={user:{id:'a'},createAccountOperation,exportingRef:{current:false},base44:{auth:h.auth,entities:new Proxy({}, {get:()=>({list,listAll:list})})},setExporting:()=>{},setExportDone:v=>{if(v)done++;},toast:v=>toasts.push(v),setTimeout:()=>{},Blob,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:()=>{}},document:{createElement:()=>assert.fail('exports go through saveFile, never a bare <a download>')},saveFile:async(blob,name)=>{assert.ok(blob instanceof Blob);assert.match(name,/^yorbit-export-\d{4}-\d{2}-\d{2}\.json$/);downloads++;return true;}};
  await run(scope);
  const success=phase==='normal'||phase==='refresh';assert.equal(downloads,success?1:0,phase);assert.equal(done,success?1:0,phase);assert.equal(toasts.length,success?0:1);assert.equal(h.disposed,1);assert.equal(scope.exportingRef.current,false);
 }
