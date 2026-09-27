@@ -35,7 +35,7 @@ for(const scenario of ['unauthorized','lookup-error','empty','http-error','recon
   if(scenario==='conflict')return {status:409,ok:false,json:async()=>({error:'This account is already syncing.'})};
   return {status:200,ok:!['http-error','reconnect'].includes(scenario),json:async()=>success?{success:true,imported:0,synced:0}:scenario==='unconfirmed'?{}:{error:'Synthetic'}};
  }});
- const result=await handler({});
+ const result=await handler({json:async()=>({})});
  const ok=['success','investment','empty','conflict'].includes(scenario);
  assert.equal(result.status,scenario==='unauthorized'?401:scenario==='lookup-error'?500:ok?200:502,scenario);
  if(['unauthorized','lookup-error','empty'].includes(scenario))assert.equal(calls,0,scenario);
@@ -48,4 +48,19 @@ for(const scenario of ['unauthorized','lookup-error','empty','http-error','recon
   assert.equal(result.body.failed,0,'so a batch where every remaining account is genuinely busy elsewhere is not reported as broken');
  }
 }
-console.log('PASS dispatcher: auth, read failure, empty, expanded candidate set, HTTP/network errors, reconnect preservation, unconfirmed response, success, investment routing, and live-conflict skip accounting');
+// dry_run: proves the scheduled job's own authentication end to end with no
+// Plaid call, no child function, no write - and only after the same auth.
+for (const authorized of [true, false]) {
+ let handler,calls=0,selected=null;const writes=[];
+ const admin={from:()=>({select:(columns,opts)=>{selected={columns,opts};return {in:async(col,values)=>{
+  assert.equal(col,'sync_status');assert.equal(Array.from(values).join(','),'connected,error,syncing');
+  return {count:3,data:null,error:null};}};},update:p=>{writes.push(p);return {eq:()=>({then:r=>Promise.resolve({error:null}).then(r)})};}})};
+ vm.runInNewContext(source,{Deno:{serve:fn=>handler=fn,env:{get:()=> 'synthetic'}},serviceClient:()=>admin,requireSystemCaller:async()=>authorized?null:{status:401},handleOptions:()=>null,jsonResponse:(body,status)=>({body,status}),errorResponse:(message,status)=>({body:{error:message},status}),console:{log(){},error(){}},fetch:async()=>{calls++;throw new Error('dry run must not call child functions');}});
+ const result=await handler({json:async()=>({dry_run:true})});
+ if(authorized){
+  assert.equal(result.status,200);assert.deepEqual({...result.body},{dry_run:true,authenticated:true,candidates:3});
+  assert.equal(selected.columns,'id');assert.equal(selected.opts.head,true,'counts only - no account data is read or returned');
+ } else assert.equal(result.status,401,'dry_run is not a way around authentication');
+ assert.equal(calls,0);assert.equal(writes.length,0);
+}
+console.log('PASS dispatcher: auth, read failure, empty, expanded candidate set, HTTP/network errors, reconnect preservation, unconfirmed response, success, investment routing, and live-conflict skip accounting; authenticated dry run makes no Plaid call or write');

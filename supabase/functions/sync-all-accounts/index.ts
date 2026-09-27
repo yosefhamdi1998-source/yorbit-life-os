@@ -26,6 +26,18 @@ Deno.serve(async (req) => {
     const denied = await requireSystemCaller(req, admin, jsonResponse);
     if (denied) return denied;
 
+    // Verifies the scheduled job's own authentication end to end - gateway
+    // JWT check plus requireSystemCaller - with no Plaid call and no write.
+    // Returns only a count, never account details.
+    const body = await req.json().catch(() => ({}));
+    if (body?.dry_run === true) {
+      const { count, error: countError } = await admin.from('connected_accounts')
+        .select('id', { count: 'exact', head: true })
+        .in('sync_status', ['connected', 'error', 'syncing']);
+      if (countError) throw new Error('Could not count connected accounts');
+      return jsonResponse({ dry_run: true, authenticated: true, candidates: count ?? 0 }, 200, {}, req);
+    }
+
     // Candidates, not a guarantee of who actually syncs. 'connected' is the
     // normal case; 'error' lets a transient prior failure heal on the next
     // scheduled run instead of waiting for someone to notice and click Retry;
