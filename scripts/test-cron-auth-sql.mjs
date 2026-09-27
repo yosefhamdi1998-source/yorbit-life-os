@@ -68,6 +68,41 @@ try {
     assert.ok(!message.includes(secret) && !message.includes('synthetic-signature'), 'a refusal never includes the secret');
   }
   console.log('  PASS  fix pre-check accepts only a complete service_role JWT; refuses missing, sb_secret_, truncated and anon keys without echoing them');
+
+  // The whole fix script, including its cron.schedule/format statement.
+  // cron.schedule and net.http_post are stubs here that record what they get.
+  await client.query(`delete from cron.job;
+    create or replace function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as
+      $f$ update cron.job set schedule = $2, command = $3 where jobname = $1 returning jobid::bigint $f$;
+    create schema if not exists net;
+    create table net.sent (url text, headers jsonb);
+    create function net.http_post(url text, headers jsonb, body jsonb) returns bigint language sql as
+      $f$ insert into net.sent values ($1, $2); select 1::bigint $f$;`);
+  const jobsBefore = [
+    ['sync-all-accounts-4h', '0 */4 * * *', cmd(SERVICE.slice(0, 40)).replace('x.supabase.co', 'pvjiialxboslqyiiybpe.supabase.co')],
+    ['generate-subscription-reminders-daily', '5 9 * * *', cmd('sb_secret_' + 'R'.repeat(30)).replace('sync-all-accounts', 'generate-subscription-reminders')],
+    ['weekly-custom-record-analysis', '0 10 * * 1', cmd('sb_secret_' + 'W'.repeat(30)).replace('sync-all-accounts', 'weekly-custom-record-analysis')],
+  ];
+  for (const [n, sch, c] of jobsBefore) await client.query(`insert into cron.job(jobname, schedule, active, command) values ($1, $2, true, $3)`, [n, sch, c]);
+  await client.query('delete from vault.decrypted_secrets');
+  await client.query(`insert into vault.decrypted_secrets values ('cron_service_role_jwt', $1)`, [`${SERVICE}\n`]);
+  await client.query(fix);
+  const after = Object.fromEntries((await client.query('select jobname, schedule, command from cron.job')).rows.map(r => [r.jobname, r]));
+  assert.equal(after['sync-all-accounts-4h'].schedule, '0 */4 * * *');
+  assert.equal(after['generate-subscription-reminders-daily'].schedule, '5 9 * * *');
+  assert.equal(after['weekly-custom-record-analysis'].command, jobsBefore[2][2], 'the AI job is left exactly as it was');
+  for (const [name, fn] of [['sync-all-accounts-4h', 'sync-all-accounts'], ['generate-subscription-reminders-daily', 'generate-subscription-reminders']]) {
+    await client.query('delete from net.sent');
+    await client.query(after[name].command);
+    const [{ url, headers }] = (await client.query('select url, headers from net.sent')).rows;
+    assert.equal(url, `https://pvjiialxboslqyiiybpe.supabase.co/functions/v1/${fn}`);
+    assert.equal(headers.Authorization, `Bearer ${SERVICE}`, 'the job sends exactly the trimmed Vault key');
+    assert.ok(!after[name].command.includes(SERVICE.slice(20, 40)), 'the key itself is not stored in the job');
+  }
+  const reclassified = Object.fromEntries((await client.query(classify)).rows.map(r => [r.jobname, r.bearer_format]));
+  assert.match(reclassified['sync-all-accounts-4h'], /Vault/); assert.match(reclassified['generate-subscription-reminders-daily'], /Vault/);
+  assert.match(reclassified['weekly-custom-record-analysis'], /NEW secret key/);
+  console.log('  PASS  the full fix re-points bank sync and reminders to Vault with schedules kept, leaves the AI job untouched, and each job then sends exactly the trimmed key');
   console.log('\nAll cron-auth SQL checks passed against real PostgreSQL.');
 } finally {
   await client.end().catch(() => {});

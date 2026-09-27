@@ -91,9 +91,17 @@ const webhook = fs.readFileSync(path.join(fnDir, 'stripe-webhook', 'index.ts'), 
 check('stripe-webhook verifies its signature instead',
   /stripe-signature/.test(webhook) && /constructEventAsync|constructEvent/.test(webhook), true);
 
+// Second exception: RevenueCat cannot send a Supabase JWT either. It must
+// refuse anything without its configured header, before reading the body.
+check('revenuecat-webhook gate is off', declared.get('revenuecat-webhook'), false);
+const rcWebhook = fs.readFileSync(path.join(fnDir, 'revenuecat-webhook', 'index.ts'), 'utf8');
+check('revenuecat-webhook verifies its Authorization header instead',
+  /sameSecret\(req\.headers\.get\('Authorization'\), expected\)/.test(rcWebhook)
+    && rcWebhook.indexOf('sameSecret(') < rcWebhook.indexOf('req.json()'), true);
+
 // Any other open gate needs its own justification; fail until someone adds one.
 const otherOpen = [...declared.entries()]
-  .filter(([k, v]) => v === false && k !== 'stripe-webhook')
+  .filter(([k, v]) => v === false && k !== 'stripe-webhook' && k !== 'revenuecat-webhook')
   .map(([k]) => k);
 check('other functions with the gate off', otherOpen.sort(), []);
 

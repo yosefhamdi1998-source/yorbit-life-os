@@ -4,7 +4,8 @@ let calls=0;
 const info={entitlements:{active:{pro:{}}},activeSubscriptions:['yearly']};
 globalThis.__revenuecatTest={configure:async()=>{calls++;},getOfferings:async()=>({all:{},current:{id:'test'}}),getCustomerInfo:async()=>({customerInfo:info}),restorePurchases:async()=>({customerInfo:info}),purchasePackage:async()=>({customerInfo:info})};
 const source=fs.readFileSync('src/lib/revenuecat.js','utf8').replace(/^import .*;\r?\n/gm,'');
-const prelude="const supabase={auth:{getSession:async()=>({data:{session:{user:{id:'test-user'}}}})}}; const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
+globalThis.__serverSyncCalls=[];
+const prelude="const supabase={auth:{getSession:async()=>({data:{session:{user:{id:'test-user'}}}})},functions:{invoke:async(name,opts)=>{globalThis.__serverSyncCalls.push({name,body:opts?.body});return {data:null,error:null};}}}; const Purchases=globalThis.__revenuecatTest; const PURCHASES_ERROR_CODE={PURCHASE_CANCELLED_ERROR:'1'}; const REVENUECAT_API_KEY='test'; const ENTITLEMENT='pro'; const SUBSCRIPTION_PRODUCTS={yearly:'yearly',monthly:'monthly'}; const isNativeIOS=()=>true;";
 const api=await import('data:text/javascript;base64,'+Buffer.from(prelude+source).toString('base64'));
 await Promise.all([api.getOfferings(),api.getOfferings()]);
 assert.equal(calls,1,'Concurrent callers configure only once');
@@ -17,6 +18,13 @@ for (const cancellation of [{code:'1'}, {code:1}, {userCancelled:true}]) {
 }
 globalThis.__revenuecatTest.purchasePackage = async () => { throw {code:'2'}; };
 assert.ok((await api.purchasePackage({})).error, 'Non-cancellation errors remain errors');
+// The server is asked to re-check RevenueCat after each completed purchase and
+// restore - never after a cancellation or failure - and is sent no purchase data.
+await new Promise(r=>setTimeout(r,0));
+const syncs=globalThis.__serverSyncCalls;
+assert.equal(syncs.length,2,'one server sync after the restore and one after the successful purchase');
+assert.ok(syncs.every(c=>c.name==='revenuecat-sync'&&JSON.stringify(c.body)==='{}'),'only the session identifies the user');
+delete globalThis.__serverSyncCalls;
 delete globalThis.__revenuecatTest;
 console.log('PASS: RevenueCat repeated calls, concurrent initialization, annual entitlement, and restore');
 

@@ -42,6 +42,14 @@ async function withCurrentAccount(operation) {
   return run;
 }
 
+// Asks the server to re-check this account with RevenueCat right away (the
+// RevenueCat webhook does too, a little later). Sends nothing but the session:
+// the server never takes purchase data from the app. Best-effort - a failure
+// never changes what the app shows, which comes from the SDK.
+async function syncServerEntitlement() {
+  try { await supabase.functions.invoke('revenuecat-sync', { body: {} }); } catch { /* webhook is the backstop */ }
+}
+
 export async function getOfferings() {
   try {
     const { all, current } = await withCurrentAccount(() => Purchases.getOfferings());
@@ -74,6 +82,7 @@ function detectPlanFromPurchases(customerInfo) {
 export async function purchasePackage(pkg) {
   try {
     const { customerInfo } = await withCurrentAccount(() => Purchases.purchasePackage({ aPackage: pkg }));
+    void syncServerEntitlement();
     const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan, error: null };
@@ -88,6 +97,7 @@ export async function purchasePackage(pkg) {
 export async function restorePurchases() {
   try {
     const { customerInfo } = await withCurrentAccount(() => Purchases.restorePurchases());
+    void syncServerEntitlement();
     const isPro = !!customerInfo.entitlements?.active?.[ENTITLEMENT];
     const plan = isPro ? detectPlanFromPurchases(customerInfo) : 'free';
     return { isPro, plan, error: null };

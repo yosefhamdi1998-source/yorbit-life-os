@@ -82,6 +82,8 @@ export const NOTIFICATION_TYPES = ['subscription_renewal', 'bill_due', 'goal', '
 export const PROFILE_ROLES = ['user', 'admin'];
 export const SUBSCRIPTION_PLANS = ['free', 'pro_monthly', 'pro_yearly'];
 export const SUBSCRIPTION_STATUSES = ['active', 'canceled', 'past_due', 'trialing', 'incomplete'];
+export const SUBSCRIPTION_PROVIDERS = ['stripe', 'app_store'];
+export const SUBSCRIPTION_STORE_ENVIRONMENTS = ['production', 'sandbox'];
 export const BANK_PROVIDERS = ['plaid', 'teller'];
 export const BANK_SYNC_STATUSES = ['success', 'partial', 'failed'];
 // reconnect_required is terminal until the user re-authenticates with their
@@ -122,6 +124,8 @@ export const ENUM_CONSTRAINT_MAP = {
   profiles_role_check: PROFILE_ROLES,
   subscriptions_plan_check: SUBSCRIPTION_PLANS,
   subscriptions_status_check: SUBSCRIPTION_STATUSES,
+  subscriptions_provider_check: SUBSCRIPTION_PROVIDERS,
+  subscriptions_store_environment_check: SUBSCRIPTION_STORE_ENVIRONMENTS,
   bank_sync_logs_provider_check: BANK_PROVIDERS,
   bank_sync_logs_status_check: BANK_SYNC_STATUSES,
   connected_accounts_provider_check: BANK_PROVIDERS,

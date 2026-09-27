@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         // A row created for this customer before any subscription was tied
         // to it (older webhook versions keyed by customer only).
         const untied = await admin.from('subscriptions').select('id')
-          .eq('stripe_customer_id', customerId).is('stripe_subscription_id', null);
+          .eq('provider', 'stripe').eq('stripe_customer_id', customerId).is('stripe_subscription_id', null);
         if (untied.error) throw untied.error;
         targetId = untied.data?.[0]?.id;
       }

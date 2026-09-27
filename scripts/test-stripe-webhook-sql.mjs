@@ -23,7 +23,7 @@ const ok = label => { passed++; console.log(`  PASS  ${label}`); };
 const entitled = rows => rows.some(r => ['active', 'trialing'].includes(r.status) && r.plan && r.plan !== 'free');
 const rowsFor = async user => (await pool.query('select stripe_subscription_id, plan, status from subscriptions where user_id=$1 order by created_date', [user])).rows;
 
-const COLS = new Set(['id', 'user_id', 'stripe_customer_id', 'stripe_subscription_id', 'plan', 'status', 'current_period_end', 'cancel_at_period_end']);
+const COLS = new Set(['id', 'user_id', 'provider', 'stripe_customer_id', 'stripe_subscription_id', 'plan', 'status', 'current_period_end', 'cancel_at_period_end']);
 async function asService(sql, params) {
   const c = await pool.connect();
   try { await c.query('begin'); await c.query('set local role service_role'); const r = await c.query(sql, params); await c.query('commit'); return r; }
@@ -107,6 +107,7 @@ try {
   await pool.query('grant all on public.subscriptions to authenticated, service_role');
   await pool.query(read('supabase/migrations/20260908234547_restrict_subscription_writes.sql'));
   await pool.query(read('supabase/migrations/20260927130000_unique_stripe_subscription_rows.sql'));
+  await pool.query(read('supabase/migrations/20260927140000_app_store_subscriptions.sql'));
   const send = await makeHandler();
   console.log('Real PostgreSQL: subscriptions table from schema.sql + real migrations; real stripe-webhook handler; fake Stripe.\n');
 
@@ -194,6 +195,17 @@ try {
     const rows = await rowsFor(u.id);
     assert.equal(rows.length, 1); assert.equal(rows[0].stripe_subscription_id, 'sub_f1'); assert.ok(!entitled(rows));
     ok('a legacy row not yet tied to a subscription is adopted and updated, not left granting access forever');
+  }
+  {
+    // An App Store entitlement row (written by revenuecat-webhook) beside Stripe.
+    const u = await newUser();
+    await asService(`insert into public.subscriptions (user_id, provider, plan, status) values ($1, 'app_store', 'pro_yearly', 'active')`, [u.id]);
+    setTruth('sub_g1', u.customer, 'canceled');
+    await send(checkout('sub_g1', u.customer, u.id));
+    await send(subEvent('deleted', 'sub_g1', u.customer, 'canceled'));
+    const rows = (await pool.query('select provider, status from subscriptions where user_id=$1 order by provider', [u.id])).rows;
+    assert.deepEqual(rows.map(r => `${r.provider}:${r.status}`), ['app_store:active', 'stripe:canceled']);
+    ok('Stripe events never adopt or overwrite an App Store entitlement row');
   }
   console.log(`\nAll ${passed} checks passed against real PostgreSQL.`);
 } finally {
