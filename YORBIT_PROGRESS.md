@@ -1761,3 +1761,19 @@ Coverage delta (persistent checklist):
 | Scheduled bank sync | Blocked | Vault credential name cron_service_role_jwt still absent on name-only recheck |
 
 No real financial records, bank connection, provider request, payment, AI processing or new cost. Public privacy wording unchanged. Apple/Mac/signing/device/reviewer and provider-configuration gates remain; APP_STORE_READINESS.md remains the finite five-item scope. Save/release evidence is finalized in the local checkpoint/handoff after push. Cloud-synced backup refresh remains blocked by the previously reported approval-review decision; not retried or bypassed.
+
+
+## September 28, 2026 — Codex: subscription-management release preparation
+Owner requested completing all remaining implementer work until only owner dependencies remain. Started from clean tracked master 1f98b69; preserved existing untracked audit/output files. No agents or automations started.
+
+Found two concrete gaps within the existing payment/cancellation item, reproduced before fixing:
+- The saved billing-portal handler accepted live or unrecognized Stripe keys despite checkout/webhooks being sandbox-only. It now uses the same checkoutAllowed policy before subscription lookup or Stripe calls: live keys remain disabled; test access requires the approved tester list. It deliberately does not require checkout price settings, so an approved tester can still cancel an existing subscription if those settings change.
+- Settings could redirect a delayed portal response after sign-out/account change. It now uses the existing createAccountOperation guard before/after the request, discards stale responses even after switching away and back, and releases the listener/busy flag. The previous handler failed the actual extracted-handler switch regression (one redirect instead of zero).
+
+Tests: billing-portal fake-provider and real Settings-handler scenarios pass (normal, same-user refresh, switch, logout, away/back, request failure, initial mismatch, double tap, unknown/duplicate customer, hostile return URL/IDs, live/test/unlisted keys/accounts); checkout, account-operation, edge-auth guards and JWT-config pass. Strict lint and final changed-file lint pass; production build exits 0 (index-VD62Lpra.js, Settings-lBHrW3tT.js). No real Stripe customer/session or payment was created.
+
+Hands-on synthetic desktop/light browser: Settings > Manage Subscription displays recoverable external-action-disabled error, button remains usable on retry, Contact support navigates to Support. Screenshot saved locally under output/portal-recovery-2026-09-28.png. Account-switch races are handler-level tests; no claim of a real provider portal session or signed-device test. Mobile/dark/Simple mode/charts were not re-tested in this narrow batch.
+
+Backend state: deployed create-billing-portal is still v1 (JWT true) until separately approved. Exact prepared package includes the same deployed auth/service-bearer/rate-limit helpers, shared sandbox billing policy, and the already-saved Capacitor CORS origins. No AI endpoint or data transmission changes. A specific sandbox-only portal deployment approval has been requested because the prior automatic approval review blocked this separately from checkout/webhooks. No attempt to bypass it.
+
+Remaining owner dependencies are unchanged: secure sandbox provider settings/test identities; secure cron_service_role_jwt; Apple membership/team/Mac/device access; legal/privacy/reviewer decisions and eventual submission approval. AI/native-origin approval and cloud-backup payload/destination approval remain separate. This release does not add features or declare all launch gates complete. Web deployment evidence and the final approval outcome are recorded in the local handoff/checkpoint.

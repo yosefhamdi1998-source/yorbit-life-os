@@ -40,14 +40,19 @@ export default function Settings() {
     portalRef.current = true;
     setOpeningPortal(true);
     setPortalError('');
+    let operation;
     try {
+      operation = createAccountOperation(base44.auth, user?.id);
+      await operation.assertCurrent();
       const appBase = import.meta.env.BASE_URL.replace(/\/$/, '');
       const result = await base44.functions.invoke('createBillingPortal', { returnUrl: `${window.location.origin}${appBase}/settings` });
+      await operation.assertCurrent();
       if (!result?.url) throw new Error("Subscription management couldn't be opened. Please try again later.");
       window.location.assign(result.url);
     } catch (error) {
       setPortalError(error?.message || "Subscription management couldn't be opened. Please try again later.");
     } finally {
+      operation?.dispose();
       portalRef.current = false;
       setOpeningPortal(false);
     }

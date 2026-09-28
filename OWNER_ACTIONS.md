@@ -1,5 +1,5 @@
 # Yorbit owner actions
-Updated September 27, 2026 after the approved sandbox billing and RevenueCat deployments. Ordered by what unblocks the most. Nothing has been purchased, signed, paid, submitted, or revoked. Never paste a key, token or password into chat, code or a report.
+Updated September 28, 2026 after the subscription-management safeguards were prepared and tested. Ordered by what unblocks the most. Nothing has been purchased, signed, paid, submitted, or revoked. Never paste a key, token or password into chat, code or a report.
 
 ## 1. Backend deployment status
 Codex deployed and verified the bank backend through its existing connector; a new CLI login is not required to repeat that work. All three schema migrations are applied. Disconnect is restored in the accompanying frontend release after disposable hosted auth/ownership/disconnect/retry checks. See LAUNCH_STATUS.md for versions and migration-history mapping.
@@ -19,6 +19,8 @@ Vault name-only recheck on September 27 still found cron_service_role_jwt absent
 5. Decide separately whether to re-point the weekly AI job. Re-enabling it starts scheduled AI analysis of users' data.
 
 ## 3. HIGHEST PRIORITY: configure the deployed Stripe sandbox billing
+One separate release decision remains: approve the prepared sandbox-only create-billing-portal update. It rejects live/unknown keys and unapproved test accounts before lookup/provider calls. Local handler tests and browser failure recovery pass. This endpoint was omitted from the earlier checkout/webhook approval; deployed v1 is unchanged until resolved. This approval does not authorize live charges, real customer changes or AI processing.
+
 The app's Stripe prices are live-mode prices, so a test key alone would fail at checkout. The deployed sandbox release requires two distinct valid test price IDs and only lets listed test accounts check out (otherwise anyone could get Pro free with Stripe's public test card on the live site). Do this yourself in the dashboards; never paste values into chat.
 1. Stripe Dashboard: switch to a sandbox (account menu, top left; the account's test-mode sandbox is fine).
 2. Product catalog: add product "Yorbit Pro" with two recurring USD prices, $4.99 monthly and $29.99 yearly. Note both price IDs (price_..., not secret).

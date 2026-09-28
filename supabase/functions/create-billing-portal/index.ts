@@ -1,6 +1,6 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, userClient } from '../_shared/supabase.ts';
-import { validCheckoutReturn } from '../_shared/billing.ts';
+import { checkoutAllowed, validCheckoutReturn } from '../_shared/billing.ts';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 import Stripe from 'npm:stripe@22.4.0';
 
@@ -14,7 +14,12 @@ Deno.serve(async (req) => {
     const limited = await enforceRateLimit('billing-portal', identityFromRequest(req, user.id), RULES.auth, undefined, req);
     if (limited) return limited;
     const key = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!key) return jsonResponse({ error: 'Subscription management is not available yet. Please contact support.' }, 501, {}, req);
+    // Match checkout's approved sandbox boundary before any customer lookup
+    // or Stripe call. Portal access must not depend on checkout price settings:
+    // testers still need to cancel an existing subscription if prices change.
+    if (!checkoutAllowed(key, user.email, name => Deno.env.get(name))) {
+      return jsonResponse({ error: 'Subscription management is not available yet. Please contact support.' }, 501, {}, req);
+    }
     let body;
     try { body = await req.json(); }
     catch { return jsonResponse({ error: 'Invalid request.' }, 400, {}, req); }

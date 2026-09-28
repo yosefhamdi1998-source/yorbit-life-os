@@ -1,5 +1,5 @@
 # Yorbit launch status
-Updated September 27, 2026 after Codex's hosted deletion verification. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated September 28, 2026 after subscription-management regression fixes. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## Readiness decisions
 | Release | Decision | Why |
@@ -13,7 +13,7 @@ Updated September 27, 2026 after Codex's hosted deletion verification. The finit
 |---|---|
 | Web (Vercel, yorbit-life-os.vercel.app) | Last independently verified frontend: 5ba4dd0, Vercel success https://vercel.com/yorbit/yorbit-life-os/56sSDwp1uuKC3doJe3XnpPq8Vr5E ; public HTTP 200, index-CSKagJjX.js. It includes the native purchase/restore confirmation and reviewer/privacy-source preparation. This deletion follow-through changes backend/seed/tests/docs only; its final GitHub/Vercel status will be recorded in the local checkpoint. A web deployment does not ship the native binary. |
 | Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v14; all ACTIVE with verify_jwt=true. create-checkout v4 and revenuecat-sync v1 are also ACTIVE with verify_jwt=true. stripe-webhook v3 and revenuecat-webhook v1 are ACTIVE with gateway JWT off and their provider authentication checks in the handlers. All three new schema migrations applied. |
-| Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
+| Committed, NOT deployed | create-billing-portal sandbox-only boundary awaits its separate deployment approval (v1 remains deployed); local regression tests pass. ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
 
 ## What was actually tested
@@ -78,3 +78,7 @@ Purchase/restore confirmation now waits for an account-bound server result and r
 - Hosted RLS rollback-only fixture report: 15 checks, zero failures. No fixture rows persisted. This covers the selected ownership/RPC paths, not every table or feature.
 - No bank/provider call, paid subscription cancellation, Apple purchase, signup email, native UI or signed-device test occurred. Hosted free-account deletion is now verified; actual paid/provider lifecycle remains pending.
 - Vault name-only check: cron_service_role_jwt still absent. No credential value read or changed. Automations remain paused.
+
+
+## September 28 subscription-management follow-through
+Prepared portal endpoint now applies the existing sandbox-only/tester policy, without blocking cancellation on missing checkout price settings. Settings rejects late portal responses after an account switch or sign-out, including away-and-back. Both failures were reproduced first. Targeted portal/checkout/account-isolation/auth-config tests, strict lint and production build pass. Synthetic Settings browser verified recoverable failure, retry and support navigation. Backend portal v1 remains deployed pending the specific approval; no real portal session, payment or new credentials. Frontend source/build: index-VD62Lpra.js / Settings-lBHrW3tT.js; final GitHub/Vercel evidence goes in the local checkpoint.
