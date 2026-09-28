@@ -1,5 +1,5 @@
 # Yorbit launch status
-Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat backend release. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated September 27, 2026 after Codex's hosted deletion verification. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## Readiness decisions
 | Release | Decision | Why |
@@ -11,8 +11,8 @@ Updated September 27, 2026 after Codex's reviewed sandbox billing and RevenueCat
 ## What is deployed, and where
 | Where | State |
 |---|---|
-| Web (Vercel, yorbit-life-os.vercel.app) | Last verified release before this work: 2342e12, Vercel success https://vercel.com/yorbit/yorbit-life-os/6n5G1vRytGSL9sjmPJ6wuUi2fq8G . It preserves restored Disconnect and native exports and sends plan names plus the transitional live price ID for backend compatibility. Backend billing changes are not implied by that web deployment. |
-| Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v13; all ACTIVE with verify_jwt=true. create-checkout v4 and revenuecat-sync v1 are also ACTIVE with verify_jwt=true. stripe-webhook v3 and revenuecat-webhook v1 are ACTIVE with gateway JWT off and their provider authentication checks in the handlers. All three new schema migrations applied. |
+| Web (Vercel, yorbit-life-os.vercel.app) | Last independently verified frontend: 5ba4dd0, Vercel success https://vercel.com/yorbit/yorbit-life-os/56sSDwp1uuKC3doJe3XnpPq8Vr5E ; public HTTP 200, index-CSKagJjX.js. It includes the native purchase/restore confirmation and reviewer/privacy-source preparation. This deletion follow-through changes backend/seed/tests/docs only; its final GitHub/Vercel status will be recorded in the local checkpoint. A web deployment does not ship the native binary. |
+| Supabase (deployed and verified by Codex September 27) | plaid-disconnect-account v1, plaid-sync-transactions v24, plaid-sync-holdings v11, sync-all-accounts v10, plaid-create-link-token v11, delete-account v14; all ACTIVE with verify_jwt=true. create-checkout v4 and revenuecat-sync v1 are also ACTIVE with verify_jwt=true. stripe-webhook v3 and revenuecat-webhook v1 are ACTIVE with gateway JWT off and their provider authentication checks in the handlers. All three new schema migrations applied. |
 | Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
 
@@ -69,3 +69,12 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 
 ## Current five-item completion batch
 Purchase/restore confirmation now waits for an account-bound server result and reports a recoverable pending state on errors/timeouts. Reviewer seeding is corrected and guarded against existing-account overwrite, with local real-schema verification. Native export privacy reason C617.1 is present and parses. Focused tests, strict lint and production build pass. Hands-on synthetic browser checks cover purchase pending, restore pending on Upgrade/Settings, and confirmed navigation. Public privacy wording remains a prepared owner-review draft. No Apple/device/provider lifecycle result is invented. APP_STORE_READINESS.md is the fixed acceptance checklist; completion/deployment evidence for this batch is in C:/Users/Yosef/Yorbit-Main-Handoff/2026-09-27/five-item-release.md. No backend redeploy or credential change was needed for these client/source fixes.
+
+
+## September 27 deletion follow-through
+- Deployed delete-account v14, ACTIVE, verify_jwt=true. Only the handler changed; its five deployed shared dependencies were unchanged. Non-POST requests now return 405 before auth/data work. Finalized disconnected accounts with no credential need no Plaid configuration; retained credentials and lookup failures still fail closed. The fictional reviewer holdings account is now marked disconnected.
+- Local failing-first regression reproduced the disconnected/no-config refusal before the fix. Account deletion, reviewer seed on real disposable Postgres, Plaid token handling, edge auth, JWT config, deletion coverage and strict lint pass.
+- Hosted password sign-in and HTTP checks passed using two new synthetic free accounts: GET 405 with records preserved; POST 200 including a token-free disconnected holding; old session rejected (Auth 403, endpoint 401), refresh rejected (400); second user's data/session preserved; second user's endpoint cleanup 200. Database confirms zero fixture users, profiles, transactions, notes, subscriptions, accounts, holdings and rate counters.
+- Hosted RLS rollback-only fixture report: 15 checks, zero failures. No fixture rows persisted. This covers the selected ownership/RPC paths, not every table or feature.
+- No bank/provider call, paid subscription cancellation, Apple purchase, signup email, native UI or signed-device test occurred. Hosted free-account deletion is now verified; actual paid/provider lifecycle remains pending.
+- Vault name-only check: cron_service_role_jwt still absent. No credential value read or changed. Automations remain paused.

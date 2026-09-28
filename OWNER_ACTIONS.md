@@ -6,10 +6,12 @@ Codex deployed and verified the bank backend through its existing connector; a n
 
 Now deployed: create-checkout v4, stripe-webhook v3, revenuecat-sync v1 and revenuecat-webhook v1. The user endpoints require JWT; webhooks validate their provider authentication. Owner sandbox deployment approval is resolved. Stripe is sandbox-only in code, and live hosted checks show billing/App Store provider configuration incomplete (501). Still pending: ai-coach and the configuration/device work below. No real App Store purchase has been verified. Local migration files were renamed in fbe2c5b to the versions production recorded (20260927212600/213555/213604), so the CLI sees them as applied. The separate approvals below remain unchanged. Do not redeploy the bank set or reapply migrations just because the CLI reports different timestamped filenames; first reconcile the recorded connector/source mapping.
 
+delete-account v14 is deployed. Hosted free-account deletion, isolation and old-session rejection passed on disposable synthetic accounts; paid-account cancellation/deletion still needs the sandbox settings below. No owner action is needed to repeat the completed free-account check.
+
 Real Plaid revocation and legacy-account cleanup were not run. Keep real connections untouched until their specific authorized workflow. No new cleanup utility or generator is needed to repeat the completed bank deployment.
 
 ## 2. Fix the scheduled jobs' authentication
-Confirmed by Codex's read-only diagnosis (2026-09-27): the bank job's stored bearer is malformed or truncated; the reminders and weekly-analysis jobs hold non-JWT secret keys; retained responses are 401 UNAUTHORIZED_INVALID_JWT_FORMAT. Not a rotated key.
+Vault name-only recheck on September 27 still found cron_service_role_jwt absent. Confirmed by Codex's read-only diagnosis (2026-09-27): the bank job's stored bearer is malformed or truncated; the reminders and weekly-analysis jobs hold non-JWT secret keys; retained responses are 401 UNAUTHORIZED_INVALID_JWT_FORMAT. Not a rotated key.
 1. In the dashboard, add a Vault secret named `cron_service_role_jwt` holding the **legacy** service_role key (API Keys, "Legacy API keys" tab; starts with eyJ). If legacy keys are disabled on this project, stop and tell me - that needs a different, code-level fix.
 2. Run `scripts/cron-auth-fix.sql`. It refuses anything but a complete service_role JWT, then points bank sync and reminders at Vault, keeping their schedules, and leaves the weekly AI job untouched.
 3. The sync-all-accounts dry-run code is now deployed. After credential repair, run `scripts/cron-auth-verify.sql`: a dry run through the job's exact auth path (no Plaid call, no write). Pass = 200 with `{"dry_run":true,"authenticated":true,...}`.

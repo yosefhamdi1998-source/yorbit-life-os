@@ -1732,3 +1732,32 @@ Interaction coverage this run:
 | Stripe/RevenueCat real sandbox and privileged cron dry run | Blocked | Required secure provider/Vault configuration not supplied. |
 
 The original five release items are NOT claimed complete. Remaining are real sandbox billing/entitlement/cancellation/deletion evidence; secure cron credential repair and verified authorized execution; signed device flows and native return registration; approved final privacy/reviewer assets; final submission after these pass. AI/native-origin and billing-portal restrictions remain separate. No real payment, AI processing, bank connection/revocation or financial record mutation. Deployment evidence for this batch is recorded in C:/Users/Yosef/Yorbit-Main-Handoff/2026-09-27/five-item-release.md and Yorbit-release-checkpoint.md after verification. A web deployment does not ship the native binary.
+
+
+## September 27, 2026 — Codex: hosted free-account deletion verified
+Owner requested continued work to finish the same app. Started at 5ba4dd0 with no tracked edits; existing untracked audit/output files and old checkout preserved. No agents, new schedule or automation resumed.
+
+Found and reproduced a remaining deletion blocker: Plaid configuration was required even after every account was finalized disconnected with its credential removed. Moved that requirement to the real revocation branch. Credential lookup failures, retained tokens without configuration and missing tokens on active accounts still return 503 before local data deletion. Added POST-only handling (GET/HEAD/PUT/DELETE return 405 before auth/data work). Corrected the token-free reviewer holdings fixture to disconnected so it can be deleted normally. These close gaps within items 1/4, not new feature scope.
+
+Validation: account-deletion failing-first regression passed after correction; test-review-seed passed against real disposable UTF-8 Postgres/schema; test-plaid-token, test-edge-auth-guards, test-function-jwt-config, test-delete-coverage and strict lint passed. No frontend change; broad build/suite and prior UI flows were not repeated. A local neutral esbuild packaging attempt could not resolve node:crypto; deployed the exact multi-file source structure used by v13 instead. All five shared dependencies matched v13 unchanged.
+
+Deployed delete-account v14 ACTIVE with verify_jwt=true; deployment bundle hash 6f47a747fe1003241104d4c6289fd7fa6e980660e500605f13dd22cfbd9a5165. No other function or credential changed.
+
+Hosted synthetic verification:
+- Two unique invalid-domain confirmed fixture accounts, password sign-in HTTP 200 each; one fake disconnected Plaid row/holding with no provider token and free subscriptions only.
+- Authenticated GET deletion 405; A's transaction remained. POST deletion 200/success; Auth rejected old A bearer with 403, deletion endpoint with 401, refresh with 400.
+- B's transaction and signed-in session survived A deletion. B then deleted successfully through the endpoint.
+- Scoped cleanup query confirmed zero fixture users, profiles, transactions, notes, subscriptions, accounts, holdings; removed only those two fixtures' rate counters and confirmed zero.
+- Existing rollback-only hosted isolation script: 15 PASS, zero failures; cross-user reads/updates/deletes/forged insert/self-upgrade refused, caller-scoped RPC paths passed. Intentional exception rolled all fixture data back.
+
+Coverage delta (persistent checklist):
+| Flow/surface | State | Evidence / remaining |
+|---|---|---|
+| Permanent free-account deletion, token-free disconnected holding, POST-only validation | Tested: hosted HTTP and local regression | 200 deletion; GET 405 preserves fixture; database removal verified |
+| Deleted session/refresh and second-user isolation | Tested: hosted synthetic | 403/401/400 for deleted session paths; B unaffected; rollback RLS checks pass |
+| Reviewer fixture/account deletion compatibility | Tested: local real schema + analogous hosted holding | Seed state disconnected; full seed still never run in production |
+| Paid subscription deletion / real provider revocation | Blocked / not verified | Actual sandbox billing configuration/provider lifecycle still required |
+| Native iPhone/iPad, themes, Simple mode, charts, browser deletion UI | Not re-tested this batch | Backend-only follow-through; no new blanket UI coverage claim |
+| Scheduled bank sync | Blocked | Vault credential name cron_service_role_jwt still absent on name-only recheck |
+
+No real financial records, bank connection, provider request, payment, AI processing or new cost. Public privacy wording unchanged. Apple/Mac/signing/device/reviewer and provider-configuration gates remain; APP_STORE_READINESS.md remains the finite five-item scope. Save/release evidence is finalized in the local checkpoint/handoff after push. Cloud-synced backup refresh remains blocked by the previously reported approval-review decision; not retried or bypassed.

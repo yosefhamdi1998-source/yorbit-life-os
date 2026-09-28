@@ -122,8 +122,9 @@ begin
     (DEMO_USER, 'Student loan',         'liability', 12600.00);
 
   -- Synthetic display-only positions, with no provider token or bank link.
+  -- Use the finalized disconnected state so account deletion needs no revocation.
   insert into connected_accounts (user_id, provider, institution_name, account_name, account_type, sync_status)
-  values (DEMO_USER, 'plaid', 'Fictional Review Brokerage', 'Demo holdings — no bank connection', 'investment', 'not_connected')
+  values (DEMO_USER, 'plaid', 'Fictional Review Brokerage', 'Demo holdings — no bank connection', 'investment', 'disconnected')
   returning id into demo_account;
   insert into investment_holdings (user_id, connected_account_id, security_name, ticker_symbol, quantity, institution_value, currency)
   values (DEMO_USER, demo_account, 'Fictional Review Fund', 'DEMO', 12, 1440, 'USD'),

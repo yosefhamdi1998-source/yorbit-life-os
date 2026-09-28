@@ -29,7 +29,7 @@ try {
  assert.ok(Number((await pool.query('select count(*) from transactions where user_id=$1',[demo])).rows[0].count)>=47);
  assert.equal(Number((await pool.query('select count(*) from transactions where date>current_date')).rows[0].count),0,'Never count future paydays as received income');
  assert.equal(Number((await pool.query('select count(*) from investment_holdings where user_id=$1',[demo])).rows[0].count),2,'Reviewer notes promise holdings');
- assert.equal(Number((await pool.query("select count(*) from connected_accounts where user_id=$1 and sync_status='connected'",[demo])).rows[0].count),0,'Never create a fake live bank connection');
+ assert.equal(Number((await pool.query("select count(*) from connected_accounts where user_id=$1 and sync_status <> 'disconnected'",[demo])).rows[0].count),0,'Token-free reviewer holdings must be finalized disconnected so account deletion is possible');
  const before=await pool.query('select id from transactions order by id');
  await assert.rejects(pool.query(seed),/must be empty/,'Rerun cannot erase existing financial data');
  assert.deepEqual((await pool.query('select id from transactions order by id')).rows,before.rows);

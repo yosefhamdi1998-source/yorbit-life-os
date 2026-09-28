@@ -19,6 +19,7 @@ const ENTITY_TABLES = [
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
   if (opt) return opt;
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, {}, req);
 
   try {
     const user = await getUser(req);
@@ -63,7 +64,6 @@ Deno.serve(async (req) => {
       if (accounts.length) {
         const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
         const plaidSecret = Deno.env.get('PLAID_SECRET');
-        if (!plaidClientId || !plaidSecret) throw new Error('Bank disconnect is not configured');
         const removedTokens = new Set<string>();
         for (const account of accounts) {
           const { token } = await getPlaidAccessToken(admin, account.id);
@@ -76,6 +76,9 @@ Deno.serve(async (req) => {
             throw new Error('Bank credential unavailable');
           }
           if (removedTokens.has(token)) continue;
+          // A finalized disconnect has no token left and needs no Plaid call.
+          // Retained credentials still require configured, confirmed revocation.
+          if (!plaidClientId || !plaidSecret) throw new Error('Bank disconnect is not configured');
           const res = await fetch('https://production.plaid.com/item/remove', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
