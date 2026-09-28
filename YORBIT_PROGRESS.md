@@ -1777,3 +1777,29 @@ Hands-on synthetic desktop/light browser: Settings > Manage Subscription display
 Backend state: deployed create-billing-portal is still v1 (JWT true) until separately approved. Exact prepared package includes the same deployed auth/service-bearer/rate-limit helpers, shared sandbox billing policy, and the already-saved Capacitor CORS origins. No AI endpoint or data transmission changes. A specific sandbox-only portal deployment approval has been requested because the prior automatic approval review blocked this separately from checkout/webhooks. No attempt to bypass it.
 
 Remaining owner dependencies are unchanged: secure sandbox provider settings/test identities; secure cron_service_role_jwt; Apple membership/team/Mac/device access; legal/privacy/reviewer decisions and eventual submission approval. AI/native-origin approval and cloud-backup payload/destination approval remain separate. This release does not add features or declare all launch gates complete. Web deployment evidence and the final approval outcome are recorded in the local handoff/checkpoint.
+
+
+## September 28, 2026 — Codex: sandbox portal deployed; native Auth callback saved
+Owner instructed continuing the exact pending work without another approval request. The specific sandbox portal release is now approved and completed; do not repeat the old pending-approval claim. Started at b3e86c0 with no tracked edits; untracked audit/output files and old checkout preserved. No agents or automations resumed.
+
+Deployment: create-billing-portal v2, ACTIVE, verify_jwt=true, bundle 0d5fee39b10eb71e2dfd5c54a14f2a085f61dfdeb96fbf00ee9133f819a774dc. Verified the exact package against current saved source before deploying. It retains existing auth/service-bearer/rate-limit helpers, applies the tested sandbox/tester policy, and includes saved Capacitor origins. No AI function or live billing activation.
+
+Hosted synthetic checks: one new invalid-domain disposable user signed in (200); anonymous portal POST 401; authenticated GET 405; native-origin OPTIONS 200 with expected allow-origin; authenticated deliberately invalid return URL/caller customer ID POST 501. This tests refusal while unavailable, not a successful Stripe portal. No Stripe customer/session/payment created. Scoped cleanup confirmed zero fixture auth users, profiles, subscriptions and rate counters. Ephemeral fixture credentials discarded.
+
+Native Auth configuration: inspected source PKCE client and exact app.yorbit://auth/callback validation. test-native-auth.mjs passed (allowlist, token/hash rejection, duplicates, PKCE/recovery/error/browser-close cases). Current official Supabase native-mobile-deep-linking/redirect-urls documentation checked. Dashboard initially listed only the GitHub Pages and Vercel web patterns. Added the exact native callback; saved confirmation and Total URLs: 3 verified, prior URLs preserved. Site URL unchanged. Screenshot: output/native-auth-config-2026-09-28.png. No real auth email or native signed-device flow exercised.
+Sources: https://supabase.com/docs/guides/auth/native-mobile-deep-linking ; https://supabase.com/docs/guides/auth/redirect-urls .
+
+Configuration evidence, names only: absent STRIPE_SECRET_KEY, STRIPE_PRICE_PRO_MONTHLY, STRIPE_PRICE_PRO_YEARLY, STRIPE_TEST_CHECKOUT_EMAILS, REVENUECAT_SECRET_API_KEY, REVENUECAT_WEBHOOK_AUTH. STRIPE_WEBHOOK_SECRET exists; value/mode not read. Vault cron_service_role_jwt still absent. Connected Stripe account inventory exposes only live Yorbit, no sandbox; no live mutation made. Generated owner-controlled account access link for connecting sandbox (session URL deliberately not saved to repository).
+
+Coverage delta:
+| Surface | State | Evidence / remaining |
+|---|---|---|
+| Hosted portal auth, method, native CORS, unavailable guard | Tested: synthetic hosted HTTP | 401 / 405 / 200 / 501; fixture cleanup verified |
+| Actual Stripe portal / cancellation / checkout | Blocked | Sandbox access and secure provider configuration missing |
+| Supabase native redirect persistence | Tested: live dashboard configuration | Exact callback saved; three URLs total |
+| Native callback code | Tested: local targeted suite | PKCE, allowlist and recovery/error cases pass |
+| Signed native sign-in/recovery, Apple purchase/restore | Blocked | Apple/Mac/signing and RevenueCat configuration required |
+| Charts/mobile/dark/Simple mode and unrelated forms | Not re-tested | No application source or UI change in this configuration follow-through |
+| Scheduled sync authentication | Blocked | Required Vault credential absent; no real bank call made |
+
+Updated the finite launch docs and removed resolved portal/callback owner tasks. Owner supplies account access/credentials/business/device decisions; Codex performs code/deploy/testing work once enabled. Application-code frontend remains verified b3e86c0 (Vercel success 2026-09-28T05:54:17Z, index-CAWadl42.js / Settings-BcIeEbKe.js); this follow-through changes documentation only in Git. Backend/configuration evidence above is independent of Vercel. No claim of paid launch or App Store readiness.
