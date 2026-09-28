@@ -1803,3 +1803,28 @@ Coverage delta:
 | Scheduled sync authentication | Blocked | Required Vault credential absent; no real bank call made |
 
 Updated the finite launch docs and removed resolved portal/callback owner tasks. Owner supplies account access/credentials/business/device decisions; Codex performs code/deploy/testing work once enabled. Application-code frontend remains verified b3e86c0 (Vercel success 2026-09-28T05:54:17Z, index-CAWadl42.js / Settings-BcIeEbKe.js); this follow-through changes documentation only in Git. Backend/configuration evidence above is independent of Vercel. No claim of paid launch or App Store readiness.
+
+
+## September 28, 2026 — Codex: finish iOS bank-return configuration engineering
+Owner asked to continue working. Canonical master started at fecfc15 with no tracked edits; existing .codex-production-audit.json/output and old checkout preserved. Stripe connector still exposes only a live account (no sandbox); Vault name-only query still reports cron_service_role_jwt absent. No secret value or financial record accessed. No agents, automation, provider session, bank connection, AI call or paid CI run.
+
+Concrete native gap: callback source existed, but the Xcode target had no Associated Domains entitlement. New failing-first regression stopped on the absent App.entitlements. Added only applinks:yorbit-life-os.vercel.app; both Debug/Release app build configurations sign App/App.entitlements, with capability metadata and file reference. Parsed the actual Xcode project and XML plist successfully and confirmed both app configurations point to the intended file.
+
+Completed guarded preparation script: scripts/ios-universal-links.mjs accepts the owner-supplied Application Identifier Prefix (usually Team ID; not assumed identical), generates the modern appIDs/components association for only app.yorbit and /bank-oauth-return, preserves different existing files, and supports local/direct-HTTPS verification. No fake prefix/AASA file was generated in public or committed. The manual native pipeline checks the local and deployed association before dependency install/build; redirects, HTML, missing/malformed data, wrong identity and broad/wrong routes fail. Signed archive/profile and actual device verification are still required.
+
+Observed public hosting defect before changing configuration: /.well-known/apple-app-site-association returned HTTP 200 with text/html and the SPA document. A second failing regression reproduced the catch-all rewrite. Excluded the exact association path from SPA routing and added the application/json header; normal route fallback is preserved. Final production status/HTTP evidence is recorded in the local checkpoint after GitHub deployment.
+
+Validation: test-ios-universal-links passes generation/idempotence/preservation/identity/path/HTTP/error/native-pipeline/hosting checks using synthetic temporary files and mocked responses; native bank-link, native auth, native release config and Apple toolchain suites pass. Strict lint and production web build exit 0. Xcode project and entitlement XML parse; no signed native build claimed. Expected incomplete check exits 1 because the real Apple association is absent. Test-created temporary files were removed; no sample association is in public/dist.
+
+Coverage:
+| Surface | State | Evidence / limit |
+|---|---|---|
+| iOS entitlement and both build configurations | Tested: source parsers + targeted regression | Actual signing/profile inclusion awaits Apple/Mac |
+| Bank-return association generation and hosted-response verifier | Tested: local synthetic | Narrow app/path; rejects redirects, HTML, mismatch; no real prefix supplied |
+| Public association endpoint before fix | Failing, reproduced | HTTP 200 HTML SPA fallback; regression failed before routing correction |
+| Web bank-return fallback | Tested: live browser render before deploy | Clear return-to-app text and Bank Sync destination; no real bank action |
+| Normal web route/association hosting after deploy | Pending final release verification | Recorded in local checkpoint, not assumed from build |
+| Signed iPhone/iPad return and real Plaid sandbox OAuth | Blocked | Actual app prefix/profile, Plaid registration and signed-device access |
+| Mobile/dark/Simple/charts and unrelated controls | Not re-tested | Native/hosting preparation batch, no blanket UI claim |
+
+Updated NATIVE_BANK_RETURN.md, OWNER_ACTIONS.md and the fixed launch status/checklist. Apple official associated-domain and universal-link debugging documentation checked September 28; Vercel routing syntax checked against its current project-configuration docs. This is completed source/tooling preparation within the native launch item, not a claim that the bank return or App Store release works on a signed device.

@@ -7,10 +7,10 @@
 // Dashboard - Plaid rejects any redirect_uri it doesn't recognize. iOS also
 // requires this exact host+path to be configured as a universal link
 // (Associated Domains + apple-app-site-association); Android needs it
-// covered by an App Links intent filter (assetlinks.json). Neither is done
-// yet - see OWNER_ACTIONS.md - so today this URL loads as a normal page
-// (see src/pages/BankOAuthReturn.jsx) instead of being intercepted back
-// into the app.
+// covered by an App Links intent filter (assetlinks.json). iOS entitlement
+// wiring is prepared; the real Apple app-prefix association and signed-device
+// verification are still required (NATIVE_BANK_RETURN.md). Until configured,
+// src/pages/BankOAuthReturn.jsx remains the web fallback.
 export const NATIVE_BANK_LINK_REDIRECT_URI = 'https://yorbit-life-os.vercel.app/bank-oauth-return';
 
 const PENDING_LINK_KEY = 'yorbit.pendingBankLink';

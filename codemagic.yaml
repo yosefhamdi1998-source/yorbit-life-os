@@ -17,8 +17,10 @@
 #        APP_STORE_CONNECT_ISSUER_ID
 #        APP_STORE_CONNECT_KEY_IDENTIFIER
 #        APP_STORE_APPLE_ID (numeric app ID from App Store Connect)
+#        APPLE_APP_ID_PREFIX (real application-identifier prefix from Apple; usually Team ID)
 #        VITE_REVENUECAT_APPLE_API_KEY (public Apple SDK key, never a secret key)
 #        APP_STORE_CONNECT_PRIVATE_KEY
+#      Generate and deploy the matching AASA first; see NATIVE_BANK_RETURN.md.
 #      Upload a matching Apple Distribution certificate and App Store profile
 #      in Codemagic Code signing identities; ios_signing fetches those files.
 #      This file does not create certificates or sign up for services.
@@ -55,6 +57,8 @@ workflows:
     scripts:
       - name: Verify Apple upload toolchain
         script: node scripts/check-apple-toolchain.mjs
+      - name: Verify published iOS bank-return association
+        script: node scripts/ios-universal-links.mjs --check-live "$APPLE_APP_ID_PREFIX"
       - name: Verify native subscription configuration
         script: node scripts/check-native-release.mjs
       - name: Install npm dependencies
