@@ -1,4 +1,4 @@
-import { isServiceBearer } from './serviceBearer.ts';
+import { isProjectSecretKey, isServiceBearer } from './serviceBearer.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // Client scoped to the calling user's JWT (respects RLS) — use this to verify
@@ -55,6 +55,9 @@ export async function requireSystemCaller(
   const authHeader = req.headers.get('Authorization') || '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (isServiceBearer(authHeader, serviceKey)) return null; // pg_cron / server-to-server
+  // A project secret key (sb_secret_...) only arrives here if the function is
+  // deployed with verify_jwt = false; see scripts/cron-auth-fix-secret-key.sql.
+  if (isProjectSecretKey(authHeader, Deno.env.get('SUPABASE_SECRET_KEYS'))) return null;
 
   // Anything else must be a real signed-in admin. Deny by default: an
   // unauthenticated caller is not an admin, and that has to be the default

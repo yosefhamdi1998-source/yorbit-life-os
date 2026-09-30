@@ -103,6 +103,76 @@ try {
   assert.match(reclassified['sync-all-accounts-4h'], /Vault/); assert.match(reclassified['generate-subscription-reminders-daily'], /Vault/);
   assert.match(reclassified['weekly-custom-record-analysis'], /NEW secret key/);
   console.log('  PASS  the full fix re-points bank sync and reminders to Vault with schedules kept, leaves the AI job untouched, and each job then sends exactly the trimmed key');
+  // The no-copy alternative: cron-auth-fix-secret-key.sql reuses the
+  // sb_secret_ key already stored in the reminders job, via Vault.
+  const fixSecret = fs.readFileSync('scripts/cron-auth-fix-secret-key.sql', 'utf8');
+  const verify = fs.readFileSync('scripts/cron-auth-verify.sql', 'utf8').match(/select net\.http_post\([\s\S]*?\) as request_id;/)[0];
+  await client.query(`create or replace function vault.create_secret(new_secret text, new_name text, new_description text default '') returns uuid language sql as
+    $f$ insert into vault.decrypted_secrets values (new_name, new_secret); select gen_random_uuid() $f$;`);
+  const reminderKey = 'sb_secret_' + 'R'.repeat(30);
+  const resetJobs = async (reminderBearer = reminderKey) => {
+    await client.query('delete from cron.job; delete from vault.decrypted_secrets; delete from net.sent');
+    const list = [
+      ['sync-all-accounts-4h', '0 */4 * * *', cmd(SERVICE.slice(0, 40)).replace('x.supabase.co', 'pvjiialxboslqyiiybpe.supabase.co')],
+      ['generate-subscription-reminders-daily', '5 9 * * *', cmd(reminderBearer).replace('sync-all-accounts', 'generate-subscription-reminders')],
+      ['weekly-custom-record-analysis', '0 10 * * 1', cmd('sb_secret_' + 'W'.repeat(30)).replace('sync-all-accounts', 'weekly-custom-record-analysis')],
+    ];
+    for (const [n, sch, c] of list) await client.query(`insert into cron.job(jobname, schedule, active, command) values ($1, $2, true, $3)`, [n, sch, c]);
+    return list;
+  };
+  const sendsFor = async name => {
+    await client.query('delete from net.sent');
+    await client.query((await client.query('select command from cron.job where jobname = $1', [name])).rows[0].command);
+    return (await client.query('select url, headers from net.sent')).rows[0];
+  };
+  {
+    const list = await resetJobs();
+    const result = await client.query(fixSecret);
+    const report = result.at(-1).rows;
+    assert.ok(report.find(r => r.jobname === 'sync-all-accounts-4h').reads_secret_key_from_vault);
+    assert.equal((await client.query(`select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret_key'`)).rows[0].decrypted_secret, reminderKey, 'the reminders key, copied inside the database');
+    for (const [name, fn] of [['sync-all-accounts-4h', 'sync-all-accounts'], ['generate-subscription-reminders-daily', 'generate-subscription-reminders']]) {
+      const { url, headers } = await sendsFor(name);
+      assert.equal(url, `https://pvjiialxboslqyiiybpe.supabase.co/functions/v1/${fn}`);
+      assert.equal(headers.Authorization, `Bearer ${reminderKey}`);
+      const command = (await client.query('select command from cron.job where jobname = $1', [name])).rows[0].command;
+      assert.ok(!command.includes('RRRRRRRRRR'), 'the key is not stored in the job');
+    }
+    const jobs = Object.fromEntries((await client.query('select jobname, schedule, command from cron.job')).rows.map(r => [r.jobname, r]));
+    assert.equal(jobs['sync-all-accounts-4h'].schedule, '0 */4 * * *');
+    assert.equal(jobs['weekly-custom-record-analysis'].command, list[2][2], 'the AI job is left exactly as it was');
+    // The dry-run verification sends whichever secret the bank job uses.
+    await client.query('delete from net.sent'); await client.query(verify);
+    let sent = (await client.query('select url, headers from net.sent')).rows[0];
+    assert.equal(sent.headers.Authorization, `Bearer ${reminderKey}`);
+    assert.equal(sent.url, 'https://pvjiialxboslqyiiybpe.supabase.co/functions/v1/sync-all-accounts');
+    // ...and the legacy-JWT secret after cron-auth-fix.sql.
+    await resetJobs(); await client.query(`insert into vault.decrypted_secrets values ('cron_service_role_jwt', $1)`, [SERVICE]);
+    await client.query(fix); await client.query('delete from net.sent'); await client.query(verify);
+    sent = (await client.query('select headers from net.sent')).rows[0];
+    assert.equal(sent.headers.Authorization, `Bearer ${SERVICE}`);
+    console.log('  PASS  secret-key fix copies the existing sb_secret_ key into Vault without showing it, re-points bank sync and reminders (schedules kept, AI job untouched); verify sends whichever secret the job uses');
+  }
+  {
+    // An existing Vault secret wins over the job's key; malformed or missing keys stop without echoing.
+    await resetJobs();
+    const own = 'sb_secret_' + 'V'.repeat(30);
+    await client.query(`insert into vault.decrypted_secrets values ('cron_secret_key', $1)`, [`${own}\n`]);
+    await client.query(fixSecret);
+    assert.equal((await sendsFor('sync-all-accounts-4h')).headers.Authorization, `Bearer ${own}`);
+    const refusal = async () => { try { await client.query(fixSecret); return 'accepted'; } catch (e) { return e.message; } };
+    await resetJobs('not-a-secret-key');
+    await client.query(`delete from cron.job where jobname = 'weekly-custom-record-analysis'`);
+    assert.match(await refusal(), /No job holds an sb_secret_ key/);
+    await resetJobs();
+    await client.query(`insert into vault.decrypted_secrets values ('cron_secret_key', 'sb_secret_short')`);
+    const message = await refusal();
+    assert.match(message, /not a complete sb_secret_ key/);
+    assert.ok(!message.includes('sb_secret_short'), 'a refusal never includes the key');
+    const unchanged = (await client.query(`select command from cron.job where jobname = 'sync-all-accounts-4h'`)).rows[0].command;
+    assert.ok(!unchanged.includes('cron_secret_key'), 'a refused run changes no job');
+    console.log('  PASS  an existing Vault secret is used as-is; a missing or malformed key stops before any job changes, without echoing it');
+  }
   console.log('\nAll cron-auth SQL checks passed against real PostgreSQL.');
 } finally {
   await client.end().catch(() => {});

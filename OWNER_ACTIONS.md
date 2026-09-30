@@ -36,9 +36,12 @@ Codex's next work after configuration: disposable monthly/yearly checkout; real 
 
 September 28 Vault name-only check: cron_service_role_jwt is absent. Earlier hosted diagnosis found malformed/non-JWT cron bearers and HTTP 401; repair has not been performed.
 
-Owner: in Supabase Vault, add cron_service_role_jwt containing the complete legacy service_role JWT from the project's Legacy API keys screen. If legacy keys are unavailable, tell Codex; do not substitute a newer non-JWT key or paste any credential here.
+Choose ONE of these (both tested against real Postgres; neither is applied):
 
-Codex then applies the tested scripts/cron-auth-fix.sql for bank sync/reminders and runs scripts/cron-auth-verify.sql through the exact scheduled authentication path. The expected dry run is HTTP 200 with dry_run/authenticated true and no bank request or financial write. Restoring schedules permits later real execution, so that actual execution remains separately controlled. The weekly AI job stays unchanged. No claim of restored automatic sync until authorized execution evidence exists.
+- **Option A - copy the legacy key (no deploy approval needed).** In Supabase Vault, add cron_service_role_jwt containing the complete legacy service_role JWT from the project's Legacy API keys screen. Codex then runs scripts/cron-auth-fix.sql. If legacy keys are unavailable, use option B; do not paste any credential here.
+- **Option B - nobody copies a key (needs one approval).** Supabase's documented pattern for calling a function with the new secret keys is verify_jwt = false plus a key check in the function, which requireSystemCaller now does against SUPABASE_SECRET_KEYS (since this commit; inert while the gateway check is on). Approve deploying sync-all-accounts and generate-subscription-reminders with verify_jwt = false (Codex sets it for those two in config.toml and deploys). Codex then runs scripts/cron-auth-fix-secret-key.sql, which copies the sb_secret_ key the reminders job already holds into Vault inside the database, without anyone seeing it. If that key turns out to be revoked or truncated, the dry run below fails with 401 and you add a current secret key to Vault as cron_secret_key instead.
+
+Either way, Codex then runs scripts/cron-auth-verify.sql through the exact scheduled authentication path (it sends whichever Vault secret the job uses). The expected dry run is HTTP 200 with dry_run/authenticated true and no bank request or financial write. Restoring schedules permits later real execution, so that actual execution remains separately controlled. The weekly AI job stays unchanged. No claim of restored automatic sync until authorized execution evidence exists.
 
 ## 3. Apple/Mac and RevenueCat access
 
