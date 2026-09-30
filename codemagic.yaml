@@ -21,6 +21,9 @@
 #        VITE_REVENUECAT_APPLE_API_KEY (public Apple SDK key, never a secret key)
 #        APP_STORE_CONNECT_PRIVATE_KEY
 #      Generate and deploy the matching AASA first; see NATIVE_BANK_RETURN.md.
+#      The Supabase URL and publishable key come from the tracked public
+#      .env.production (the web app's own values); do not add secrets there
+#      or here. check-native-release.mjs refuses a secret/service_role key.
 #      Upload a matching Apple Distribution certificate and App Store profile
 #      in Codemagic Code signing identities; ios_signing fetches those files.
 #      This file does not create certificates or sign up for services.
