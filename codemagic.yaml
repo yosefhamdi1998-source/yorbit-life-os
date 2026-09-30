@@ -84,9 +84,18 @@ workflows:
           case "$APP_STORE_APPLE_ID" in
             *[!0-9]*) echo "APP_STORE_APPLE_ID must be numeric" >&2; exit 1 ;;
           esac
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
+          # get-latest-build-number counts TestFlight and App Store builds.
+          # (get-latest-app-store-build-number counts only builds attached to
+          # an App Store version, so with TestFlight-only uploads it prints
+          # nothing and no first build could ever be made.) A successful
+          # lookup that prints nothing means no builds yet: start at 1. A
+          # failed lookup still stops the build.
+          if ! LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID"); then
+            echo "Could not query the latest Apple build number; stopping" >&2; exit 1
+          fi
+          LATEST_BUILD_NUMBER=${LATEST_BUILD_NUMBER:-0}
           case "$LATEST_BUILD_NUMBER" in
-            ''|*[!0-9]*) echo "Could not verify the latest Apple build number; stopping" >&2; exit 1 ;;
+            *[!0-9]*) echo "Unexpected Apple build number; stopping" >&2; exit 1 ;;
           esac
           cd "$CM_BUILD_DIR/ios/App"
           agvtool new-version -all "$((LATEST_BUILD_NUMBER + 1))"
