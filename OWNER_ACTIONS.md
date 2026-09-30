@@ -39,7 +39,8 @@ Apple membership and Mac access are not yet available, as previously confirmed. 
 
 RevenueCat source and endpoints are prepared, not purchase-verified:
 - Configure Apple products app.yorbit.pro.monthly / app.yorbit.pro.yearly, offering and entitlement pro, and the public Apple SDK key for the native build.
-- Securely save REVENUECAT_SECRET_API_KEY and REVENUECAT_WEBHOOK_AUTH in Supabase secrets. Both names were absent September 28.
+- Securely save REVENUECAT_SECRET_API_KEY and REVENUECAT_WEBHOOK_AUTH in Supabase secrets. Both names were absent September 28. The secret key must be a **V1** key (RevenueCat Project settings > API keys > + New, version **V1**): the server calls RevenueCat's v1 subscribers endpoint, which a V2 key cannot use, so every confirmation would fail.
+- This server half does not need Apple. A RevenueCat project (free), the V1 secret key, the `pro` entitlement and the webhook can be set up now; Codex can then verify the real server path by granting a short promotional `pro` entitlement to a disposable test account through RevenueCat's API and confirming revenuecat-sync shows Pro and then removes it, plus RevenueCat's "Send test event" to the webhook. Apple products and a real purchase still need item 3's Apple access.
 - Set the matching webhook Authorization header in RevenueCat for https://pvjiialxboslqyiiybpe.supabase.co/functions/v1/revenuecat-webhook .
 - revenuecat-sync v1 and revenuecat-webhook v1 are already deployed and sandbox-approved. Do not redeploy merely to repeat that work.
 
