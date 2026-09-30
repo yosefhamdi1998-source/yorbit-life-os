@@ -52,7 +52,8 @@ Supabase CLI still unauthenticated; the built-in browser is not signed in to Str
 - **Checkout return (59ffae1):** Settings re-checks the subscription every 3 s for ~30 s after ?success=1 instead of waiting for a click; fixture-browser verified both ways. Codex's purchase-confirmation/identity tests now run in `npm test`.
 - **Owner-step corrections:** RevenueCat needs a **V1** secret key (the server uses the v1 subscribers endpoint) and its server half can be verified before Apple with a promotional entitlement; Plaid Sandbox steps; no Mac is required (Codemagic builds on its Macs); crash reporting is off everywhere today (no Sentry DSN in the live or cloud build) - decide before the privacy answers.
 - Checked and fine: iOS Info.plist (iPad orientations, encryption flag, no camera-triggering file input), lockfile in sync for `npm ci`, pre-install pipeline scripts use only Node built-ins, stripe@14 resolves to its fetch/Web-Crypto build in Deno, Capacitor's template scheme/versioning match Codemagic's documented recipe.
-- Full suite 68 scripts (check:enums and cross-user-isolation need the CLI login), strict lint and production build pass. Vercel deployed each push; the live entry file is unchanged.
+- Later: read-only production facts script (4de1d4e), scheduler option B with no key handling (7aebe08), reviewer Pro via RevenueCat promotional entitlement (caef211).
+- Final full suite 73 scripts (check:enums and CLI-backed SQL suites need the login), strict lint and production build pass. Vercel deployed each push.
 
 ## Evidence sources
 - Work log: YORBIT_PROGRESS.md. Codex reviews: C:\Users\Yosef\Yorbit-Main-Handoff\2026-09-26\disconnect-review.md and ...\2026-09-27\codex-release-review.md.
