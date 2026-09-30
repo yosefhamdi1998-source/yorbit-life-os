@@ -33,7 +33,7 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 - Billing end to end in Stripe test mode (checkout, replays, cancellation, payment failure, deletion) - blocked on secure sandbox key/price/webhook/test-email configuration. Sandbox deployment approval is resolved; real billing activation is not authorized.
 - Signed-device verification: auth return, bank return, purchase/restore and server sync, export share sheet, keyboard/safe areas, offline recovery, deletion.
 - Legacy disconnected accounts still holding live Plaid credentials: count read-only, then an authorized cleanup.
-- Hosted end to end: real signup, cross-account sessions, bank sync, account deletion.
+- Hosted end to end: real signup, cross-account sessions, bank sync, account deletion. Sign-up requires email confirmation and uses email only; unless custom SMTP is configured, Supabase delivers no confirmation or reset email to non-team addresses (OWNER_ACTIONS item 0). Unverified - possibly blocks every new user.
 - Associated Domains / assetlinks files for the native bank return once the Team ID and signing fingerprint exist.
 - iOS subscribers' Pro AI allowance works once ai-coach and RevenueCat are both deployed.
 - Plaid Sandbox bank testing: deploy the six bank functions from 27c64e4 after PLAID_SANDBOX_SECRET/PLAID_SANDBOX_EMAILS exist, then verify link/sync/disconnect/delete on a listed disposable account.

@@ -4,6 +4,16 @@ Updated September 28, 2026. The sandbox portal release and native Supabase Auth 
 
 Never paste keys, passwords or tokens into chat, source or reports. Codex handles implementation, configuration checks and permitted testing after the required access exists.
 
+## 0. Check that sign-up and password-reset emails can reach users (found September 30)
+
+The live Auth settings (public endpoint, read September 30) show sign-up open, email confirmation required (mailer_autoconfirm false) and email as the only sign-in method. Supabase's built-in email service "will refuse to deliver messages to addresses that are not part of the project's team" unless a custom SMTP server is configured, and sends at most 2 per hour (https://supabase.com/docs/guides/auth/auth-smtp). If no custom SMTP is set, every real user's confirmation and password-reset email is dropped and they can never sign in. Hosted signup/email delivery has never been tested.
+
+1. Codex, read-only: whether custom SMTP is enabled (Authentication > Emails > SMTP Settings), and `select count(*) as total, count(*) filter (where email_confirmed_at is null) as unconfirmed, count(*) filter (where email_confirmed_at is null and created_at > now() - interval '30 days') as recent_unconfirmed from auth.users;` (counts only, no emails).
+2. If custom SMTP is not configured, you decide:
+   - **Recommended:** set up a transactional email provider and enter its SMTP details yourself in Authentication > Emails > SMTP Settings (never in chat). Most providers require a sending domain you own and can add DNS records to; yorbit-life-os.vercel.app cannot be verified as a sender. Choosing a provider or plan and buying a domain are yours.
+   - Or, temporarily, turn off "Confirm email". Sign-up then works without email, but anyone can register with someone else's address and password reset still cannot reach users.
+3. After configuring, Codex tests sign-up confirmation and password reset end to end with a disposable inbox you control.
+
 ## 1. Connect the Yorbit Stripe sandbox
 
 The connected Stripe account inventory currently exposes only live Yorbit access. Use the Stripe account-access link supplied in chat to connect the Yorbit sandbox/test environment, then tell Codex it is connected. If that session link expires, request a fresh account-access link. This changes access only; do not make a real payment.
