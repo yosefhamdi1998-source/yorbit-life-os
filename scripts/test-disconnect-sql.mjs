@@ -52,13 +52,13 @@ const status = async id => (await pool.query('select sync_status from connected_
 const creds = async id => Number((await pool.query('select count(*) from plaid_credentials where connected_account_id=$1', [id])).rows[0].count);
 
 let userSeq = 0;
-async function seed({ accounts = 2, item = null } = {}) {
+async function seed({ accounts = 2, item = null, tokenPrefix = '' } = {}) {
   const user = `00000000-0000-4000-8000-${String(++userSeq).padStart(12, '0')}`;
   await pool.query('insert into auth.users(id) values ($1)', [user]);
   const itemId = item || `item-${userSeq}`;
   const rows = Array.from({ length: accounts }, (_, i) => ({ provider_account_id: `pa-${userSeq}-${i}`, institution_name: 'Fixture Bank', account_name: `Account ${i}`, account_type: 'checking' }));
-  const saved = await asService(c => c.query(`select id from public.save_plaid_accounts_private($1, $2, $3, $4::jsonb)`, [user, itemId, `synthetic-token-${userSeq}`, JSON.stringify(rows)]));
-  return { user, item: itemId, token: `synthetic-token-${userSeq}`, ids: saved.rows.map(r => r.id) };
+  const saved = await asService(c => c.query(`select id from public.save_plaid_accounts_private($1, $2, $3, $4::jsonb)`, [user, itemId, `${tokenPrefix}synthetic-token-${userSeq}`, JSON.stringify(rows)]));
+  return { user, item: itemId, token: `${tokenPrefix}synthetic-token-${userSeq}`, ids: saved.rows.map(r => r.id) };
 }
 const claim = (user, id, client) => asRole('service_role', null, c => c.query('select * from public.claim_bank_disconnect($1, $2)', [user, id]).then(r => r.rows[0]), client);
 const finalize = (user, id) => asService(c => c.query('select public.finalize_bank_disconnect($1, $2) as ok', [user, id]));
@@ -232,11 +232,12 @@ try {
   // ------------------------------------------ real handler + real database
   console.log('\nreal plaid-disconnect-account handler against the real database');
   const handlerSrc = read('supabase/functions/plaid-disconnect-account/index.ts').replace(/^import .*;\r?\n/gm, '');
-  const handlerJs = (await transform(handlerSrc, { loader: 'ts' })).code;
+  const handlerJs = (await transform(read('supabase/functions/_shared/plaidEnvironment.ts').replace(/^export /gm, '') + handlerSrc, { loader: 'ts' })).code;
   const tokenJs = (await transform(read('supabase/functions/_shared/plaidToken.ts').replace(/^export async function/m, 'async function'), { loader: 'ts' })).code;
 
-  function makeHandler({ userId, plaid = 'success', faults = {}, configured = true }) {
-    const log = { removed: [] };
+  function makeHandler({ userId, plaid = 'success', faults = {}, configured = true, sandboxSecret = true }) {
+    const log = { removed: [], configs: [] };
+    const secrets = { PLAID_SECRET: 'production-secret', PLAID_SANDBOX_SECRET: sandboxSecret ? 'sandbox-secret' : undefined };
     const admin = {
       async rpc(name, args) {
         assert.ok(['claim_bank_disconnect', 'finalize_bank_disconnect'].includes(name));
@@ -267,9 +268,10 @@ try {
     }
     let handler;
     const sandbox = {
-      Deno: { serve: fn => { handler = fn; }, env: { get: k => (configured ? 'fixture' : (k.startsWith('PLAID') ? undefined : 'fixture')) } },
+      Deno: { serve: fn => { handler = fn; }, env: { get: k => (!configured && k.startsWith('PLAID') ? undefined : k in secrets ? secrets[k] : 'fixture') } },
       getUser: async () => (userId ? { id: userId } : null), serviceClient: () => admin,
-      Configuration: class {}, PlaidEnvironments: { production: 'https://production.plaid.com' }, PlaidApi,
+      Configuration: class { constructor(options) { log.configs.push(options); } },
+      PlaidEnvironments: { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' }, PlaidApi,
       handleOptions: () => null, jsonResponse: (body, st = 200) => ({ status: st, body }),
       errorResponse: (message, st) => ({ status: st, body: { error: message } }),
       enforceRateLimit: async () => null, identityFromRequest: () => 'fixture', RULES: { sync: {} },
@@ -371,6 +373,29 @@ try {
     ok('a legacy disconnected account still holding a credential is revoked and cleaned when disconnect is requested');
   }
 
+  {
+    // Plaid Sandbox items (listed test accounts) are revoked in the sandbox
+    // with the sandbox secret; a real item keeps production.
+    const real = await seed({ accounts: 1, tokenPrefix: 'access-production-' });
+    const hr = makeHandler({ userId: real.user });
+    assert.equal((await hr.call(real.ids[0])).status, 200);
+    assert.equal(hr.log.configs[0].basePath, 'https://production.plaid.com');
+    assert.equal(hr.log.configs[0].baseOptions.headers['PLAID-SECRET'], 'production-secret');
+
+    const test = await seed({ accounts: 1, tokenPrefix: 'access-sandbox-' });
+    const missing = makeHandler({ userId: test.user, sandboxSecret: false });
+    assert.equal((await missing.call(test.ids[0])).status, 503);
+    assert.equal(missing.log.removed.length, 0, 'a sandbox item is never sent to production');
+    assert.equal(await status(test.ids[0]), 'disconnecting'); assert.equal(await creds(test.ids[0]), 1);
+
+    const hs = makeHandler({ userId: test.user });
+    assert.equal((await hs.call(test.ids[0])).status, 200);
+    assert.deepEqual(hs.log.removed, [test.token]);
+    assert.equal(hs.log.configs[0].basePath, 'https://sandbox.plaid.com');
+    assert.equal(hs.log.configs[0].baseOptions.headers['PLAID-SECRET'], 'sandbox-secret');
+    assert.equal(await status(test.ids[0]), 'disconnected'); assert.equal(await creds(test.ids[0]), 0);
+    ok('Plaid Sandbox items revoke in the sandbox with its own secret; without it they stay visible and retryable, never sent to production');
+  }
   console.log(`\nAll ${passed} checks passed against real PostgreSQL.`);
 } finally {
   await pool?.end().catch(() => {});

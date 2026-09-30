@@ -4,6 +4,7 @@ import { isServiceBearer } from '../_shared/serviceBearer.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
+import { plaidCredentials, plaidEnvironmentOfToken } from '../_shared/plaidEnvironment.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -61,9 +62,13 @@ Deno.serve(async (req) => {
 
     sync = await beginBankSync(admin, account);
 
+    // The token says which Plaid environment its item lives in.
+    const environment = plaidEnvironmentOfToken(access_token);
+    const credentials = plaidCredentials(environment, name => Deno.env.get(name));
+    if (!credentials) throw new Error('Plaid environment is not configured');
     const config = new Configuration({
-      basePath: PlaidEnvironments.production,
-      baseOptions: { headers: { 'PLAID-CLIENT-ID': plaidClientId, 'PLAID-SECRET': plaidSecret } },
+      basePath: PlaidEnvironments[environment],
+      baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
     });
     const plaidClient = new PlaidApi(config);
 

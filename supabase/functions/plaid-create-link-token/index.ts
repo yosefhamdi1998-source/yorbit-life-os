@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
+import { plaidCredentials, plaidEnvironmentOfToken, sandboxLinkAllowed } from '../_shared/plaidEnvironment.ts';
 import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -58,9 +59,19 @@ Deno.serve(async (req) => {
       existingAccessToken = token;
     }
 
+    // Update mode stays in the item's own environment; a new link uses Plaid
+    // Sandbox only for listed test accounts (see _shared/plaidEnvironment.ts).
+    const env = (name: string) => Deno.env.get(name);
+    const environment = existingAccessToken
+      ? plaidEnvironmentOfToken(existingAccessToken)
+      : sandboxLinkAllowed(user.email, env) ? 'sandbox' : 'production';
+    const credentials = plaidCredentials(environment, env);
+    if (!credentials) {
+      return errorResponse("We couldn't start the bank connection. Please try again.", 503, { fn: 'plaid-create-link-token', req });
+    }
     const config = new Configuration({
-      basePath: PlaidEnvironments.production,
-      baseOptions: { headers: { 'PLAID-CLIENT-ID': plaidClientId, 'PLAID-SECRET': plaidSecret } },
+      basePath: PlaidEnvironments[environment],
+      baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
     });
     const plaidClient = new PlaidApi(config);
 

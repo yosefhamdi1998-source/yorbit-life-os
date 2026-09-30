@@ -1,6 +1,7 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
+import { plaidCredentials, plaidEnvironmentOfToken } from '../_shared/plaidEnvironment.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
 
@@ -57,12 +58,13 @@ Deno.serve(async (req) => {
         return retryLater(err);
       }
       if (token && !claim.sibling_active) {
-        const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-        const plaidSecret = Deno.env.get('PLAID_SECRET');
-        if (!plaidClientId || !plaidSecret) return retryLater(new Error('Plaid is not configured'));
+        // Revoke in the environment the item lives in (the token says which).
+        const environment = plaidEnvironmentOfToken(token);
+        const credentials = plaidCredentials(environment, name => Deno.env.get(name));
+        if (!credentials) return retryLater(new Error('Plaid is not configured'));
         const plaidClient = new PlaidApi(new Configuration({
-          basePath: PlaidEnvironments.production,
-          baseOptions: { headers: { 'PLAID-CLIENT-ID': plaidClientId, 'PLAID-SECRET': plaidSecret } },
+          basePath: PlaidEnvironments[environment],
+          baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
         }));
         try {
           await plaidClient.itemRemove({ access_token: token });

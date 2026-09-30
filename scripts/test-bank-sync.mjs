@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { transformSync } from 'esbuild';
 
 const compile = path => transformSync(fs.readFileSync(path, 'utf8').replace(/^import .*;\r?\n/gm, '').replace(/^export /gm, ''), { loader: 'ts' }).code;
-const shared = compile('supabase/functions/_shared/bankSync.ts') + compile('supabase/functions/_shared/holdingsSnapshot.ts');
+const shared = compile('supabase/functions/_shared/bankSync.ts') + compile('supabase/functions/_shared/holdingsSnapshot.ts') + compile('supabase/functions/_shared/plaidEnvironment.ts');
 
 async function run(kind, scenario = 'success') {
   let handler, providerCalls = 0;
@@ -87,14 +87,18 @@ async function run(kind, scenario = 'success') {
     if (scenario === 'disconnect') account.sync_status = 'disconnected';
   }
   const source = compile(`supabase/functions/plaid-sync-${kind}/index.ts`);
+  // Distinct secrets per Plaid environment prove which one each call used.
+  const secrets = { PLAID_SECRET: 'production-secret', PLAID_SANDBOX_SECRET: scenario === 'sandbox-unconfigured' ? undefined : 'sandbox-secret' };
+  const plaidConfigs = [];
   vm.runInNewContext(`${shared}\n${source}`, {
-    Deno: { serve: fn => { handler = fn; }, env: { get: () => 'fixture' } },
+    Deno: { serve: fn => { handler = fn; }, env: { get: k => (k in secrets ? secrets[k] : 'fixture') } },
     handleOptions: () => null, serviceClient: () => admin,
     getUser: async () => { if (scenario === 'auth-error') throw new Error('Synthetic auth failure'); return scenario === 'anonymous' ? null : { id: scenario === 'foreign' ? 'someone-else' : 'fixture-owner' }; },
-    isServiceBearer: () => scenario === 'service', getPlaidAccessToken: async () => ({ token: 'fixture-token' }),
+    isServiceBearer: () => scenario === 'service', getPlaidAccessToken: async () => ({ token: scenario.startsWith('sandbox') ? 'access-sandbox-fixture' : 'access-production-fixture' }),
     enforceRateLimit: async () => null, identityFromRequest: () => '', RULES: { sync: {} },
     jsonResponse: (body, status = 200) => ({ body, status }), errorResponse: (error, status) => ({ body: { error }, status }),
-    Configuration: class {}, PlaidEnvironments: { production: 'unused' },
+    Configuration: class { constructor(options) { plaidConfigs.push(options); } },
+    PlaidEnvironments: { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' },
     PlaidApi: class {
       async transactionsGet({ options }) {
         providerCalls++; providerError();
@@ -113,15 +117,27 @@ async function run(kind, scenario = 'success') {
   });
   const req = new Request('https://fixture.invalid/sync', { method: 'POST', body: scenario === 'invalid-json' ? '{' : JSON.stringify({ connected_account_id: account.id }) });
   const response = await handler(req);
-  return { response, providerCalls, account, writes, logs, transactions };
+  return { response, providerCalls, account, writes, logs, transactions, plaidConfigs };
 }
 
 let passed = 0;
 for (const kind of ['transactions', 'holdings']) {
-  for (const scenario of ['reconnect', 'success', 'service', 'provider-error', 'auth-error', 'anonymous', 'foreign', 'missing', 'invalid-json', 'start-error', 'finish-error', 'insert-error', 'partial', 'disconnect', 'disconnect-error']) {
+  for (const scenario of ['reconnect', 'success', 'service', 'sandbox', 'sandbox-unconfigured', 'provider-error', 'auth-error', 'anonymous', 'foreign', 'missing', 'invalid-json', 'start-error', 'finish-error', 'insert-error', 'partial', 'disconnect', 'disconnect-error']) {
     const result = await run(kind, scenario);
-    const { response, providerCalls, account, logs, transactions, writes } = result;
-    const succeeds = ['success', 'service'].includes(scenario);
+    const { response, providerCalls, account, logs, transactions, writes, plaidConfigs } = result;
+    const succeeds = ['success', 'service', 'sandbox'].includes(scenario);
+    // Real users' production items keep production; a sandbox item syncs
+    // against Plaid Sandbox with its own secret, or not at all.
+    if (['success', 'service', 'sandbox'].includes(scenario)) {
+      const sandbox = scenario === 'sandbox';
+      assert.equal(plaidConfigs.length, 1, `${kind}/${scenario}`);
+      assert.equal(plaidConfigs[0].basePath, sandbox ? 'https://sandbox.plaid.com' : 'https://production.plaid.com', `${kind}/${scenario}`);
+      assert.equal(plaidConfigs[0].baseOptions.headers['PLAID-SECRET'], sandbox ? 'sandbox-secret' : 'production-secret', `${kind}/${scenario}`);
+    }
+    if (scenario === 'sandbox-unconfigured') {
+      assert.equal(providerCalls, 0, `${kind}: a sandbox item never reaches production when the sandbox secret is missing`);
+      assert.equal(plaidConfigs.length, 0);
+    }
     assert.equal(response.status === 200, succeeds, `${kind}/${scenario}: HTTP success must mean a complete, persisted sync`);
     if (['auth-error', 'anonymous', 'foreign', 'missing', 'invalid-json', 'start-error'].includes(scenario)) {
       assert.equal(providerCalls, 0, `${kind}/${scenario}: no provider call before successful authorized start`);

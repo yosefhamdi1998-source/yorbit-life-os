@@ -3,6 +3,7 @@ import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
+import { plaidCredentials, plaidEnvironmentOfToken, sandboxLinkAllowed } from '../_shared/plaidEnvironment.ts';
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
@@ -27,9 +28,18 @@ Deno.serve(async (req) => {
     if (!public_token || !Array.isArray(accounts) || accounts.length < 1 || accounts.length > 100 || accounts.some(a => !a?.id)) {
       return jsonResponse({ error: 'Select at least one valid bank account.' }, 400, {}, req);
     }
+    // Exchange in the environment the link was made in. Only listed test
+    // accounts may add Plaid Sandbox items (see _shared/plaidEnvironment.ts).
+    const env = (name: string) => Deno.env.get(name);
+    const environment = plaidEnvironmentOfToken(public_token);
+    if (environment === 'sandbox' && !sandboxLinkAllowed(user.email, env)) {
+      return jsonResponse({ error: 'Select at least one valid bank account.' }, 400, {}, req);
+    }
+    const credentials = plaidCredentials(environment, env);
+    if (!credentials) throw new Error('Plaid environment is not configured');
     const config = new Configuration({
-      basePath: PlaidEnvironments.production,
-      baseOptions: { headers: { 'PLAID-CLIENT-ID': plaidClientId, 'PLAID-SECRET': plaidSecret } },
+      basePath: PlaidEnvironments[environment],
+      baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
     });
     const plaidClient = new PlaidApi(config);
 

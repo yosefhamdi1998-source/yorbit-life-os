@@ -1,4 +1,5 @@
 import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
+import { plaidCredentials, plaidEnvironmentOfToken, plaidHost } from '../_shared/plaidEnvironment.ts';
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
 import Stripe from 'npm:stripe@14.21.0';
@@ -62,9 +63,7 @@ Deno.serve(async (req) => {
         .select('id, sync_status').eq('user_id', userId).eq('provider', 'plaid');
       if (accountError || !Array.isArray(accounts)) throw new Error('Bank connection lookup failed');
       if (accounts.length) {
-        const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-        const plaidSecret = Deno.env.get('PLAID_SECRET');
-        const removedTokens = new Set<string>();
+        const tokens = new Set<string>();
         for (const account of accounts) {
           const { token } = await getPlaidAccessToken(admin, account.id);
           if (!token) {
@@ -75,14 +74,23 @@ Deno.serve(async (req) => {
             if (account.sync_status === 'disconnected') continue;
             throw new Error('Bank credential unavailable');
           }
-          if (removedTokens.has(token)) continue;
-          // A finalized disconnect has no token left and needs no Plaid call.
-          // Retained credentials still require configured, confirmed revocation.
-          if (!plaidClientId || !plaidSecret) throw new Error('Bank disconnect is not configured');
-          const res = await fetch('https://production.plaid.com/item/remove', {
+          tokens.add(token);
+        }
+        // Retained credentials require configured, confirmed revocation in the
+        // environment each item lives in (the token says which). Check every
+        // one before revoking any, so a configuration gap stops deletion
+        // before a single bank has been disconnected.
+        const removals = [...tokens].map(token => {
+          const environment = plaidEnvironmentOfToken(token);
+          const credentials = plaidCredentials(environment, name => Deno.env.get(name));
+          if (!credentials) throw new Error('Bank disconnect is not configured');
+          return { token, environment, credentials };
+        });
+        for (const { token, environment, credentials } of removals) {
+          const res = await fetch(`${plaidHost(environment)}/item/remove`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ client_id: plaidClientId, secret: plaidSecret, access_token: token }),
+            body: JSON.stringify({ client_id: credentials.clientId, secret: credentials.secret, access_token: token }),
           });
           const data = await res.json();
           // Current responses contain request_id, not the legacy removed boolean.
@@ -91,7 +99,6 @@ Deno.serve(async (req) => {
           if (!alreadyRemoved && (!res.ok || data.error_code || data.removed === false || (!data.request_id && data.removed !== true))) {
             throw new Error('Bank disconnect not confirmed');
           }
-          removedTokens.add(token);
         }
       }
     } catch (err) {

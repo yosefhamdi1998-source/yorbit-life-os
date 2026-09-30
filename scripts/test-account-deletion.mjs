@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { transform } from 'esbuild';
 const source=fs.readFileSync('supabase/functions/delete-account/index.ts','utf8');
-const js=(await transform(source.replace(/^import .*;\r?\n/gm,''),{loader:'ts'})).code;
+const plaidEnvJs=(await transform(fs.readFileSync('supabase/functions/_shared/plaidEnvironment.ts','utf8').replace(/^export /gm,''),{loader:'ts'})).code;
+const js=plaidEnvJs+(await transform(source.replace(/^import .*;\r?\n/gm,''),{loader:'ts'})).code;
 for(const fails of [false,true]) {
  let handler; const requests=[],lookups=[]; const failure=new Error('synthetic deletion failure');
  const admin={from(table){return {select(columns){if(table==='subscriptions') return {eq:async()=>({data:[],error:null})};assert.equal(table,'connected_accounts');assert.equal(columns,'id, sync_status');const q={eq(field,value){if(field==='user_id'){assert.equal(value,'fixture-user');return q;}assert.equal(field,'provider');return Promise.resolve({data:[{id:'vault-only'}]});}};return q;},delete(){return {eq:async()=>({error:null,count:0})};}}},auth:{admin:{deleteUser:async id=>{assert.equal(id,'fixture-user');return {error:fails?failure:null};}}}};
@@ -89,3 +90,28 @@ for (const method of ['GET','HEAD','PUT','DELETE']) {
  assert.equal(authReads,0);
 }
 console.log('PASS: account deletion accepts POST only; read requests cannot trigger deletion');
+
+// Plaid Sandbox items (listed test accounts) are removed in the sandbox with
+// the sandbox secret; real items keep production. Without the sandbox secret
+// a sandbox item is never sent to production and deletion stops intact.
+for (const sandboxSecret of [true,false]) {
+  let handler, authDeletes=0, deletes=0; const calls=[];
+  const secrets={PLAID_CLIENT_ID:'client-1',PLAID_SECRET:'production-secret',PLAID_SANDBOX_SECRET:sandboxSecret?'sandbox-secret':undefined};
+  const tokens={real:'access-production-fixture',test:'access-sandbox-fixture'};
+  const admin={from(table){return {
+    select(){const q={eq(){if(table==='subscriptions')return Promise.resolve({data:[],error:null});return q;},then(resolve){return Promise.resolve({data:[{id:'real',sync_status:'connected'},{id:'test',sync_status:'connected'}],error:null}).then(resolve);}};return q;},
+    delete(){deletes++;return {eq:async()=>({error:null,count:0})};}
+  };},auth:{admin:{deleteUser:async()=>{authDeletes++;return {error:null};}}}};
+  vm.runInNewContext(js,{Deno:{serve:fn=>handler=fn,env:{get:k=>k in secrets?secrets[k]:null}},getUser:async()=>({id:'fixture-user'}),serviceClient:()=>admin,handleOptions:()=>null,enforceRateLimit:async()=>null,identityFromRequest:()=>'',RULES:{destructive:{}},getPlaidAccessToken:async(_a,id)=>({token:tokens[id]}),fetch:async(url,init)=>{calls.push({url,body:JSON.parse(init.body)});return {ok:true,status:200,json:async()=>({request_id:'synthetic'})};},jsonResponse:(body,status)=>({body,status}),errorResponse:(message,status)=>({body:{error:message},status}),console:{log(){},error(){},warn(){}}});
+  const response=await handler({method:'POST'});
+  const real=calls.find(c=>c.body.access_token===tokens.real), test=calls.find(c=>c.body.access_token===tokens.test);
+  if(sandboxSecret){
+    assert.equal(real.url,'https://production.plaid.com/item/remove'); assert.equal(real.body.secret,'production-secret');
+    assert.equal(response.status,200); assert.equal(authDeletes,1);
+    assert.equal(test.url,'https://sandbox.plaid.com/item/remove'); assert.equal(test.body.secret,'sandbox-secret'); assert.equal(test.body.client_id,'client-1');
+  } else {
+    assert.equal(response.status,503); assert.equal(authDeletes,0); assert.equal(deletes,0);
+    assert.equal(calls.length,0,'a configuration gap stops deletion before any bank is disconnected');
+  }
+}
+console.log('PASS: deletion removes real items in production and Plaid Sandbox items in the sandbox, each with its own secret; a missing sandbox secret stops deletion before any bank is disconnected or anything deleted');

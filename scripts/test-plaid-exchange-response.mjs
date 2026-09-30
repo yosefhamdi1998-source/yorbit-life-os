@@ -7,7 +7,7 @@ const publicSource = fs.readFileSync('supabase/functions/_shared/publicConnected
 const publicJs = (await transform(publicSource, { loader: 'ts', format: 'esm' })).code;
 const { PUBLIC_ACCOUNT_COLUMNS, publicConnectedAccount } = await import('data:text/javascript;base64,' + Buffer.from(publicJs).toString('base64'));
 const source = fs.readFileSync('supabase/functions/plaid-exchange-token/index.ts', 'utf8');
-const handlerJs = (await transform(source.replace(/^import .*;\r?\n/gm, ''), { loader: 'ts' })).code;
+const handlerJs = (await transform(fs.readFileSync('supabase/functions/_shared/plaidEnvironment.ts', 'utf8').replace(/^export /gm, '') + source.replace(/^import .*;\r?\n/gm, ''), { loader: 'ts' })).code;
 const syntheticToken = 'synthetic-private-token-not-real';
 
 async function run({saveFails=false,authenticated=true,invalid=false,cleanupFails=false}={}) {
