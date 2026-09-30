@@ -200,7 +200,13 @@ const auth = {
 
   async loginViaEmailPassword(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Keep Supabase's error code so the login screen can offer the right
+      // fix (an unconfirmed email needs a new link, not a new password).
+      const failure = new Error(error.message);
+      failure.code = error.code;
+      throw failure;
+    }
   },
 
   async loginWithProvider(provider, redirectPath = '/') {

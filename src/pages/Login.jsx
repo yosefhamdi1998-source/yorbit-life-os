@@ -8,12 +8,18 @@ import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { FEATURES } from "@/lib/features";
+import { isEmailNotConfirmed } from "@/lib/authErrors";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // An unconfirmed account can't log in until its email is confirmed; the
+  // only way forward is a new link, so offer one right here.
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendNote, setResendNote] = useState("");
   const oauthStarting = useRef(false);
   // Set by the email confirmation link, so a confirmed account lands on an
   // acknowledgement rather than a bare form that looks like nothing happened.
@@ -45,14 +51,30 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setUnconfirmed(false);
+    setResendNote("");
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
       window.location.href = import.meta.env.BASE_URL;
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      if (isEmailNotConfirmed(err)) setUnconfirmed(true);
+      else setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    setResending(true);
+    setResendNote("");
+    try {
+      await base44.auth.resendOtp(email);
+      setResendNote(`Sent. Check ${email}, including your spam folder.`);
+    } catch (err) {
+      setResendNote(`We couldn't send a new link: ${err.message || "please try again in a few minutes."}`);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -121,6 +143,19 @@ export default function Login() {
         </div>
       )}
 
+      {unconfirmed && (
+        <div role="status" className="mb-4 p-3 rounded-lg bg-secondary text-sm">
+          <p className="font-medium">Confirm your email to log in.</p>
+          <p className="mt-1 text-muted-foreground">
+            We sent a confirmation link to {email} when you signed up. Check your inbox and spam folder, or send a new link.
+          </p>
+          <Button type="button" variant="outline" className="mt-3 min-h-[44px]" onClick={handleResendConfirmation} disabled={resending}>
+            {resending ? "Sending…" : "Resend confirmation email"}
+          </Button>
+          {resendNote && <p className="mt-2" aria-live="polite">{resendNote}</p>}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -133,7 +168,7 @@ export default function Login() {
               autoFocus
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setUnconfirmed(false); setResendNote(""); }}
               className="pl-10 h-12"
               required
             />
