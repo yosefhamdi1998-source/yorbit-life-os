@@ -114,7 +114,7 @@ Complete the current questionnaire against the signed app, including AI-generate
 
 ## App Review notes
 
-These notes become true only after creating and verifying the dedicated reviewer account. Use the guarded `supabase/seed/app_review_demo.sql` once on that empty, explicitly marked account; it grants no Pro entitlement. Verify the login and every advertised flow before copying the notes into App Store Connect. The seed has not been run against production. AI service deployment/configuration and consent must be verified before describing Coach as available.
+These notes become true only after creating and verifying the dedicated reviewer account. Use the guarded `supabase/seed/app_review_demo.sql` once on that empty, explicitly marked account; it grants no Pro entitlement. To give the reviewer Pro without a purchase, grant the reviewer account's user id a RevenueCat promotional `pro` entitlement lasting the review period (RevenueCat API, V1 secret key), confirm the app shows Pro after revenuecat-sync, and revoke it afterwards; otherwise the notes must tell the reviewer to buy in the sandbox. Verify the login and every advertised flow before copying the notes into App Store Connect. The seed has not been run against production. AI service deployment/configuration and consent must be verified before describing Coach as available.
 
 ```
 DEMO ACCOUNT
