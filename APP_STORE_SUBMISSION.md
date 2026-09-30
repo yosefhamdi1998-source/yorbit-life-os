@@ -214,6 +214,8 @@ Draft inventory only. Reconcile the signed archive privacy report, SDK behavior,
 | User ID | App Functionality |
 | Crash Data | App Functionality |
 
+Crash Data, measured September 30: a local build with no Sentry DSN produced the same content-hashed entry file the live website serves (index-CAWadl42.js), so Sentry is not active on the website today. The Codemagic iOS build gets its Supabase settings from .env.production, which has no DSN, so the signed app will not send crash reports either unless VITE_SENTRY_DSN is added to its build environment. Decide whether to enable Sentry in the iOS build, then make this row and the PrivacyInfo.xcprivacy crash-data entry match that decision.
+
 Do not submit blanket "not collected" answers from this draft. Legacy routes, optional notes/forms/health entries, AI inputs, diagnostics and third-party SDK collection still need reconciliation. Confirm tracking behavior in the signed build and provider configuration before answering the tracking question.
 
 ---

@@ -51,7 +51,7 @@ Codex's next work after access: signed build, native purchase/restore/server con
 ## 4. Native bank-return registration
 
 Owner supplies the actual Application Identifier Prefix for app.yorbit (usually the Apple Team ID; confirm against the App ID/profile). Android release signing fingerprint is needed only for an Android release.
-- Plaid dashboard must allow https://yorbit-life-os.vercel.app/bank-oauth-return ; Android package is app.yorbit when relevant.
+- Plaid dashboard must allow https://yorbit-life-os.vercel.app/bank-oauth-return . (Do not register an Android package yet: the Android project still builds as app.moneyglow and is not release-ready; see LAUNCH_STATUS.md.)
 - Apple App ID needs Associated Domains for applinks:yorbit-life-os.vercel.app.
 - The iOS entitlement and guarded association generator are now implemented. Codex uses the supplied prefix to generate/deploy the exact association, verify its direct HTTPS response and test the signed app. The native pipeline checks this before building. Details: NATIVE_BANK_RETURN.md.
 - Until associated correctly, an OAuth bank return can land on the fallback return-to-app page rather than resume automatically.

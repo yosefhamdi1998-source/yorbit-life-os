@@ -1,5 +1,5 @@
 # Yorbit launch status
-Updated September 28, 2026 after the sandbox portal deployment and native authentication configuration. The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated September 30, 2026 (release-path fixes below; earlier: September 28 sandbox portal deployment and native authentication configuration). The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## Readiness decisions
 | Release | Decision | Why |
@@ -36,6 +36,19 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 - Hosted end to end: real signup, cross-account sessions, bank sync, account deletion.
 - Associated Domains / assetlinks files for the native bank return once the Team ID and signing fingerprint exist.
 - iOS subscribers' Pro AI allowance works once ai-coach and RevenueCat are both deployed.
+- Plaid Sandbox bank testing: deploy the six bank functions from 27c64e4 after PLAID_SANDBOX_SECRET/PLAID_SANDBOX_EMAILS exist, then verify link/sync/disconnect/delete on a listed disposable account.
+- Legacy disconnected accounts: Codex runs the read-only count first; the app hides disconnected accounts, so any that still hold a credential need an authorized system cleanup (none built until the count shows it is needed).
+- Android is not release-ready and out of this App Store scope: it still builds as app.moneyglow with MoneyGlow strings, has no deep-link intent filter for the app.yorbit auth callback and no App Links for the bank return. A Play package name is permanent once published; rename before any Android release.
+
+## September 30 release-path fixes (Claude; nothing deployed to Supabase)
+Supabase CLI still unauthenticated; the built-in browser is not signed in to Stripe or Supabase. All work below is local code plus GitHub/Vercel; no provider, payment, bank, credential or production data was touched.
+- **Plaid Sandbox for listed test accounts (27c64e4).** Every Plaid call was production-only, so the planned Plaid-Sandbox device/hosted verification of linking, the native OAuth return, sync, disconnect and deletion could not happen without a real bank login. Calls now route by the token's own environment prefix; new sandbox links only for PLAID_SANDBOX_EMAILS with PLAID_SANDBOX_SECRET; a sandbox item never uses the production secret. Deletion now checks every connection's configuration before revoking any bank. New test-plaid-environment; sandbox cases in bank-sync (39), disconnect SQL (27, real Postgres) and deletion; five mutants each fail a test. Production-path suites unchanged and passing. Not deployed.
+- **Cloud iOS build shipped no Supabase project (fc4f5f3).** Codemagic builds without Vercel settings or the gitignored .env, so createClient would have thrown at launch in every signed build. Tracked public .env.production (URL + sb_publishable_ key only; environment values still win). Verified by building with .env moved aside: the entry file matches the live site's content hash (index-CAWadl42.js). check-native-release.mjs now requires these and refuses a secret/service_role key.
+- **iOS pipeline could never make its first build (24a096c).** It used get-latest-app-store-build-number, which (per Codemagic's source) ignores TestFlight-only builds and prints nothing when none exist; the step treated that as fatal. Now get-latest-build-number, empty = first build (1), failed lookup still stops. Test runs the real YAML step with stubbed CLIs and fails on the old step.
+- **Deletion dialog (c7fca5f)** no longer tells iOS users to use a subscription-management button that is hidden on iOS; it states that web subscriptions are canceled automatically (as the server does before deleting anything).
+- **Owner-step corrections:** RevenueCat needs a **V1** secret key (the server uses the v1 subscribers endpoint) and its server half can be verified before Apple with a promotional entitlement; Plaid Sandbox steps; no Mac is required (Codemagic builds on its Macs); crash reporting is off everywhere today (no Sentry DSN in the live or cloud build) - decide before the privacy answers.
+- Checked and fine: iOS Info.plist (iPad orientations, encryption flag, no camera-triggering file input), lockfile in sync for `npm ci`, pre-install pipeline scripts use only Node built-ins, stripe@14 resolves to its fetch/Web-Crypto build in Deno, Capacitor's template scheme/versioning match Codemagic's documented recipe.
+- Full suite 68 scripts (check:enums and cross-user-isolation need the CLI login), strict lint and production build pass. Vercel deployed each push; the live entry file is unchanged.
 
 ## Evidence sources
 - Work log: YORBIT_PROGRESS.md. Codex reviews: C:\Users\Yosef\Yorbit-Main-Handoff\2026-09-26\disconnect-review.md and ...\2026-09-27\codex-release-review.md.
