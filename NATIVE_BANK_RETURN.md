@@ -25,7 +25,7 @@ Enable Associated Domains on the Apple App ID and ensure the distribution profil
    The check compares against the prepared local file and exact app/route. It makes no Apple or bank API call.
 4. Set APPLE_APP_ID_PREFIX in the manual native CI environment. The pipeline refuses a missing/wrong prefix or undeployed file.
 5. Build/sign only when other owner configuration is ready. Inspect the signed archive and provisioning profile: application-identifier must match the association appID; associated-domains must contain the exact production host. Source parsing is not proof of signed entitlements.
-6. On macOS, use Apple's swcutil verify against the real AASA and callback URL; confirm unrelated routes do not match. Install the signed app and test Notes long-press/open plus an actual Plaid sandbox OAuth return. A typed address-bar navigation alone is not a universal-link test.
+6. On macOS, use Apple's swcutil verify against the real AASA and callback URL; confirm unrelated routes do not match. Install the signed app and test Notes long-press/open plus an actual Plaid sandbox OAuth return (needs the 27c64e4 bank functions deployed and the tester on PLAID_SANDBOX_EMAILS; before that change every Plaid call was production-only). A typed address-bar navigation alone is not a universal-link test.
 7. Capture cold-start and foreground returns, duplicate delivery, user cancellation and recoverable failure. Use synthetic accounts/provider sandbox only. Apple CDN caching can delay changes; record device/install state.
 
 Before completing steps 1–7, native bank return remains unverified. Android App Links are a separate release path requiring its own package/signing fingerprint; this change does not claim Android readiness.

@@ -55,6 +55,13 @@ Owner supplies the actual Application Identifier Prefix for app.yorbit (usually 
 - The iOS entitlement and guarded association generator are now implemented. Codex uses the supplied prefix to generate/deploy the exact association, verify its direct HTTPS response and test the signed app. The native pipeline checks this before building. Details: NATIVE_BANK_RETURN.md.
 - Until associated correctly, an OAuth bank return can land on the fallback return-to-app page rather than resume automatically.
 
+### Plaid Sandbox for synthetic bank testing (code in 27c64e4, not deployed)
+Every Plaid call was production-only, so bank linking, the native OAuth return, sync, disconnect and deletion could only be tested with a real bank login. Since 27c64e4, listed test accounts can link Plaid Sandbox banks; real users' connections are unchanged.
+1. Plaid Dashboard > Developers > Keys: copy the **Sandbox** secret. Save it in Supabase Edge Function secrets as PLAID_SANDBOX_SECRET (never in chat).
+2. Save PLAID_SANDBOX_EMAILS in the same place: the exact disposable test and reviewer addresses (comma-separated). Unset = nobody.
+3. Confirm https://yorbit-life-os.vercel.app/bank-oauth-return is an allowed redirect URI for Sandbox as well as Production.
+4. Codex reviews and redeploys plaid-create-link-token, plaid-exchange-token, plaid-sync-transactions, plaid-sync-holdings, plaid-disconnect-account and delete-account, then tests link/sync/disconnect/delete on a listed disposable account using Plaid's public test login (user_good / pass_good), including an OAuth test bank for the native return once the app is signed.
+
 ## 5. Privacy, AI and reviewer decisions
 
 - AI native-origin/financial-context deployment remains a separately unresolved decision. No financial payload has been sent to Anthropic in this work; funding/service health is not independently verified. Do not promise the paid AI allowance is live before the approved deployment and tests.

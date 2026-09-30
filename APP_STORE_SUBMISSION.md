@@ -150,7 +150,12 @@ Upgrade; Restore Purchases is in Settings.
 BANK CONNECTIONS
 Bank linking uses Plaid. Yorbit does not store bank login passwords; it stores connection tokens for syncing.
 The reviewer does not need to link an account — the demo data is already
-present.
+present. To try linking anyway, the reviewer account uses Plaid's test
+environment: choose any listed bank and sign in with username user_good,
+password pass_good (Plaid's public test login; no real bank is involved).
+[Only include this paragraph once <<REVIEW_EMAIL>> is on PLAID_SANDBOX_EMAILS,
+PLAID_SANDBOX_SECRET is set, the Plaid functions from 27c64e4 are deployed, and
+a sandbox link has been verified with that account.]
 
 DATA DELETION
 Settings > Delete Account permanently removes the account and all associated
