@@ -59,6 +59,20 @@ export default function Settings() {
   };
   const urlParams = new URLSearchParams(window.location.search);
   const purchaseSuccess = urlParams.get('success') === '1';
+  // Stripe's webhook usually lands a few seconds after checkout redirects
+  // here. Re-check on our own for about 30 seconds rather than leaving a
+  // paying user on "waiting" until they click; the button covers slower cases.
+  const [autoCheckDone, setAutoCheckDone] = useState(!purchaseSuccess);
+  useEffect(() => {
+    if (!purchaseSuccess || isPro || autoCheckDone) return undefined;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      refreshSubscriptionStatus();
+      if (attempts >= 10) { clearInterval(timer); setAutoCheckDone(true); }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [purchaseSuccess, isPro, autoCheckDone]);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [portalError, setPortalError] = useState('');
   const portalRef = useRef(false);
@@ -286,9 +300,9 @@ export default function Settings() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <p className="font-bold text-sm text-emerald-800">{isPro ? 'Yorbit Pro is active' : checkingPlan ? 'Checking your subscription…' : 'Waiting for subscription confirmation'}</p>
-              <p className="text-xs text-emerald-700 mt-0.5">{isPro ? 'Your subscription has been verified.' : 'Returning from checkout does not confirm payment. Check again shortly; contact support if your purchase remains unavailable.'}</p>
-              {!isPro && <Button className="mt-2 bg-emerald-800 text-white hover:bg-emerald-900 hover:text-white" disabled={checkingPlan} onClick={refreshSubscriptionStatus}>{checkingPlan ? 'Checking subscription...' : 'Check subscription again'}</Button>}
+              <p className="font-bold text-sm text-emerald-800">{isPro ? 'Yorbit Pro is active' : checkingPlan || !autoCheckDone ? 'Checking your subscription…' : 'Waiting for subscription confirmation'}</p>
+              <p className="text-xs text-emerald-700 mt-0.5">{isPro ? 'Your subscription has been verified.' : !autoCheckDone ? 'Waiting for Stripe to confirm your payment. This usually takes a few seconds.' : 'Returning from checkout does not confirm payment. Check again shortly; contact support if your purchase remains unavailable.'}</p>
+              {!isPro && autoCheckDone && <Button className="mt-2 bg-emerald-800 text-white hover:bg-emerald-900 hover:text-white" disabled={checkingPlan} onClick={refreshSubscriptionStatus}>{checkingPlan ? 'Checking subscription...' : 'Check subscription again'}</Button>}
             </div>
           </div>
         )}

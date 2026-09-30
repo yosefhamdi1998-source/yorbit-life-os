@@ -25,6 +25,12 @@ class FixtureEntity {
     this.rows = (DATA[table] || []).map((r, i) => ({ id: r.id ?? `${table}-${i}`, created_date: r.created_date ?? '2026-01-01', ...r }));
   }
   async list(sort, limit) {
+    // Returning from checkout before the webhook has written the row: the
+    // subscription appears on the third check.
+    if (this.table === 'subscriptions' && scenarioName === 'checkout-return') {
+      this.listCalls = (this.listCalls || 0) + 1;
+      return this.listCalls > 2 ? [{ id: 'checkout-sub', plan: 'pro_monthly', status: 'trialing', cancel_at_period_end: false }] : [];
+    }
     if (this.table === 'investment_holdings' && scenarioName === 'holdings-retry' && !this.failureShown) {
       this.failureShown = true; throw new Error('Synthetic holdings read failure');
     }
