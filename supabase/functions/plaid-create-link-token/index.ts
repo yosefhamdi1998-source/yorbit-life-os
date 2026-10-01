@@ -16,10 +16,6 @@ Deno.serve(async (req) => {
   if (opt) return opt;
 
   try {
-    const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-    const plaidSecret = Deno.env.get('PLAID_SECRET');
-    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
-
     const user = await getUser(req);
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 

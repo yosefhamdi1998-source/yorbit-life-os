@@ -34,7 +34,7 @@ for (const email of ['someone@gmail.com', 'x@evilplaid-testers.example', 'x@plai
   assert.equal(helper.sandboxLinkAllowed(email, envOf(FULL)), false, String(email));
 }
 assert.equal(helper.sandboxLinkAllowed('qa@yorbit.example', envOf({ ...FULL, PLAID_SANDBOX_EMAILS: undefined })), false, 'unset list = nobody');
-assert.equal(helper.sandboxLinkAllowed('qa@yorbit.example', envOf({ ...FULL, PLAID_SANDBOX_SECRET: undefined })), false, 'no sandbox link without the sandbox secret');
+// Tester selection and credential availability are verified separately by the handlers below.
 
 // --- Shared fakes for the handlers ---
 function fakes({ env, user, plaidCalls, configs, extra = {} }) {
@@ -93,8 +93,25 @@ async function createLink({ env = FULL, who = REAL, body = {}, existingToken = n
   r = await createLink({ who: TESTER, body: { native: true } });
   assert.equal(r.plaidCalls[0][1].redirect_uri, 'https://yorbit-life-os.vercel.app/bank-oauth-return', 'sandbox OAuth banks exercise the same native return');
 
-  r = await createLink({ who: TESTER, env: { ...FULL, PLAID_SANDBOX_SECRET: undefined } });
-  assert.equal(r.configs[0].basePath, 'https://production.plaid.com', 'without the sandbox secret, testers are ordinary users');
+  for (const secret of [undefined, '', '  ']) {
+    r = await createLink({ who: TESTER, env: { ...FULL, PLAID_SANDBOX_SECRET: secret } });
+    assert.equal(r.response.status, 503, 'a listed tester must fail closed when the sandbox secret is unavailable');
+    assert.equal(r.plaidCalls.length, 0, 'missing sandbox configuration must never open a real-bank link');
+    assert.equal(r.configs.length, 0);
+  }
+  for (const secret of [undefined, '', '  ']) {
+    r = await createLink({ who: TESTER, body: { native: true }, env: { ...FULL, PLAID_SECRET: secret } });
+    assert.equal(r.response.status, 200, 'sandbox-only configuration needs no production secret');
+    assert.equal(r.configs[0].basePath, 'https://sandbox.plaid.com');
+    assert.equal(secretUsed(r.configs[0]), 'sandbox-secret');
+    assert.equal(r.plaidCalls[0][1].redirect_uri, 'https://yorbit-life-os.vercel.app/bank-oauth-return');
+  }
+  r = await createLink({ who: TESTER, env: { ...FULL, PLAID_CLIENT_ID: undefined } });
+  assert.equal(r.response.status, 503);
+  assert.equal(r.plaidCalls.length, 0);
+  r = await createLink({ who: REAL, env: { ...FULL, PLAID_SECRET: undefined } });
+  assert.equal(r.response.status, 503, 'real users do not fall back to sandbox when production is unavailable');
+  assert.equal(r.plaidCalls.length, 0);
 
   // Update mode follows the existing item's environment, whoever asks.
   r = await createLink({ who: REAL, body: { connected_account_id: 'acct-1' }, existingToken: 'access-sandbox-old' });
@@ -137,9 +154,25 @@ async function exchange({ env = FULL, who = REAL, publicToken }) {
   assert.equal(r.response.status, 400, 'an unlisted user cannot add a sandbox item');
   assert.equal(r.plaidCalls.length, 0); assert.equal(r.saved.length, 0);
 
-  r = await exchange({ who: TESTER, publicToken: 'public-sandbox-1', env: { ...FULL, PLAID_SANDBOX_SECRET: undefined } });
-  assert.equal(r.response.status, 400);
+  for (const secret of [undefined, '', '  ']) {
+    r = await exchange({ who: TESTER, publicToken: 'public-sandbox-1', env: { ...FULL, PLAID_SANDBOX_SECRET: secret } });
+    assert.equal(r.response.status, 503);
+    assert.equal(r.plaidCalls.length, 0); assert.equal(r.saved.length, 0);
+    assert.equal(r.configs.length, 0);
+  }
+  for (const secret of [undefined, '', '  ']) {
+    r = await exchange({ who: TESTER, publicToken: 'public-sandbox-1', env: { ...FULL, PLAID_SECRET: secret } });
+    assert.equal(r.response.status, 200, 'sandbox exchange needs no production secret');
+    assert.equal(r.configs[0].basePath, 'https://sandbox.plaid.com');
+    assert.equal(secretUsed(r.configs[0]), 'sandbox-secret');
+    assert.equal(r.saved[0].p_access_token, 'access-sandbox-fixture');
+  }
+  r = await exchange({ who: TESTER, publicToken: 'public-sandbox-1', env: { ...FULL, PLAID_CLIENT_ID: undefined } });
+  assert.equal(r.response.status, 503);
+  assert.equal(r.plaidCalls.length, 0); assert.equal(r.saved.length, 0);
+  r = await exchange({ who: REAL, publicToken: 'public-production-1', env: { ...FULL, PLAID_SECRET: undefined } });
+  assert.equal(r.response.status, 503);
   assert.equal(r.plaidCalls.length, 0); assert.equal(r.saved.length, 0);
 }
 
-console.log('PASS Plaid environment: real users and production items stay on production with the production secret; listed testers link Plaid Sandbox (including the native OAuth return) with the sandbox secret; update mode follows the item; unlisted users and missing sandbox secrets never reach the other environment');
+console.log('PASS Plaid environment: real users and production items stay on production with the production secret; listed testers link Plaid Sandbox (including the native OAuth return) with the sandbox secret; update mode follows the item; missing environment configuration fails closed with no provider calls; sandbox-only setup works; unlisted users cannot exchange sandbox tokens');

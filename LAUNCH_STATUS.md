@@ -113,3 +113,12 @@ Prepared portal endpoint now applies the existing sandbox-only/tester policy, wi
 
 ## September 28 iOS bank-return source preparation
 The iOS target lacked an Associated Domains entitlement even though its callback handler existed. Added the exact production applinks domain to App.entitlements, wired both Debug/Release signing settings and capability metadata, and added a guarded association generator plus direct-HTTPS preflight in the manual native build. This prepares the bank-return path without a sample Apple identity, real bank call, native build or paid CI run. The actual app identifier prefix, matching Apple profile/capability, Plaid allowlist and signed-device return remain required. See NATIVE_BANK_RETURN.md. Sandbox account access and scheduler credential were rechecked and remain absent.
+
+
+## September 30 Codex sandbox correction and email verification
+- Reproduced a gap in the new Plaid test-account routing: a listed tester with no sandbox secret received a successful production link. Environment selection now depends on tester membership alone; missing/blank credentials for that environment return 503 before any Plaid call. Sandbox link/exchange no longer requires a production secret. Existing-item reconnect stays in its stored token environment and ownership checks remain intact.
+- Focused tests cover absent/blank credentials, sandbox-only link/exchange (including the native redirect), default production routing, unlisted-user refusal and existing-item routing. The regression failed before the fix and passed after it. Bank sync (39 scenarios), exchange privacy/cleanup, native bank return/CORS, account deletion and JWT configuration checks pass on synthetic fixtures. No real bank/provider action or signed-device result is claimed.
+- Confirmed email-delivery blocker in the live dashboard: confirmation ON, custom SMTP OFF, no Auth Hooks. OWNER_ACTIONS item 0 now gives the finite provider/domain setup and disposable-inbox verification sequence; do not turn off confirmation as the default workaround.
+- These Plaid changes are saved source awaiting the coordinated bank backend release; Vercel does not deploy Edge Functions. Scheduler authentication, live billing and real-bank cleanup were not changed. Local operational counts remain in the private checkpoint rather than the public work log.
+
+- Final check for this correction: strict lint passed with zero warnings. No frontend code changed; the broad suite and a local web build were not repeated.

@@ -10,10 +10,6 @@ Deno.serve(async (req) => {
   if (opt) return opt;
 
   try {
-    const plaidClientId = Deno.env.get('PLAID_CLIENT_ID');
-    const plaidSecret = Deno.env.get('PLAID_SECRET');
-    if (!plaidClientId || !plaidSecret) return jsonResponse({ error: 'Bank sync is not enabled yet.' }, 501, {}, req);
-
     const user = await getUser(req);
     if (!user) return jsonResponse({ error: 'Unauthorized' }, 401, {}, req);
 
@@ -36,7 +32,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Select at least one valid bank account.' }, 400, {}, req);
     }
     const credentials = plaidCredentials(environment, env);
-    if (!credentials) throw new Error('Plaid environment is not configured');
+    if (!credentials) {
+      return errorResponse("We couldn't connect your bank. Please try again.", 503, { fn: 'plaid-exchange-token', req });
+    }
     const config = new Configuration({
       basePath: PlaidEnvironments[environment],
       baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },

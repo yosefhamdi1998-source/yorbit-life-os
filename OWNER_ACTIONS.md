@@ -1,18 +1,19 @@
 # Yorbit owner actions
 
-Updated September 28, 2026. The sandbox portal release and native Supabase Auth redirect are complete. Do not repeat their approvals or setup. The fixed five-item launch scope is APP_STORE_READINESS.md; exact evidence is LAUNCH_STATUS.md and YORBIT_PROGRESS.md. No paid launch, signed build or App Store submission is claimed.
+Updated September 30, 2026. The sandbox portal release and native Supabase Auth redirect are complete. Do not repeat their approvals or setup. The fixed five-item launch scope is APP_STORE_READINESS.md; exact evidence is LAUNCH_STATUS.md and YORBIT_PROGRESS.md. No paid launch, signed build or App Store submission is claimed.
 
 Never paste keys, passwords or tokens into chat, source or reports. Codex handles implementation, configuration checks and permitted testing after the required access exists.
 
-## 0. Check that sign-up and password-reset emails can reach users (found September 30)
+## 0. Configure signup and password-reset email delivery (verified September 30)
 
-The live Auth settings (public endpoint, read September 30) show sign-up open, email confirmation required (mailer_autoconfirm false) and email as the only sign-in method. Supabase's built-in email service "will refuse to deliver messages to addresses that are not part of the project's team" unless a custom SMTP server is configured, and sends at most 2 per hour (https://supabase.com/docs/guides/auth/auth-smtp). If no custom SMTP is set, every real user's confirmation and password-reset email is dropped and they can never sign in. Hosted signup/email delivery has never been tested.
+Codex verified the production dashboard read-only: email signup and Confirm email are ON, custom SMTP is OFF, and no Auth Hooks are configured. Supabase's default mailer restricts delivery to project-team addresses; ordinary customer confirmation and password-reset delivery is therefore a launch blocker. Existing confirmed accounts are not evidence that these emails reach new customers. No test email was sent or authentication setting changed.
 
-1. Codex, read-only: whether custom SMTP is enabled (Authentication > Emails > SMTP Settings), and run `scripts/launch-readonly-checks.sql` once. It returns counts and names only (tested against the real table definitions; writes nothing): confirmed vs unconfirmed users and recent confirmations; disconnected accounts still holding a bank credential (LAUNCH_STATUS legacy item); bank connections by state and last sync; subscription rows by provider/status; whether the Vault scheduler secret exists; and the recorded versions of the September 27 migrations.
-2. If custom SMTP is not configured, you decide:
-   - **Recommended:** set up a transactional email provider and enter its SMTP details yourself in Authentication > Emails > SMTP Settings (never in chat). Most providers require a sending domain you own and can add DNS records to; yorbit-life-os.vercel.app cannot be verified as a sender. Choosing a provider or plan and buying a domain are yours.
-   - Or, temporarily, turn off "Confirm email". Sign-up then works without email, but anyone can register with someone else's address and password reset still cannot reach users.
-3. After configuring, Codex tests sign-up confirmation and password reset end to end with a disposable inbox you control.
+1. Owner supplies the sending domain already owned, the existing transactional-email provider (or says neither exists), and a disposable inbox address for the eventual delivery test. Do not paste provider passwords or keys into chat. Domain/provider purchase, plan selection and account verification remain owner actions.
+2. Codex can prepare the sender settings and the provider's required DNS records once the domain/provider are known. Use the provider-issued SPF/DKIM/DMARC instructions; do not invent DNS values or overwrite existing mail records. A vercel.app subdomain is not a sending domain the owner controls.
+3. Owner securely enters the SMTP host, port, username and password plus the approved sender email/name in Supabase Authentication > Emails > SMTP Settings. Keep Confirm email enabled. Disabling confirmation does not repair password-reset delivery and is not the recommended launch workaround.
+4. Codex then verifies signup, received confirmation, sign-in and password-reset recovery using only the disposable inbox/account. Check both actual delivery and correct app return; a successful API response alone is insufficient. Remove only the authorized synthetic fixture after verification.
+
+Reference: https://supabase.com/docs/guides/auth/auth-smtp . The read-only production diagnostic has already been run; do not repeat it without a relevant change.
 
 ## 1. Connect the Yorbit Stripe sandbox
 

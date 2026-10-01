@@ -35,11 +35,11 @@ export function plaidCredentials(environment: PlaidEnvironment, get: (name: stri
   return clientId && secret ? { clientId, secret } : null;
 }
 
-// Whether this user's NEW bank links go to Plaid Sandbox: the sandbox secret
-// must exist and the user's address must be on PLAID_SANDBOX_EMAILS
-// (comma-separated exact addresses or @domain suffixes). Unset = nobody.
+// Whether this user's NEW bank links belong to Plaid Sandbox. Select by the
+// allowlist alone: missing credentials must fail closed in the selected
+// environment, never turn a sandbox tester into a production bank customer.
+// PLAID_SANDBOX_EMAILS accepts exact addresses or @domain suffixes; unset = nobody.
 export function sandboxLinkAllowed(email: string | null | undefined, get: (name: string) => string | undefined | null): boolean {
-  if (!plaidCredentials('sandbox', get)) return false;
   const address = (email ?? '').trim().toLowerCase();
   if (!address.includes('@')) return false;
   return (get('PLAID_SANDBOX_EMAILS') ?? '').split(',').map(entry => entry.trim().toLowerCase()).filter(Boolean)

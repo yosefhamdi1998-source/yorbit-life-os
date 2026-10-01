@@ -1852,3 +1852,14 @@ Process note: a chained `git stash pop` ran after a failed test and partly appli
 Later the same day: scripts/launch-readonly-checks.sql (4de1d4e) gathers, as counts only, the production facts the open decisions need (unconfirmed users, disconnected accounts still holding credentials, bank states, subscription rows, Vault secret presence, migration versions); tested on real Postgres, writes nothing. Scheduler option B (7aebe08): requireSystemCaller also accepts a project secret key from SUPABASE_SECRET_KEYS (inert while verify_jwt stays on; config.toml unchanged and pinned by test), and cron-auth-fix-secret-key.sql copies the sb_secret_ key the reminders job already holds into Vault inside the database; cron-auth-verify.sql follows whichever secret the job uses. Owner chooses option A (legacy key) or B (one approval). Review notes: reviewer Pro via a temporary RevenueCat promotional entitlement.
 
 Final: full suite 73 scripts (check:enums and the CLI-backed SQL suites need the login), strict lint and production build pass. Vercel deployed each push; commit statuses success. Readiness unchanged: paid web, TestFlight and App Store submission not ready.
+
+
+## 2026-09-30 — Codex takeover: fail-closed Plaid sandbox routing
+- Owner asked Codex to take over the bounded correction. Started from clean tracked master 86b6559, confirmed origin/master matched, preserved untracked audit/output.
+- Replaced the test that expected a tester to fall back to production without a sandbox secret. New regression failed with HTTP 200 instead of required 503 before the source fix.
+- Separated tester membership from credential availability. Missing/blank sandbox configuration now stops link/exchange before provider calls or DB writes; sandbox-only configuration works without PLAID_SECRET. Production selection and existing-item environments are preserved.
+- Focused passing checks: Plaid environment regression, 39 bank-sync scenarios, exchange response/privacy, native bank return, native CORS, account deletion and function JWT configuration. All use local synthetic fixtures; no real-provider, hosted new-bank lifecycle, or signed-device evidence claimed.
+- Read-only dashboard confirmed the SMTP blocker; owner instructions now retain email confirmation and specify secure provider setup plus an actual disposable-inbox signup/reset check. Sender domain/provider/inbox details remain required. No auth setting, key, schedule, financial record or real-bank connection changed.
+- New bank backend source is not yet deployed; maintain that distinction from the GitHub/Vercel web release.
+
+- Final check for this correction: strict lint passed with zero warnings. No frontend code changed; the broad suite and a local web build were not repeated.
