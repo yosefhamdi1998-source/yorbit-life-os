@@ -1860,6 +1860,10 @@ Final: full suite 73 scripts (check:enums and the CLI-backed SQL suites need the
 - Separated tester membership from credential availability. Missing/blank sandbox configuration now stops link/exchange before provider calls or DB writes; sandbox-only configuration works without PLAID_SECRET. Production selection and existing-item environments are preserved.
 - Focused passing checks: Plaid environment regression, 39 bank-sync scenarios, exchange response/privacy, native bank return, native CORS, account deletion and function JWT configuration. All use local synthetic fixtures; no real-provider, hosted new-bank lifecycle, or signed-device evidence claimed.
 - Read-only dashboard confirmed the SMTP blocker; owner instructions now retain email confirmation and specify secure provider setup plus an actual disposable-inbox signup/reset check. Sender domain/provider/inbox details remain required. No auth setting, key, schedule, financial record or real-bank connection changed.
-- New bank backend source is not yet deployed; maintain that distinction from the GitHub/Vercel web release.
+- Bank source was committed/pushed as 32f1d1d and then deployed as the consistent six-function release recorded below.
 
 - Final check for this correction: strict lint passed with zero warnings. No frontend code changed; the broad suite and a local web build were not repeated.
+
+- Backend release completed from 32f1d1d: plaid-create-link-token v12, plaid-exchange-token v12, plaid-sync-transactions v25, plaid-sync-holdings v12, plaid-disconnect-account v2, delete-account v15; independent function inventory confirms ACTIVE and verify_jwt=true for all six.
+- Additional pre-release validation: 27 disconnect checks passed against real disposable PostgreSQL with fake providers, including concurrent/shared-item protection. Hosted anonymous POST 401 and native-origin OPTIONS 200 passed for all six functions. No actual Plaid/Stripe/RevenueCat action, user deletion, financial write, credential change or cron activation occurred. Authenticated sandbox lifecycle remains blocked on provider/tester configuration.
+- GitHub confirms Vercel success for 32f1d1d at 2026-10-01T03:37:42Z (September 30 local); source changes are backend-only. This documentation follow-up records completed backend deployment and the remaining owner email setup.
