@@ -15,6 +15,13 @@ Codex verified the production dashboard read-only: email signup and Confirm emai
 
 Reference: https://supabase.com/docs/guides/auth/auth-smtp . The read-only production diagnostic has already been run; do not repeat it without a relevant change.
 
+October 2 check (Claude, public lookups only): getyorbit.com is **not registered** (Verisign RDAP 404; DNS NXDOMAIN) and no Resend DNS records exist, so the proposed domain/provider were not completed. Exact sequence once you proceed (Resend's documented Supabase settings, https://resend.com/docs/send-with-supabase-smtp):
+1. Owner: register the domain (purchase is yours).
+2. Owner: create the Resend account, add the domain in Resend > Domains.
+3. Owner or Claude/Codex with your dashboard session: add exactly the DNS records Resend shows for that domain at your registrar (never invented values; do not overwrite other mail records). Wait until Resend shows the domain Verified.
+4. Owner: create a Resend API key with sending access. In Supabase Authentication > Emails > SMTP Settings enter host smtp.resend.com, port 465, username resend, password = that API key, sender e.g. no-reply@<your domain>, sender name Yorbit. Keep Confirm email on. Never paste the key into chat.
+5. Codex/Claude: verify a real received confirmation and password-reset email with your disposable inbox, then remove only that test account.
+
 ## 1. Connect the Yorbit Stripe sandbox
 
 The connected Stripe account inventory currently exposes only live Yorbit access. Use the Stripe account-access link supplied in chat to connect the Yorbit sandbox/test environment, then tell Codex it is connected. If that session link expires, request a fresh account-access link. This changes access only; do not make a real payment.
