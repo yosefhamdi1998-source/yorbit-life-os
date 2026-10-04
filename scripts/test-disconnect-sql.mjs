@@ -93,6 +93,7 @@ try {
   await pool.query(read('supabase/migrations/20260914190526_atomic_plaid_account_credentials.sql'));
   await pool.query('grant all on all tables in schema public to service_role');
   await pool.query(read(MIGRATION));
+  await pool.query(read('supabase/migrations/20261004165854_legacy_cleanup_claim.sql'));
   console.log(`Real PostgreSQL ${(await pool.query('show server_version')).rows[0].server_version}: schema from schema.sql + real migrations applied, including ${path.basename(MIGRATION)}`);
 
   // ------------------------------------------------- SQL: claim and finalize
@@ -238,7 +239,7 @@ try {
   const tokenJs = (await transform(read('supabase/functions/_shared/plaidToken.ts').replace(/^export async function/m, 'async function'), { loader: 'ts' })).code;
 
   function makeHandler({ userId, plaid = 'success', faults = {}, configured = true, sandboxSecret = true }) {
-    const log = { removed: [], configs: [] };
+    const log = { removed: [], configs: [], errors: [] };
     const secrets = { PLAID_SECRET: 'production-secret', PLAID_SANDBOX_SECRET: sandboxSecret ? 'sandbox-secret' : undefined };
     const admin = {
       async rpc(name, args) {
@@ -263,7 +264,7 @@ try {
     class PlaidApi {
       async itemRemove({ access_token }) {
         log.removed.push(access_token);
-        if (plaid === 'error') { const e = new Error('provider down'); e.response = { data: { error_code: 'INTERNAL_SERVER_ERROR' } }; throw e; }
+        if (plaid === 'error') { const e = new Error('provider down'); e.response = { data: { error_code: 'INTERNAL_SERVER_ERROR', access_token } }; throw e; }
         if (plaid === 'not-found') { const e = new Error('gone'); e.response = { data: { error_code: 'ITEM_NOT_FOUND' } }; throw e; }
         return { data: {} };
       }
@@ -275,7 +276,7 @@ try {
       Configuration: class { constructor(options) { log.configs.push(options); } },
       PlaidEnvironments: { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' }, PlaidApi,
       handleOptions: () => null, jsonResponse: (body, st = 200) => ({ status: st, body }),
-      errorResponse: (message, st) => ({ status: st, body: { error: message } }),
+      errorResponse: (message, st, opts) => { log.errors.push(opts?.internal); return { status: st, body: { error: message } }; },
       enforceRateLimit: async () => null, identityFromRequest: () => 'fixture', RULES: { sync: {} },
       console: { log() {}, error() {}, warn() {} },
     };
@@ -336,6 +337,7 @@ try {
     const s = await seed({ accounts: 1 });
     const failing = makeHandler({ userId: s.user, plaid: 'error' });
     assert.equal((await failing.call(s.ids[0])).status, 503);
+    assert.deepEqual(failing.log.errors, ['provider'], 'the logger receives only a reason code, never the Plaid payload');
     assert.equal(await status(s.ids[0]), 'disconnecting'); assert.equal(await creds(s.ids[0]), 1);
     const retry = makeHandler({ userId: s.user, plaid: 'not-found' });
     assert.equal((await retry.call(s.ids[0])).status, 200);
@@ -407,19 +409,24 @@ try {
   const cleanupJs = (await transform(sharedSrc + '\n' + cleanupSrc, { loader: 'ts' })).code;
   const SAFE = /^[a-z_]+$/;
   // The PostgREST subset the cleanup and plaidToken.ts use, run as service_role.
-  function restAdmin(faults = {}) {
+  function restAdmin(faults = {}, { pageCap = 1000, beforeClaim } = {}) {
     const from = table => {
       assert.ok(['connected_accounts', 'plaid_credentials'].includes(table), table);
       let cols = '*'; const where = []; const params = [];
+      let order = table === 'plaid_credentials' ? 'connected_account_id' : 'id';
+      let limit = pageCap;
       const run = async () => {
         if (faults[`read:${table}`] > 0) { faults[`read:${table}`]--; return { data: null, error: { message: 'synthetic read outage' } }; }
         assert.ok(cols.split(',').every(c => SAFE.test(c.trim())), cols);
-        const r = await asService(c => c.query(`select ${cols} from public.${table}${where.length ? ' where ' + where.join(' and ') : ''}`, params));
+        const r = await asService(c => c.query(`select ${cols} from public.${table}${where.length ? ' where ' + where.join(' and ') : ''} order by ${order} limit ${limit}`, params));
         return { data: r.rows, error: null };
       };
       const q = {
         select(c) { cols = c; return q; },
         eq(c, v) { assert.match(c, SAFE); params.push(v); where.push(`${c} = $${params.length}`); return q; },
+        gt(c, v) { assert.match(c, SAFE); params.push(v); where.push(`${c} > $${params.length}`); return q; },
+        order(c) { assert.match(c, SAFE); order = c; return q; },
+        limit(n) { assert.ok(Number.isInteger(n) && n > 0); limit = Math.min(n, pageCap); return q; },
         in(c, arr) { assert.match(c, SAFE); params.push(arr.map(String)); where.push(`${c}::text = any($${params.length}::text[])`); return q; },
         not(c, op, v) {
           assert.match(c, SAFE);
@@ -436,16 +443,18 @@ try {
     return {
       from,
       async rpc(name, args) {
-        assert.ok(['claim_bank_disconnect', 'finalize_bank_disconnect'].includes(name));
+        assert.ok(['claim_bank_disconnect', 'claim_legacy_bank_disconnect', 'finalize_bank_disconnect'].includes(name));
+        if (name.startsWith('claim_') && beforeClaim) await beforeClaim(args.p_account_id);
         if (faults[name] > 0) { faults[name]--; return { data: null, error: { code: '08006', message: 'synthetic connection loss' } }; }
         try {
-          const r = await asService(c => c.query(`select * from public.${name}($1, $2)`, [args.p_user_id, args.p_account_id]));
-          return { data: name === 'claim_bank_disconnect' ? r.rows : r.rows[0]?.[name], error: null };
+          const legacy = name === 'claim_legacy_bank_disconnect';
+          const r = await asService(c => c.query(`select * from public.${name}($1, $2${legacy ? ', $3' : ''})`, [args.p_user_id, args.p_account_id, ...(legacy ? [args.p_expected_item_id] : [])]));
+          return { data: name.startsWith('claim_') ? r.rows : r.rows[0]?.[name], error: null };
         } catch (e) { return { data: null, error: { code: e.code, message: e.message } }; }
       },
     };
   }
-  function makeCleanup({ system = true, plaid = {}, faults = {}, onRemove = null, sandboxSecret = true } = {}) {
+  function makeCleanup({ system = true, plaid = {}, faults = {}, onRemove = null, sandboxSecret = true, pageCap, beforeClaim } = {}) {
     const log = { removed: [], configs: [], output: [] };
     const secrets = { PLAID_CLIENT_ID: 'client-fixture', PLAID_SECRET: 'production-secret', PLAID_SANDBOX_SECRET: sandboxSecret ? 'sandbox-secret' : undefined };
     class PlaidApi {
@@ -461,19 +470,25 @@ try {
     let handler;
     const sandbox = {
       Deno: { serve: fn => { handler = fn; }, env: { get: k => secrets[k] } },
-      serviceClient: () => restAdmin(faults),
+      serviceClient: () => restAdmin(faults, { pageCap, beforeClaim }),
+      crypto: globalThis.crypto, TextEncoder,
       requireSystemCaller: async (_req, _admin, json) => (system ? null : json({ error: 'Unauthorized' }, 401)),
       Configuration: class { constructor(o) { log.configs.push(o); } },
       PlaidEnvironments: { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' }, PlaidApi,
       handleOptions: () => null,
-      jsonResponse: (body, st = 200) => { log.output.push(JSON.stringify(body)); return { status: st, body }; },
+      jsonResponse: (body, st = 200) => { log.output.push(JSON.stringify(body)); return { status: st, body: JSON.parse(JSON.stringify(body)) }; },
       errorResponse: (message, st, opts) => { log.output.push(message, String(opts?.internal?.message ?? '')); return { status: st, body: { error: message } }; },
       console: { log: (...a) => log.output.push(a.join(' ')), error: (...a) => log.output.push(a.join(' ')), warn: (...a) => log.output.push(a.join(' ')) },
     };
     vm.runInNewContext(tokenJs, sandbox);
     vm.runInNewContext(cleanupJs, sandbox);
     const call = (body = {}, method = 'POST') => handler({ method, json: async () => body });
-    return { call, log };
+    const execute = async body => {
+      const preview = await call({});
+      assert.equal(preview.status, 200);
+      return call({ ...body, review_token: preview.body.review_token });
+    };
+    return { call, execute, log };
   }
   const markLegacy = id => pool.query(`update connected_accounts set sync_status = 'disconnected' where id = $1`, [id]);
   const removedCount = (log, token) => log.removed.filter(t => t === token).length;
@@ -481,6 +496,95 @@ try {
     const text = log.output.join('\n');
     return tokens.filter(t => text.includes(t)).concat(/Fixture Bank|Account \d/.test(text) ? ['financial detail'] : []);
   };
+  {
+    // Model a configured PostgREST row cap, rather than returning unlimited
+    // rows from the SQL adapter and accidentally hiding truncation defects.
+    await pool.query('delete from auth.users');
+    const s = await seed({ accounts: 8 });
+    await pool.query(`update connected_accounts set sync_status = 'disconnected' where user_id = $1`, [s.user]);
+    const last = [...s.ids].sort().at(-1);
+    await pool.query('delete from plaid_credentials where connected_account_id <> $1', [last]);
+    const paged = makeCleanup({ pageCap: 3 });
+    const r = await paged.call({});
+    assert.equal(r.status, 200);
+    assert.equal(r.body.candidates, 1, 'must find a credential after a full page of already-clean accounts');
+    assert.equal(r.body.accounts[0].account_id, last);
+    assert.equal(paged.log.removed.length, 0);
+    ok('cleanup scans beyond capped pages of already-clean accounts without falsely reporting zero');
+  }
+  {
+    await pool.query('delete from auth.users');
+    const ids = [];
+    for (let i = 0; i < 8; i++) {
+      const s = await seed({ accounts: 2 }); await markLegacy(s.ids[0]); ids.push(s.ids[0]);
+    }
+    const run = makeCleanup({ pageCap: 3 });
+    const r = await run.call({});
+    assert.equal(r.status, 200); assert.equal(r.body.candidates, 8);
+    assert.equal(r.body.sharing_an_item_still_in_use, 8);
+    assert.deepEqual(r.body.accounts.map(a => a.account_id).sort(), ids.sort());
+    assert.equal(run.log.removed.length, 0);
+    ok('cleanup paginates credential and active-sibling lookups as well as account enumeration');
+  }
+  {
+    await pool.query('delete from auth.users');
+    const a = await seed({ accounts: 1 }); await markLegacy(a.ids[0]);
+    const b = await seed({ accounts: 1 });
+    const run = makeCleanup();
+    const preview = await run.call({});
+    await pool.query(`update connected_accounts set sync_status = 'connected' where id = $1`, [a.ids[0]]);
+    await markLegacy(b.ids[0]);
+    const r = await run.call({ dry_run: false, confirm: 1, review_token: preview.body.review_token });
+    assert.equal(r.status, 409, 'same count with a different account must require a fresh review');
+    assert.equal(run.log.removed.length, 0);
+    assert.equal(await creds(b.ids[0]), 1);
+    ok('cleanup refuses a stale review even when the candidate count is unchanged');
+  }
+  {
+    await pool.query('delete from auth.users');
+    const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
+    const run = makeCleanup({ beforeClaim: async id => pool.query(`update connected_accounts set sync_status = 'connected' where id = $1`, [id]) });
+    const r = await run.execute({ dry_run: false, confirm: 1 });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.results[0].outcome, 'skipped');
+    assert.equal(run.log.removed.length, 0);
+    assert.equal(await status(s.ids[0]), 'connected'); assert.equal(await creds(s.ids[0]), 1);
+    ok('cleanup rechecks eligibility inside its database claim; a newly connected account is skipped intact');
+  }
+  {
+    await pool.query('delete from auth.users');
+    const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
+    for (const role of ['anon', 'authenticated']) {
+      await assert.rejects(() => asRole(role, s.user, c => c.query('select * from public.claim_legacy_bank_disconnect($1,$2,$3)', [s.user, s.ids[0], s.item])), e => e.code === '42501');
+    }
+    await assert.rejects(() => asService(c => c.query('select * from public.claim_legacy_bank_disconnect($1,$2,$3)', [s.user, s.ids[0], 'replaced-item'])), e => e.code === '55000');
+    await assert.rejects(() => asService(c => c.query('select * from public.claim_legacy_bank_disconnect($1,$2,$3)', ['00000000-0000-4000-8000-ffffffffffff', s.ids[0], s.item])), e => e.code === 'P0002');
+    assert.equal(await creds(s.ids[0]), 1); assert.equal(await status(s.ids[0]), 'disconnected');
+    ok('maintenance claim denies public/user roles, wrong owner and replaced Item; credential stays intact');
+
+    for (const limit of [0, -1, 101, 1.5, '1', null]) {
+      const r = await makeCleanup().call({ dry_run: false, confirm: 1, limit });
+      assert.equal(r.status, 400);
+    }
+    const failure = makeCleanup({ faults: { 'read:connected_accounts': 1 } });
+    assert.equal((await failure.call({ dry_run: false, confirm: 1 })).status, 500);
+    assert.equal(failure.log.removed.length, 0); assert.equal(await creds(s.ids[0]), 1);
+    ok('invalid limits and scan errors fail before any bank operation');
+  }
+  {
+    await pool.query('delete from auth.users');
+    const s = await seed({ accounts: 2 });
+    for (const id of s.ids) await markLegacy(id);
+    const rotated = s.token + '-rotated';
+    await pool.query('update plaid_credentials set access_token = $1 where connected_account_id = $2', [rotated, s.ids[1]]);
+    const run = makeCleanup({ plaid: { [s.token]: 'error', [rotated]: 'error' } });
+    const r = await run.execute({ dry_run: false, confirm: 2 });
+    assert.equal(r.status, 502); assert.equal(r.body.retry, 2);
+    assert.equal(run.log.removed.length, 1, 'a failed shared Item is not called again even if stored tokens differ');
+    for (const id of s.ids) assert.equal(await creds(id), 1);
+    assert.deepEqual(leaks(run.log, [s.token, rotated]), []);
+    ok('a failed provider removal is attempted only once for shared credentials; both accounts remain retryable');
+  }
   {
     // Clear earlier scenarios' rows so counts below are exact.
     await pool.query('delete from auth.users');
@@ -517,18 +621,18 @@ try {
     ok('cleanup dry run: lists only disconnected accounts still holding a credential plus unfinished disconnects, flags shared Items still in use, no Plaid call, no change, no tokens or financial details');
 
     // Executing requires confirming the count just seen.
-    for (const body of [{ dry_run: false }, { dry_run: false, confirm: 6 }, { dry_run: false, confirm: '7' }]) {
+    for (const body of [{ dry_run: false }, { dry_run: false, confirm: 6 }, { dry_run: false, confirm: '7' }, { dry_run: false, confirm: 7 }]) {
       const r = await makeCleanup().call(body);
       assert.equal(r.status, 409, JSON.stringify(body));
     }
     assert.equal(await snapshot(), before);
-    ok('cleanup execute refuses without confirm equal to the current candidate count; nothing changes');
+    ok('cleanup execute requires both the exact count and review fingerprint; nothing changes on refusal');
 
     // Full run with a provider failure, an Item already removed at Plaid, and a
     // sandbox Item. Every outcome is checked against the database.
     const remaining = 7;
     const run = makeCleanup({ plaid: { [alone.token]: 'error', [stuck.token]: 'not-found' } });
-    const r = await run.call({ dry_run: false, confirm: remaining, limit: 100 });
+    const r = await run.execute({ dry_run: false, confirm: remaining, limit: 100 });
     assert.equal(r.status, 502, 'a retryable failure is reported as partial');
     assert.equal(r.body.retry, 1);
     const outcome = id => r.body.results.find(x => x.account_id === id)?.outcome;
@@ -560,10 +664,10 @@ try {
     const again = (await makeCleanup().call({})).body;
     assert.equal(again.candidates, 1); assert.equal(again.accounts[0].account_id, alone.ids[0]);
     const fix = makeCleanup();
-    assert.equal((await fix.call({ dry_run: false, confirm: 1 })).status, 200);
+    assert.equal((await fix.execute({ dry_run: false, confirm: 1 })).status, 200);
     assert.equal(await creds(alone.ids[0]), 0); assert.equal(removedCount(fix.log, alone.token), 1);
     const idle = makeCleanup();
-    const last = await idle.call({ dry_run: false, confirm: 0 });
+    const last = await idle.execute({ dry_run: false, confirm: 0 });
     assert.equal(last.status, 200); assert.equal(last.body.processed, 0); assert.equal(idle.log.removed.length, 0);
     ok('cleanup repeated: the failed account succeeds next run; afterwards there are no candidates and runs make no Plaid calls');
   }
@@ -573,18 +677,18 @@ try {
     for (let i = 0; i < 5; i++) {
       const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
       const op = makeCleanup(); const user = makeHandler({ userId: s.user });
-      const count = (await makeCleanup().call({})).body.candidates;
-      const [a, b] = await Promise.all([op.call({ dry_run: false, confirm: count, limit: 100 }), user.call(s.ids[0])]);
-      if ([200].includes(a.status) && b.status === 200 && (await creds(s.ids[0])) === 0 && (await status(s.ids[0])) === 'disconnected') perfect++;
+      const preview = (await op.call({})).body;
+      const [a, b] = await Promise.all([op.call({ dry_run: false, confirm: preview.candidates, review_token: preview.review_token, limit: 100 }), user.call(s.ids[0])]);
+      if ([200, 409].includes(a.status) && b.status === 200 && (await creds(s.ids[0])) === 0 && (await status(s.ids[0])) === 'disconnected') perfect++;
     }
     assert.equal(perfect, 5);
-    ok('cleanup and the user Disconnect at the same time (5/5): both succeed and leave the account clean (extra removals are idempotent at Plaid)');
+    ok('cleanup races user Disconnect (5/5): completes or refuses a changed review, user succeeds, final account is clean');
 
     // Account deletion finishing while the cleanup is mid-flight: reported as gone, no error.
     const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
     const count = (await makeCleanup().call({})).body.candidates;
     const racing = makeCleanup({ onRemove: async token => { if (token === s.token) await pool.query('delete from auth.users where id = $1', [s.user]); } });
-    const res = await racing.call({ dry_run: false, confirm: count, limit: 100 });
+    const res = await racing.execute({ dry_run: false, confirm: count, limit: 100 });
     assert.equal(res.body.results.find(x => x.account_id === s.ids[0]).outcome, 'already_gone');
     assert.equal(Number((await pool.query('select count(*) from connected_accounts where id = $1', [s.ids[0]])).rows[0].count), 0);
     ok('cleanup racing an account deletion: the account is reported already gone, not an error');
@@ -593,21 +697,33 @@ try {
     const t = await seed({ accounts: 1 }); await markLegacy(t.ids[0]);
     const n = (await makeCleanup().call({})).body.candidates;
     const flaky = makeCleanup({ faults: { finalize_bank_disconnect: 1 } });
-    const fr = await flaky.call({ dry_run: false, confirm: n, limit: 100 });
+    const fr = await flaky.execute({ dry_run: false, confirm: n, limit: 100 });
     assert.equal(fr.status, 502); assert.equal(fr.body.results.find(x => x.account_id === t.ids[0]).reason, 'finalize');
     assert.equal(await creds(t.ids[0]), 1);
-    assert.equal((await makeCleanup().call({ dry_run: false, confirm: 1 })).status, 200);
+    assert.equal((await makeCleanup().execute({ dry_run: false, confirm: 1 })).status, 200);
     assert.equal(await creds(t.ids[0]), 0);
     ok('cleanup with a database failure before finalize: credential kept, reported for retry, next run finishes it');
 
     // Limit: at most `limit` accounts per run; the rest wait for the next one.
     for (let i = 0; i < 3; i++) { const x = await seed({ accounts: 1 }); await markLegacy(x.ids[0]); }
-    const l = await makeCleanup().call({ dry_run: false, confirm: 3, limit: 1 });
+    const l = await makeCleanup().execute({ dry_run: false, confirm: 3, limit: 1 });
     assert.equal(l.status, 200); assert.equal(l.body.processed, 1); assert.equal(l.body.not_processed_this_run, 2);
     assert.equal((await makeCleanup().call({})).body.candidates, 2);
-    assert.equal((await makeCleanup().call({ dry_run: false, confirm: 2 })).status, 200);
+    assert.equal((await makeCleanup().execute({ dry_run: false, confirm: 2 })).status, 200);
     assert.equal((await makeCleanup().call({})).body.candidates, 0);
     ok('cleanup limit processes at most the requested number per run; the next run picks up the rest');
+  }
+  {
+    await pool.query('delete from auth.users');
+    for (const count of [100, 100, 1]) {
+      const s = await seed({ accounts: count });
+      await pool.query(`update connected_accounts set sync_status = 'disconnected' where user_id = $1`, [s.user]);
+    }
+    const run = makeCleanup({ pageCap: 1 });
+    assert.equal((await run.call({})).status, 500, 'exhausting the scan bound must not return a partial successful preview');
+    assert.equal(run.log.removed.length, 0);
+    assert.equal(Number((await pool.query('select count(*) from plaid_credentials')).rows[0].count), 201);
+    ok('cleanup scan bound returns an error with every credential preserved, never a truncated successful preview');
   }
   console.log(`\nAll ${passed} checks passed against real PostgreSQL.`);
 } finally {

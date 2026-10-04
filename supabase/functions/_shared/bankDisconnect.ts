@@ -10,6 +10,7 @@ export const NOT_FOUND = 'P0002';
 export type BankDisconnectResult =
   | { status: 'done'; revoked: boolean }
   | { status: 'not_found'; stage: 'claim' | 'finalize' }
+  | { status: 'skipped'; reason: 'no_longer_eligible' }
   | { status: 'retry'; reason: 'claim' | 'credential_read' | 'plaid_not_configured' | 'provider' | 'finalize'; internal: unknown };
 
 type Admin = { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: any; error: any }>; from: (t: string) => any };
@@ -26,20 +27,23 @@ type Admin = { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ dat
 // 3. finalize_bank_disconnect: delete this account's credential and mark it
 //    disconnected in one transaction.
 // Any failure stops before finalize, so the credential stays for a retry.
-// Never logs or returns the token or any provider payload.
+// Does not log. Callers log only reason codes, never internal diagnostics
+// (which can contain provider payloads or credential-bearing transport data).
 //
-// revokedTokens lets one maintenance run skip a second removal call for an
-// Item it has already removed; the user endpoint does not pass it.
+// These request-local caches avoid repeated calls for a shared Item, including
+// after a provider failure. The user endpoint does not pass them.
 export async function completeBankDisconnect(
   admin: Admin,
   userId: string,
   accountId: string,
-  options: { env: (name: string) => string | undefined; revokedTokens?: Set<string> },
+  options: { env: (name: string) => string | undefined; revokedItems?: Set<string>; failedItems?: Set<string>; legacy?: { expectedItemId: string | null } },
 ): Promise<BankDisconnectResult> {
-  const { data, error: claimError } = await admin.rpc('claim_bank_disconnect', {
+  const { data, error: claimError } = await admin.rpc(options.legacy ? 'claim_legacy_bank_disconnect' : 'claim_bank_disconnect', {
     p_user_id: userId, p_account_id: accountId,
+    ...(options.legacy ? { p_expected_item_id: options.legacy.expectedItemId } : {}),
   });
   if (claimError) {
+    if (options.legacy && claimError.code === '55000') return { status: 'skipped', reason: 'no_longer_eligible' };
     return claimError.code === NOT_FOUND ? { status: 'not_found', stage: 'claim' } : { status: 'retry', reason: 'claim', internal: claimError };
   }
   const claim = Array.isArray(data) ? data[0] : null;
@@ -54,24 +58,31 @@ export async function completeBankDisconnect(
       // A failed read is not "nothing to revoke".
       return { status: 'retry', reason: 'credential_read', internal: err };
     }
-    if (token && !claim.sibling_active && !options.revokedTokens?.has(token)) {
+    if (token && !claim.sibling_active) {
       const environment = plaidEnvironmentOfToken(token);
-      const credentials = plaidCredentials(environment, options.env);
-      if (!credentials) return { status: 'retry', reason: 'plaid_not_configured', internal: new Error('Plaid is not configured') };
-      const plaidClient = new PlaidApi(new Configuration({
-        basePath: PlaidEnvironments[environment],
-        baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
-      }));
-      try {
-        await plaidClient.itemRemove({ access_token: token });
-        revoked = true;
-      } catch (err) {
-        // ITEM_NOT_FOUND: already removed, e.g. by an earlier attempt or a
-        // sibling's own disconnect. Anything else leaves the credential in
-        // place for the retry.
-        if ((err as any)?.response?.data?.error_code !== 'ITEM_NOT_FOUND') return { status: 'retry', reason: 'provider', internal: err };
+      const removalKey = `${environment}:${claim.item_id || token}`;
+      if (options.failedItems?.has(removalKey)) return { status: 'retry', reason: 'provider', internal: new Error('Provider removal already failed in this run') };
+      if (!options.revokedItems?.has(removalKey)) {
+        const credentials = plaidCredentials(environment, options.env);
+        if (!credentials) return { status: 'retry', reason: 'plaid_not_configured', internal: new Error('Plaid is not configured') };
+        const plaidClient = new PlaidApi(new Configuration({
+          basePath: PlaidEnvironments[environment],
+          baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
+        }));
+        try {
+          await plaidClient.itemRemove({ access_token: token });
+          revoked = true;
+        } catch (err) {
+          // ITEM_NOT_FOUND: already removed, e.g. by an earlier attempt or a
+          // sibling's own disconnect. Anything else leaves the credential in
+          // place for the retry.
+          if ((err as any)?.response?.data?.error_code !== 'ITEM_NOT_FOUND') {
+            options.failedItems?.add(removalKey);
+            return { status: 'retry', reason: 'provider', internal: err };
+          }
+        }
+        options.revokedItems?.add(removalKey);
       }
-      options.revokedTokens?.add(token);
     }
   }
 

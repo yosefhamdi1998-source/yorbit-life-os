@@ -8,8 +8,10 @@ Deno.serve(async (req) => {
   if (opt) return opt;
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, {}, req);
 
-  const retryLater = (internal: unknown) =>
-    errorResponse("We couldn't finish disconnecting this account. It's still listed so you can try again.", 503, { internal, fn: 'plaid-disconnect-account', req });
+  // errorResponse logs its internal argument. Keep provider/transport payloads
+  // out of it: they can contain credentials, even though callers see a 503.
+  const retryLater = (reason: string) =>
+    errorResponse("We couldn't finish disconnecting this account. It's still listed so you can try again.", 503, { internal: reason, fn: 'plaid-disconnect-account', req });
 
   try {
     const user = await getUser(req);
@@ -38,10 +40,10 @@ Deno.serve(async (req) => {
     if (result.status === 'not_found' && result.stage === 'claim') {
       return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
     }
-    if (result.status !== 'done') return retryLater(result.status === 'retry' ? result.internal : result);
+    if (result.status !== 'done') return retryLater(result.status === 'retry' ? result.reason : result.status);
 
     return jsonResponse({ success: true }, 200, {}, req);
-  } catch (error) {
-    return retryLater(error);
+  } catch {
+    return retryLater('unexpected_disconnect_failure');
   }
 });
