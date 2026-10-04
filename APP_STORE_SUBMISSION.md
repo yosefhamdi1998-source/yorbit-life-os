@@ -1,6 +1,6 @@
 # Yorbit — App Store submission pack
 
-**Draft — not submission-ready (reviewed against the app September 27, 2026).** Verify the signed iPhone build, reviewer account, purchases, account deletion, and privacy answers before submitting. Placeholders must be completed; synthetic browser fixtures do not prove a reviewer account exists in production.
+**Draft — not submission-ready (reviewed against the app September 27, 2026; keywords, privacy labels, age rating and review notes re-checked against Apple's current guidelines October 4, 2026).** Verify the signed iPhone build, reviewer account, purchases, account deletion, and privacy answers before submitting. Placeholders must be completed; synthetic browser fixtures do not prove a reviewer account exists in production.
 
 Current Apple references: [App Review](https://developer.apple.com/app-store/review/), [Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), and [Privacy and Data Use](https://developer.apple.com/app-store/user-privacy-and-data-use/). Review requires usable account access where sign-in is needed; privacy declarations must cover the app and third parties.
 
@@ -91,11 +91,14 @@ Privacy: https://yorbit-life-os.vercel.app/privacy-policy
 ## Keywords (100 char max, comma separated, no spaces after commas)
 
 ```
-budget,expense,spending,tracker,finance,money,savings,bills,plaid,networth,crypto,investing,planner
+expense,spending,tracker,finance,money,savings,bills,networth,investing,freelance,gig,cashflow
 ```
 
-99 characters. Do not repeat words already in the name or subtitle — Apple
-indexes those separately and duplicates waste the field.
+94 characters. Do not repeat words already in the name or subtitle — Apple
+indexes those separately and duplicates waste the field ("budget" and
+"income" are in the subtitle). No trademarks: guideline 2.3.7 says not to
+pack metadata with "trademarked terms, popular app names", so "plaid" is
+out. "freelance", "gig" and "cashflow" match the variable-income niche.
 
 ---
 
@@ -108,7 +111,22 @@ indexes those separately and duplicates waste the field.
 
 ## Age rating
 
-Complete the current questionnaire against the signed app, including AI-generated content and external links. Do not preselect every answer or assume an age rating from this draft.
+Complete the current questionnaire against the signed app. Apple's current questionnaire (https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions/) has In-App Controls, Capabilities, Mature Themes, Medical or Wellness, Sexuality or Nudity, Violence and Chance-Based Activities, with ratings 4+, 9+, 13+, 16+, 18+.
+
+Draft answers from the iOS build's actual features (owner confirms each):
+
+| Item | Draft answer | Why |
+|---|---|---|
+| Parental Controls / Age Assurance | No | None in the app |
+| Unrestricted Web Access | No | No browser; links open fixed pages (Terms, Privacy, Apple subscriptions) and Plaid's bank-login flow |
+| User-Generated Content / Social Media | No | Notes, custom records and AI chats are private to the account, never shown to other users |
+| Messaging and Chat | No | No user-to-user messaging; the AI Coach is not another user |
+| Advertising | No | No ads |
+| Mature themes, sexuality, violence | None | Finance content only |
+| Medical or Wellness | None | Health Log is not in the iOS build (119fa26) |
+| Gambling, simulated gambling, contests, loot boxes | None | Crypto holdings are display-only balances, not trading or wagering |
+
+All "No/None" gives 4+. Owner judgment: the AI Coach writes free-form text about the user's own finances; Apple's form has no separate AI item, so decide whether its output warrants a higher rating rather than assuming 4+.
 
 ---
 
@@ -139,6 +157,10 @@ Bottom tabs: Home, Money, Invest, Plan, Coach.
   would be sent to Anthropic for analysis, and lets the reviewer accept or
   decline. Declining leaves every non-AI feature fully working. You can change
   the choice later in Settings > Trust & Privacy.
+- More (menu): Connected accounts, Import a statement (CSV or PDF from
+  Files), Reports, Payments & transfers, Notes (dated notes about money
+  matters), Custom records (user-defined forms), Notifications, Settings and
+  Help & support. In Simple Mode some of these sit under More > More tools.
 
 SUBSCRIPTIONS
 Yorbit Pro is offered monthly and yearly via In-App Purchase. The free tier is
@@ -154,8 +176,8 @@ present. To try linking anyway, the reviewer account uses Plaid's test
 environment: choose any listed bank and sign in with username user_good,
 password pass_good (Plaid's public test login; no real bank is involved).
 [Only include this paragraph once <<REVIEW_EMAIL>> is on PLAID_SANDBOX_EMAILS,
-PLAID_SANDBOX_SECRET is set, the Plaid functions from 27c64e4 are deployed, and
-a sandbox link has been verified with that account.]
+PLAID_SANDBOX_SECRET is set (the sandbox-capable Plaid functions are deployed
+from 32f1d1d), and a sandbox link has been verified with that account.]
 
 DATA DELETION
 Settings > Delete Account permanently removes the account and all associated
@@ -206,13 +228,17 @@ Draft inventory only. Reconcile the signed archive privacy report, SDK behavior,
 
 **Data linked to you:**
 
-| Type | Purpose |
-|---|---|
-| Email address | App Functionality |
-| Financial Info (transactions, balances) | App Functionality |
-| Purchase History | App Functionality |
-| User ID | App Functionality |
-| Crash Data | App Functionality |
+| Type | Purpose | Source |
+|---|---|---|
+| Email address | App Functionality | Sign-in account |
+| Financial Info (transactions, balances, budgets, bills, goals, holdings) | App Functionality | Entered, imported, or synced via Plaid; sent to Anthropic only with AI consent |
+| Other User Content | App Functionality | Notes, custom records and AI Coach conversations (AI messages go to Anthropic only with consent) |
+| Purchase History | App Functionality, **Analytics** | RevenueCat says all its users "must select these two options": https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/apple-app-privacy |
+| User ID | App Functionality | Account id, also the RevenueCat app user id |
+| Crash Data | App Functionality | Only if Sentry is enabled in the iOS build (see below); otherwise omit |
+| Performance Data | App Functionality | Only if Sentry is enabled: errorReporting.js sets tracesSampleRate 0.1 |
+
+Not collected by the iOS build: name (sign-up asks only for email and password), location, contacts, photos, health (Health Log is not in the iOS build, 119fa26), browsing history, advertising data. Apple counts data collected by third-party partners too: Plaid (bank linking), RevenueCat (purchases), Anthropic (AI, opt-in), Supabase (hosting).
 
 Crash Data, measured September 30: a local build with no Sentry DSN produced the same content-hashed entry file the live website serves (index-CAWadl42.js), so Sentry is not active on the website today. The Codemagic iOS build gets its Supabase settings from .env.production, which has no DSN, so the signed app will not send crash reports either unless VITE_SENTRY_DSN is added to its build environment. Decide whether to enable Sentry in the iOS build, then make this row and the PrivacyInfo.xcprivacy crash-data entry match that decision.
 
@@ -244,6 +270,10 @@ Restore button or absent auto-renewal wording is a standard rejection.
 `ITSAppUsesNonExemptEncryption` is already set to `false` in `Info.plist`, but the owner must confirm the export-compliance answers against the final signed build and its dependencies. A source flag alone does not establish the correct declaration.
 
 ---
+
+## Developer account type (decide before enrolling)
+
+Guideline 5.1.1(ix), quoted October 4, 2026: "Apps that provide services in highly regulated fields (such as banking and financial services, healthcare, gambling, legal cannabis use, air travel and crypto exchanges) or that require sensitive user information should be submitted by a legal entity that provides the services, and not by an individual developer." Yorbit links bank accounts and stores financial records, so an individual-account submission risks rejection under this guideline. Enrolling as an organization needs a legal entity and a D-U-N-S number and takes longer to approve. This is the owner's legal/business decision; the draft does not assume either.
 
 ## Values only you can supply
 
