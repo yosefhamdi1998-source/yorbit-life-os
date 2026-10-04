@@ -59,6 +59,12 @@ verify_jwt = true
 [functions.plaid-disconnect-account]
 verify_jwt = true
 
+# Operator maintenance only (never scheduled): finishes disconnects of
+# accounts that still hold a Plaid credential. Gateway JWT stays on, and
+# requireSystemCaller then allows only the service key or a signed-in admin.
+[functions.retire-legacy-bank-credentials]
+verify_jwt = true
+
 [functions.revenuecat-sync]
 verify_jwt = true
 

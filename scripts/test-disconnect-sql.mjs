@@ -232,7 +232,9 @@ try {
   // ------------------------------------------ real handler + real database
   console.log('\nreal plaid-disconnect-account handler against the real database');
   const handlerSrc = read('supabase/functions/plaid-disconnect-account/index.ts').replace(/^import .*;\r?\n/gm, '');
-  const handlerJs = (await transform(read('supabase/functions/_shared/plaidEnvironment.ts').replace(/^export /gm, '') + handlerSrc, { loader: 'ts' })).code;
+  const sharedSrc = ['supabase/functions/_shared/plaidEnvironment.ts', 'supabase/functions/_shared/bankDisconnect.ts']
+    .map(f => read(f).replace(/^import .*;\r?\n/gm, '').replace(/^export /gm, '')).join('\n');
+  const handlerJs = (await transform(sharedSrc + '\n' + handlerSrc, { loader: 'ts' })).code;
   const tokenJs = (await transform(read('supabase/functions/_shared/plaidToken.ts').replace(/^export async function/m, 'async function'), { loader: 'ts' })).code;
 
   function makeHandler({ userId, plaid = 'success', faults = {}, configured = true, sandboxSecret = true }) {
@@ -395,6 +397,217 @@ try {
     assert.equal(hs.log.configs[0].baseOptions.headers['PLAID-SECRET'], 'sandbox-secret');
     assert.equal(await status(test.ids[0]), 'disconnected'); assert.equal(await creds(test.ids[0]), 0);
     ok('Plaid Sandbox items revoke in the sandbox with its own secret; without it they stay visible and retryable, never sent to production');
+  }
+  // ------------------------------------------------------------------------
+  // retire-legacy-bank-credentials: operator cleanup of accounts disconnected
+  // before plaid-disconnect-account existed. Real handler + the shared
+  // completeBankDisconnect + real claim/finalize + real plaidToken.ts.
+  console.log('\nretire-legacy-bank-credentials (operator cleanup), real database, fake Plaid');
+  const cleanupSrc = read('supabase/functions/retire-legacy-bank-credentials/index.ts').replace(/^import .*;\r?\n/gm, '');
+  const cleanupJs = (await transform(sharedSrc + '\n' + cleanupSrc, { loader: 'ts' })).code;
+  const SAFE = /^[a-z_]+$/;
+  // The PostgREST subset the cleanup and plaidToken.ts use, run as service_role.
+  function restAdmin(faults = {}) {
+    const from = table => {
+      assert.ok(['connected_accounts', 'plaid_credentials'].includes(table), table);
+      let cols = '*'; const where = []; const params = [];
+      const run = async () => {
+        if (faults[`read:${table}`] > 0) { faults[`read:${table}`]--; return { data: null, error: { message: 'synthetic read outage' } }; }
+        assert.ok(cols.split(',').every(c => SAFE.test(c.trim())), cols);
+        const r = await asService(c => c.query(`select ${cols} from public.${table}${where.length ? ' where ' + where.join(' and ') : ''}`, params));
+        return { data: r.rows, error: null };
+      };
+      const q = {
+        select(c) { cols = c; return q; },
+        eq(c, v) { assert.match(c, SAFE); params.push(v); where.push(`${c} = $${params.length}`); return q; },
+        in(c, arr) { assert.match(c, SAFE); params.push(arr.map(String)); where.push(`${c}::text = any($${params.length}::text[])`); return q; },
+        not(c, op, v) {
+          assert.match(c, SAFE);
+          if (op === 'is' && v === null) where.push(`${c} is not null`);
+          else if (op === 'in') { params.push(v.replace(/^\(|\)$/g, '').split(',')); where.push(`not (${c}::text = any($${params.length}::text[]))`); }
+          else throw new Error(`unsupported not(${op})`);
+          return q;
+        },
+        async maybeSingle() { const r = await run(); return { data: r.data?.[0] ?? null, error: r.error }; },
+        then(resolve, reject) { return run().then(resolve, reject); },
+      };
+      return q;
+    };
+    return {
+      from,
+      async rpc(name, args) {
+        assert.ok(['claim_bank_disconnect', 'finalize_bank_disconnect'].includes(name));
+        if (faults[name] > 0) { faults[name]--; return { data: null, error: { code: '08006', message: 'synthetic connection loss' } }; }
+        try {
+          const r = await asService(c => c.query(`select * from public.${name}($1, $2)`, [args.p_user_id, args.p_account_id]));
+          return { data: name === 'claim_bank_disconnect' ? r.rows : r.rows[0]?.[name], error: null };
+        } catch (e) { return { data: null, error: { code: e.code, message: e.message } }; }
+      },
+    };
+  }
+  function makeCleanup({ system = true, plaid = {}, faults = {}, onRemove = null, sandboxSecret = true } = {}) {
+    const log = { removed: [], configs: [], output: [] };
+    const secrets = { PLAID_CLIENT_ID: 'client-fixture', PLAID_SECRET: 'production-secret', PLAID_SANDBOX_SECRET: sandboxSecret ? 'sandbox-secret' : undefined };
+    class PlaidApi {
+      async itemRemove({ access_token }) {
+        log.removed.push(access_token);
+        if (onRemove) await onRemove(access_token);
+        const mode = plaid[access_token];
+        if (mode === 'error') { const e = new Error('provider down'); e.response = { data: { error_code: 'INTERNAL_SERVER_ERROR', access_token } }; throw e; }
+        if (mode === 'not-found') { const e = new Error('gone'); e.response = { data: { error_code: 'ITEM_NOT_FOUND' } }; throw e; }
+        return { data: {} };
+      }
+    }
+    let handler;
+    const sandbox = {
+      Deno: { serve: fn => { handler = fn; }, env: { get: k => secrets[k] } },
+      serviceClient: () => restAdmin(faults),
+      requireSystemCaller: async (_req, _admin, json) => (system ? null : json({ error: 'Unauthorized' }, 401)),
+      Configuration: class { constructor(o) { log.configs.push(o); } },
+      PlaidEnvironments: { production: 'https://production.plaid.com', sandbox: 'https://sandbox.plaid.com' }, PlaidApi,
+      handleOptions: () => null,
+      jsonResponse: (body, st = 200) => { log.output.push(JSON.stringify(body)); return { status: st, body }; },
+      errorResponse: (message, st, opts) => { log.output.push(message, String(opts?.internal?.message ?? '')); return { status: st, body: { error: message } }; },
+      console: { log: (...a) => log.output.push(a.join(' ')), error: (...a) => log.output.push(a.join(' ')), warn: (...a) => log.output.push(a.join(' ')) },
+    };
+    vm.runInNewContext(tokenJs, sandbox);
+    vm.runInNewContext(cleanupJs, sandbox);
+    const call = (body = {}, method = 'POST') => handler({ method, json: async () => body });
+    return { call, log };
+  }
+  const markLegacy = id => pool.query(`update connected_accounts set sync_status = 'disconnected' where id = $1`, [id]);
+  const removedCount = (log, token) => log.removed.filter(t => t === token).length;
+  const leaks = (log, tokens) => {
+    const text = log.output.join('\n');
+    return tokens.filter(t => text.includes(t)).concat(/Fixture Bank|Account \d/.test(text) ? ['financial detail'] : []);
+  };
+  {
+    // Clear earlier scenarios' rows so counts below are exact.
+    await pool.query('delete from auth.users');
+    const alone = await seed({ accounts: 1 }); await markLegacy(alone.ids[0]);
+    const shared = await seed({ accounts: 2 }); await markLegacy(shared.ids[0]);
+    const pair = await seed({ accounts: 2 }); await markLegacy(pair.ids[0]); await markLegacy(pair.ids[1]);
+    const control = await seed({ accounts: 1 });
+    const clean = await seed({ accounts: 1 }); await claim(clean.user, clean.ids[0]); await finalize(clean.user, clean.ids[0]);
+    const stuck = await seed({ accounts: 1 }); await claim(stuck.user, stuck.ids[0]);
+    const sandboxItem = await seed({ accounts: 1, tokenPrefix: 'access-sandbox-' }); await markLegacy(sandboxItem.ids[0]);
+    const busy = await seed({ accounts: 2 }); await markLegacy(busy.ids[0]);
+    await pool.query(`update connected_accounts set sync_status = 'syncing' where id = $1`, [busy.ids[1]]);
+    const allTokens = [alone, shared, pair, control, clean, stuck, sandboxItem, busy].map(s => s.token);
+    const snapshot = async () => (await pool.query(`select string_agg(id::text || sync_status || coalesce((select count(*) from plaid_credentials p where p.connected_account_id = c.id), 0)::text, ',' order by id) as s from connected_accounts c`)).rows[0].s;
+
+    // Auth and method first: nothing is read or changed.
+    const denied = makeCleanup({ system: false });
+    assert.equal((await denied.call({ dry_run: false, confirm: 8 })).status, 401);
+    assert.equal((await makeCleanup().call({}, 'GET')).status, 405);
+    ok('cleanup: non-system callers get 401 and GET 405, before anything is read');
+
+    // Dry run: lists exactly the accounts that still hold bank access or are unfinished.
+    const before = await snapshot();
+    const dry = makeCleanup();
+    const d = await dry.call({});
+    assert.equal(d.status, 200); assert.equal(d.body.dry_run, true);
+    const listed = d.body.accounts.map(a => a.account_id).sort();
+    const expected = [alone.ids[0], shared.ids[0], pair.ids[0], pair.ids[1], stuck.ids[0], sandboxItem.ids[0], busy.ids[0]].sort();
+    assert.deepEqual(listed, expected, 'connected, syncing and already-clean accounts are not candidates');
+    assert.equal(d.body.candidates, 7); assert.equal(d.body.unfinished_disconnecting, 1); assert.equal(d.body.disconnected_with_credential, 6);
+    assert.deepEqual(d.body.accounts.filter(a => a.shared_item_in_use).map(a => a.account_id).sort(), [shared.ids[0], busy.ids[0]].sort());
+    assert.equal(dry.log.removed.length, 0); assert.equal(await snapshot(), before, 'a dry run changes nothing');
+    assert.deepEqual(leaks(dry.log, allTokens), []);
+    ok('cleanup dry run: lists only disconnected accounts still holding a credential plus unfinished disconnects, flags shared Items still in use, no Plaid call, no change, no tokens or financial details');
+
+    // Executing requires confirming the count just seen.
+    for (const body of [{ dry_run: false }, { dry_run: false, confirm: 6 }, { dry_run: false, confirm: '7' }]) {
+      const r = await makeCleanup().call(body);
+      assert.equal(r.status, 409, JSON.stringify(body));
+    }
+    assert.equal(await snapshot(), before);
+    ok('cleanup execute refuses without confirm equal to the current candidate count; nothing changes');
+
+    // Full run with a provider failure, an Item already removed at Plaid, and a
+    // sandbox Item. Every outcome is checked against the database.
+    const remaining = 7;
+    const run = makeCleanup({ plaid: { [alone.token]: 'error', [stuck.token]: 'not-found' } });
+    const r = await run.call({ dry_run: false, confirm: remaining, limit: 100 });
+    assert.equal(r.status, 502, 'a retryable failure is reported as partial');
+    assert.equal(r.body.retry, 1);
+    const outcome = id => r.body.results.find(x => x.account_id === id)?.outcome;
+    // Provider failure: credential kept, still disconnected, retryable next run.
+    assert.equal(outcome(alone.ids[0]), 'retry'); assert.equal(r.body.results.find(x => x.account_id === alone.ids[0]).reason, 'provider');
+    assert.equal(await creds(alone.ids[0]), 1); assert.equal(await status(alone.ids[0]), 'disconnected');
+    // Shared with a connected sibling: only this copy goes; Item not revoked; sibling untouched.
+    assert.equal(removedCount(run.log, shared.token), 0, 'an Item a connected sibling uses is never revoked');
+    assert.equal(await creds(shared.ids[0]), 0); assert.equal(await status(shared.ids[1]), 'connected'); assert.equal(await creds(shared.ids[1]), 1);
+    // Sibling mid-sync counts as in use too.
+    assert.equal(removedCount(run.log, busy.token), 0);
+    assert.equal(await creds(busy.ids[0]), 0); assert.equal(await status(busy.ids[1]), 'syncing'); assert.equal(await creds(busy.ids[1]), 1);
+    // Two disconnected siblings sharing an Item: removed once, both cleaned.
+    assert.equal(removedCount(run.log, pair.token), 1, 'one removal call per Item in a run');
+    for (const id of pair.ids) { assert.equal(await creds(id), 0); assert.equal(await status(id), 'disconnected'); }
+    // Unfinished disconnect whose Item Plaid already removed: finished.
+    assert.equal(await status(stuck.ids[0]), 'disconnected'); assert.equal(await creds(stuck.ids[0]), 0);
+    // Sandbox Item: removed in the sandbox with its own secret.
+    const sandboxConfigs = run.log.configs.filter(c => c.basePath === 'https://sandbox.plaid.com');
+    assert.equal(sandboxConfigs.length, 1); assert.equal(sandboxConfigs[0].baseOptions.headers['PLAID-SECRET'], 'sandbox-secret');
+    assert.equal(await creds(sandboxItem.ids[0]), 0);
+    // Controls untouched; history kept.
+    assert.equal(await status(control.ids[0]), 'connected'); assert.equal(await creds(control.ids[0]), 1);
+    assert.equal(Number((await pool.query('select count(*) from connected_accounts')).rows[0].count), 11, 'rows are kept; only credentials go');
+    assert.deepEqual(leaks(run.log, allTokens), [], 'no token, institution or account name in output or logs, including the provider error');
+    ok('cleanup execute: revokes only Items no connected or syncing sibling uses (once per Item), finishes unfinished disconnects, routes sandbox Items to the sandbox, keeps failures retryable, never logs tokens or financial details');
+
+    // Repeat: the failed one is retried; then nothing is left; repeating changes nothing.
+    const again = (await makeCleanup().call({})).body;
+    assert.equal(again.candidates, 1); assert.equal(again.accounts[0].account_id, alone.ids[0]);
+    const fix = makeCleanup();
+    assert.equal((await fix.call({ dry_run: false, confirm: 1 })).status, 200);
+    assert.equal(await creds(alone.ids[0]), 0); assert.equal(removedCount(fix.log, alone.token), 1);
+    const idle = makeCleanup();
+    const last = await idle.call({ dry_run: false, confirm: 0 });
+    assert.equal(last.status, 200); assert.equal(last.body.processed, 0); assert.equal(idle.log.removed.length, 0);
+    ok('cleanup repeated: the failed account succeeds next run; afterwards there are no candidates and runs make no Plaid calls');
+  }
+  {
+    // Concurrency with the user's own Disconnect on the same legacy account.
+    let perfect = 0;
+    for (let i = 0; i < 5; i++) {
+      const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
+      const op = makeCleanup(); const user = makeHandler({ userId: s.user });
+      const count = (await makeCleanup().call({})).body.candidates;
+      const [a, b] = await Promise.all([op.call({ dry_run: false, confirm: count, limit: 100 }), user.call(s.ids[0])]);
+      if ([200].includes(a.status) && b.status === 200 && (await creds(s.ids[0])) === 0 && (await status(s.ids[0])) === 'disconnected') perfect++;
+    }
+    assert.equal(perfect, 5);
+    ok('cleanup and the user Disconnect at the same time (5/5): both succeed and leave the account clean (extra removals are idempotent at Plaid)');
+
+    // Account deletion finishing while the cleanup is mid-flight: reported as gone, no error.
+    const s = await seed({ accounts: 1 }); await markLegacy(s.ids[0]);
+    const count = (await makeCleanup().call({})).body.candidates;
+    const racing = makeCleanup({ onRemove: async token => { if (token === s.token) await pool.query('delete from auth.users where id = $1', [s.user]); } });
+    const res = await racing.call({ dry_run: false, confirm: count, limit: 100 });
+    assert.equal(res.body.results.find(x => x.account_id === s.ids[0]).outcome, 'already_gone');
+    assert.equal(Number((await pool.query('select count(*) from connected_accounts where id = $1', [s.ids[0]])).rows[0].count), 0);
+    ok('cleanup racing an account deletion: the account is reported already gone, not an error');
+
+    // A transient database failure mid-run keeps that account's credential for the next run.
+    const t = await seed({ accounts: 1 }); await markLegacy(t.ids[0]);
+    const n = (await makeCleanup().call({})).body.candidates;
+    const flaky = makeCleanup({ faults: { finalize_bank_disconnect: 1 } });
+    const fr = await flaky.call({ dry_run: false, confirm: n, limit: 100 });
+    assert.equal(fr.status, 502); assert.equal(fr.body.results.find(x => x.account_id === t.ids[0]).reason, 'finalize');
+    assert.equal(await creds(t.ids[0]), 1);
+    assert.equal((await makeCleanup().call({ dry_run: false, confirm: 1 })).status, 200);
+    assert.equal(await creds(t.ids[0]), 0);
+    ok('cleanup with a database failure before finalize: credential kept, reported for retry, next run finishes it');
+
+    // Limit: at most `limit` accounts per run; the rest wait for the next one.
+    for (let i = 0; i < 3; i++) { const x = await seed({ accounts: 1 }); await markLegacy(x.ids[0]); }
+    const l = await makeCleanup().call({ dry_run: false, confirm: 3, limit: 1 });
+    assert.equal(l.status, 200); assert.equal(l.body.processed, 1); assert.equal(l.body.not_processed_this_run, 2);
+    assert.equal((await makeCleanup().call({})).body.candidates, 2);
+    assert.equal((await makeCleanup().call({ dry_run: false, confirm: 2 })).status, 200);
+    assert.equal((await makeCleanup().call({})).body.candidates, 0);
+    ok('cleanup limit processes at most the requested number per run; the next run picks up the rest');
   }
   console.log(`\nAll ${passed} checks passed against real PostgreSQL.`);
 } finally {

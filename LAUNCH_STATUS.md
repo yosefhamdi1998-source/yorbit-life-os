@@ -42,7 +42,7 @@ Bank sync's stored bearer is malformed or truncated; the reminders and weekly-an
 - iOS subscribers' Pro AI allowance works once ai-coach and RevenueCat are both deployed.
 - Plaid Sandbox bank testing: the six bank functions are deployed from 32f1d1d. Securely configure PLAID_SANDBOX_SECRET/PLAID_SANDBOX_EMAILS, then verify link/sync/disconnect/delete on a listed disposable account.
 - Scheduler repair: option A (legacy key in Vault) or option B (project secret key, verify_jwt off for sync-all-accounts and generate-subscription-reminders, needs approval); both scripts tested, neither applied (OWNER_ACTIONS item 2).
-- Legacy disconnected accounts: Codex runs the read-only count first; the app hides disconnected accounts, so any that still hold a credential need an authorized system cleanup (none built until the count shows it is needed).
+- Legacy disconnected accounts: dry-run-first operator utility retire-legacy-bank-credentials is built and tested on branch claude/plaid-legacy-cleanup (not deployed, never run); runbook BANK_CREDENTIAL_CLEANUP.md. Read-only count first; actual cleanup revokes real bank access and needs separate authorization.
 - Android is not release-ready and out of this App Store scope: it still builds as app.moneyglow with MoneyGlow strings, has no deep-link intent filter for the app.yorbit auth callback and no App Links for the bank return. A Play package name is permanent once published; rename before any Android release.
 
 ## September 30 release-path fixes (Claude; nothing deployed to Supabase)

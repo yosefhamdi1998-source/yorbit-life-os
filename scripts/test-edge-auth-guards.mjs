@@ -133,8 +133,9 @@ const OWNERSHIP = [
   ['plaid-create-link-token', /account\.user_id\s*!==\s*user\.id/],
   // Ownership is enforced inside claim_bank_disconnect itself now (see the
   // migration), not by a select-then-compare in the function - confirm the
-  // authenticated user's own id is what's actually passed to it.
-  ['plaid-disconnect-account', /p_user_id:\s*user\.id/],
+  // authenticated user's own id is what's actually passed to it (via the
+  // shared sequence, which passes it on as p_user_id; checked below).
+  ['plaid-disconnect-account', /completeBankDisconnect\(admin,\s*user\.id,/],
   ['ai-coach', /\.eq\('id',\s*conversation_id\)\s*\.eq\('user_id',\s*userId\)/],
 ];
 for (const [fn, re] of OWNERSHIP) {
@@ -142,7 +143,12 @@ for (const [fn, re] of OWNERSHIP) {
   check(`${fn} verifies ownership of the supplied id`, re.test(src), true);
 }
 
-for (const fn of ['sync-all-accounts', 'weekly-custom-record-analysis', 'generate-subscription-reminders']) {
+{
+  const shared = fs.readFileSync(path.join(fnDir, '_shared', 'bankDisconnect.ts'), 'utf8');
+  check('shared disconnect passes the caller-supplied owner to both RPCs', (shared.match(/p_user_id:\s*userId/g) || []).length, 2);
+}
+
+for (const fn of ['sync-all-accounts', 'weekly-custom-record-analysis', 'generate-subscription-reminders', 'retire-legacy-bank-credentials']) {
   const src = fs.readFileSync(path.join(fnDir, fn, 'index.ts'), 'utf8');
   check(`${fn} is behind requireSystemCaller`, /requireSystemCaller\(/.test(src), true);
 }

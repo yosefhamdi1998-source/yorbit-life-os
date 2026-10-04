@@ -1,13 +1,7 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { getUser, serviceClient } from '../_shared/supabase.ts';
-import { getPlaidAccessToken } from '../_shared/plaidToken.ts';
-import { plaidCredentials, plaidEnvironmentOfToken } from '../_shared/plaidEnvironment.ts';
-import { Configuration, PlaidApi, PlaidEnvironments } from 'npm:plaid@29.0.0';
+import { completeBankDisconnect } from '../_shared/bankDisconnect.ts';
 import { enforceRateLimit, identityFromRequest, RULES } from '../_shared/rateLimit.ts';
-
-// Postgres "no_data_found", raised by claim/finalize_bank_disconnect for an
-// account that does not exist or is not this user's.
-const NOT_FOUND = 'P0002';
 
 Deno.serve(async (req) => {
   const opt = handleOptions(req);
@@ -35,55 +29,16 @@ Deno.serve(async (req) => {
 
     const admin = serviceClient();
 
-    // Moves the account to 'disconnecting' (visible and retryable, never
-    // hidden) and decides under a per-Item lock whether this call must revoke
-    // the shared Plaid Item. See migration 20260927212600. Ownership is
-    // enforced inside the function via p_user_id.
-    const { data, error: claimError } = await admin.rpc('claim_bank_disconnect', {
-      p_user_id: user.id, p_account_id: accountId,
-    });
-    if (claimError) {
-      if (claimError.code === NOT_FOUND) return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
-      return retryLater(claimError);
+    // The shared sequence (claim under a per-Item lock, revoke only when no
+    // connected sibling needs the Item, finalize atomically) lives in
+    // _shared/bankDisconnect.ts so the operator cleanup of legacy accounts
+    // runs exactly the same steps. Ownership is enforced inside
+    // claim_bank_disconnect via the session's own user id.
+    const result = await completeBankDisconnect(admin, user.id, accountId, { env: name => Deno.env.get(name) });
+    if (result.status === 'not_found' && result.stage === 'claim') {
+      return jsonResponse({ error: "We couldn't find this account." }, 404, {}, req);
     }
-    const claim = Array.isArray(data) ? data[0] : null;
-    if (!claim) return retryLater(new Error('Disconnect claim returned no row'));
-
-    if (claim.account_provider === 'plaid') {
-      let token: string | null;
-      try {
-        ({ token } = await getPlaidAccessToken(admin, accountId));
-      } catch (err) {
-        // A failed read is not "nothing to revoke".
-        return retryLater(err);
-      }
-      if (token && !claim.sibling_active) {
-        // Revoke in the environment the item lives in (the token says which).
-        const environment = plaidEnvironmentOfToken(token);
-        const credentials = plaidCredentials(environment, name => Deno.env.get(name));
-        if (!credentials) return retryLater(new Error('Plaid is not configured'));
-        const plaidClient = new PlaidApi(new Configuration({
-          basePath: PlaidEnvironments[environment],
-          baseOptions: { headers: { 'PLAID-CLIENT-ID': credentials.clientId, 'PLAID-SECRET': credentials.secret } },
-        }));
-        try {
-          await plaidClient.itemRemove({ access_token: token });
-        } catch (err) {
-          // ITEM_NOT_FOUND: already removed, e.g. by an earlier attempt or a
-          // sibling's own disconnect. Anything else leaves the credential in
-          // place for the retry.
-          if (err?.response?.data?.error_code !== 'ITEM_NOT_FOUND') return retryLater(err);
-        }
-      }
-    }
-
-    // Deletes this account's credential copy and marks it disconnected in
-    // one transaction. When a sibling still needs the Item, only this copy
-    // goes; the sibling keeps its own.
-    const { error: finalizeError } = await admin.rpc('finalize_bank_disconnect', {
-      p_user_id: user.id, p_account_id: accountId,
-    });
-    if (finalizeError) return retryLater(finalizeError);
+    if (result.status !== 'done') return retryLater(result.status === 'retry' ? result.internal : result);
 
     return jsonResponse({ success: true }, 200, {}, req);
   } catch (error) {
