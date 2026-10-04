@@ -14,7 +14,7 @@ A failed reset request no longer displays success or removes the retry form. Net
 ## What is deployed, and where
 | Where | State |
 |---|---|
-| Web (Vercel, yorbit-life-os.vercel.app) | Password-reset fix 5347868 has Vercel success at 2026-10-04T02:31:04Z: https://vercel.com/yorbit/yorbit-life-os/FcdqzgosiwLLVR7HXZE73t8S7N7M . Public HTML/entry/reset-chunk checks confirm the released behavior. Provider email delivery and native readiness remain separate. |
+| Web (Vercel, yorbit-life-os.vercel.app) | Integrated source fc761a77f7e1c0224aeb5a541d23aad6f913706d has Vercel success at 2026-10-04T16:29:54Z: https://vercel.com/yorbit/yorbit-life-os/ArxsG7yBewhsdKaxZFFkg4bbqRcL . Public /login and /assets/index-BKtAjhG0.js returned HTTP 200; the deployed entry contains the iOS platform check and preserved web legacy routes. Native runtime behavior is verified only in synthetic browser/router tests, not in a signed build. |
 | Supabase (bank release verified September 30) | plaid-create-link-token v12, plaid-exchange-token v12, plaid-sync-transactions v25, plaid-sync-holdings v12, plaid-disconnect-account v2 and delete-account v15 are ACTIVE with verify_jwt=true, deployed from 32f1d1d. Hosted anonymous POSTs return 401; native-origin preflights return 200 with the expected origin. No real-bank lifecycle was invoked. Prior billing deployments and migrations remain as recorded below; scheduler endpoints were not redeployed. |
 | Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
@@ -139,7 +139,7 @@ Separate worktree C:/Users/Yosef/projects/yorbit-ios-launch from origin/master 0
 
 
 ## October 4 Codex integration review (supersedes the branch-only claims above)
-- Integrated Claude's clean claude/ios-launch branch through 1066ba3 into the canonical checkout, preserving its commits and existing untracked audit/output. Source and submission documents are prepared for the existing GitHub/Vercel workflow; this is not a signed iOS release.
+- Integrated Claude's clean claude/ios-launch branch through 1066ba3 into the canonical checkout, preserving its commits and existing untracked audit/output. Source and submission documents are pushed in the reviewed release fc761a7 with Vercel success; this is not a signed iOS release.
 - Corrected isNative() to isNativeIOS(): the original condition also hid the routes on Android. The replacement regression evaluates the actual React Router tree for 30 web/iOS/Android URL matches and reproduced the Android failure before the correction. Notes, forms, settings, login, password reset and bank return remain routed.
 - Removed the inference that a disabled route proves no health data or no bundled page assets. The shared lazy imports and Settings export of legacy health/journal data remain. Privacy and age-rating answers stay drafts pending final data-flow/archive/content review.
 - Corrected the device plan to distinguish daily ordinary TestFlight renewals from the configurable Sandbox Apple Account rates, include explicit sandbox sign-in prerequisites and protect connected sibling accounts in the disconnect test. Current Apple/RevenueCat sources were checked; keyword count is 94.
