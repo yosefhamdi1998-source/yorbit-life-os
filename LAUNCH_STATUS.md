@@ -1,5 +1,8 @@
 # Yorbit launch status
-Updated September 30, 2026 (release-path fixes below; earlier: September 28 sandbox portal deployment and native authentication configuration). The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+Updated October 3, 2026 (password-reset request fix below; backend and provider evidence retains its original dates). The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
+
+## October 3 password-reset request correction
+A failed reset request no longer displays success or removes the retry form. Network, email-service and rate-limit failures use a generic accessible alert; successful requests retain non-enumerating wording. Five focused auth scripts, strict lint and the production build pass. Desktop/light synthetic browser failure and retry passed; mobile browser verification was blocked by a debugger timeout. Actual email delivery still requires custom SMTP and a disposable-inbox test. GitHub/Vercel release verification pending for this correction; no backend or native deployment is implied.
 
 ## Readiness decisions
 | Release | Decision | Why |

@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import React, { act } from 'react';
+import { JSDOM } from 'jsdom';
+import { transform } from 'esbuild';
+
+const dom = new JSDOM('<div id="root"></div>', { url: 'https://example.test/forgot-password' });
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const { createRoot } = await import('react-dom/client');
+let requests = [];
+const base44 = { auth: { resetPasswordRequest: email => new Promise((resolve, reject) => {
+  requests.push({ email, resolve, reject });
+}) } };
+const element = tag => props => React.createElement(tag, props);
+const AuthLayout = ({ children, footer }) => React.createElement('main', null, children, footer);
+const Link = ({ to, children, ...props }) => React.createElement('a', { href: to, ...props }, children);
+const Icon = () => null;
+globalThis.__resetRequestTest = { React, base44, AuthLayout, Link, Button: element('button'), Input: element('input'), Label: element('label'), Icon };
+const source = fs.readFileSync('src/pages/ForgotPassword.jsx', 'utf8').replace(/^import .*;\r?\n/gm, '');
+const prelude = `const { React, base44, AuthLayout, Link, Button, Input, Label, Icon } = globalThis.__resetRequestTest;
+const { useState, useRef } = React; const Mail = Icon, ArrowLeft = Icon, Loader2 = Icon;`;
+const { code } = await transform(prelude + source, { loader: 'jsx', format: 'esm' });
+const { default: ForgotPassword } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const settle = fn => act(async () => { fn?.(); await new Promise(resolve => setTimeout(resolve, 0)); });
+const submit = () => document.querySelector('form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+const enter = value => {
+  const input = document.querySelector('input');
+  Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(input, value);
+  input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+};
+let errorText;
+for (const failure of ['Failed to fetch', 'Error sending recovery email: private SMTP detail', 'For security purposes, you can only request this after 60 seconds']) {
+  requests = [];
+  const root = createRoot(document.getElementById('root'));
+  await settle(() => root.render(React.createElement(ForgotPassword)));
+  await settle(() => enter('fixture@example.test'));
+  await settle(submit);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].email, 'fixture@example.test');
+  assert.equal(document.querySelector('button').disabled, true, 'Disable resubmission while waiting');
+  await settle(() => requests[0].reject(new Error(failure)));
+  assert.ok(document.querySelector('form'), 'A failed reset request must keep the form available for retry');
+  const alert = document.querySelector('[role="alert"]');
+  assert.ok(alert, 'Announce the request failure accessibly');
+  assert.ok(alert.textContent.trim());
+  errorText ??= alert.textContent;
+  assert.equal(alert.textContent, errorText, 'Backend failures use the same non-enumerating message');
+  assert.equal(document.body.textContent.includes(failure), false, 'Do not expose provider details');
+  assert.equal(document.body.textContent.includes("you'll receive"), false, 'Never promise an email after failure');
+  assert.equal(document.querySelector('input').value, 'fixture@example.test', 'Preserve the email for retry');
+  assert.equal(document.querySelector('button').disabled, false);
+  assert.equal(document.querySelector('a').getAttribute('href'), '/login');
+  await settle(() => { submit(); submit(); });
+  assert.equal(requests.length, 2, 'Even same-turn repeated submits make only one new request');
+  assert.equal(document.querySelector('[role="alert"]'), null, 'Clear the previous error when retry starts');
+  await settle(() => requests[1].resolve());
+  assert.equal(document.querySelector('form'), null, 'Show success only after the request is accepted');
+  assert.match(document.querySelector('[role="status"]').textContent, /If an account exists with that email/);
+  await settle(() => root.unmount());
+}
+console.log('PASS password reset request: network/SMTP/rate-limit failures, private errors, retained input, single-flight retry, accepted success and accessible announcements');

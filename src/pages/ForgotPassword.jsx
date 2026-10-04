@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -11,17 +11,24 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const submitting = useRef(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
+    setError("");
     setLoading(true);
     try {
       await base44.auth.resetPasswordRequest(email);
-    } catch {
-      // Always show success regardless
-    } finally {
-      setLoading(false);
       setSent(true);
+    } catch {
+      // Keep provider details private without claiming a failed request succeeded.
+      setError("We couldn't request a reset email right now. Please wait a moment and try again.");
+    } finally {
+      submitting.current = false;
+      setLoading(false);
     }
   };
 
@@ -37,11 +44,12 @@ export default function ForgotPassword() {
       }
     >
       {sent ? (
-        <p className="text-sm text-foreground text-center">
+        <p role="status" className="text-sm text-foreground text-center">
           If an account exists with that email, you'll receive a password reset link shortly.
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <div className="relative">
@@ -53,6 +61,7 @@ export default function ForgotPassword() {
                 autoFocus
                 placeholder="you@example.com"
                 value={email}
+                disabled={loading}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 h-12"
                 required
