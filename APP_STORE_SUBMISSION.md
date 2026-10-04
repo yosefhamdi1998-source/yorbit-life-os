@@ -113,7 +113,7 @@ out. "freelance", "gig" and "cashflow" match the variable-income niche.
 
 Complete the current questionnaire against the signed app. Apple's current questionnaire (https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions/) has In-App Controls, Capabilities, Mature Themes, Medical or Wellness, Sexuality or Nudity, Violence and Chance-Based Activities, with ratings 4+, 9+, 13+, 16+, 18+.
 
-Draft answers from the iOS build's actual features (owner confirms each):
+Draft answers from source review (owner confirms each against the signed build; no signed-build result exists):
 
 | Item | Draft answer | Why |
 |---|---|---|
@@ -123,10 +123,10 @@ Draft answers from the iOS build's actual features (owner confirms each):
 | Messaging and Chat | No | No user-to-user messaging; the AI Coach is not another user |
 | Advertising | No | No ads |
 | Mature themes, sexuality, violence | None | Finance content only |
-| Medical or Wellness | None | Health Log is not in the iOS build (119fa26) |
+| Medical or Wellness | Pending content review | The dedicated Health Log route is unavailable on iOS, but shared-account exports, custom records and AI output still need review |
 | Gambling, simulated gambling, contests, loot boxes | None | Crypto holdings are display-only balances, not trading or wagering |
 
-All "No/None" gives 4+. Owner judgment: the AI Coach writes free-form text about the user's own finances; Apple's form has no separate AI item, so decide whether its output warrants a higher rating rather than assuming 4+.
+No final rating is established by this draft. App Store Connect calculates it from the completed questionnaire. Owner judgment: the AI Coach writes free-form text about the user's own finances; Apple's form has no separate AI item, so decide whether its output warrants a higher rating rather than assuming 4+.
 
 ---
 
@@ -238,7 +238,7 @@ Draft inventory only. Reconcile the signed archive privacy report, SDK behavior,
 | Crash Data | App Functionality | Only if Sentry is enabled in the iOS build (see below); otherwise omit |
 | Performance Data | App Functionality | Only if Sentry is enabled: errorReporting.js sets tracesSampleRate 0.1 |
 
-Not collected by the iOS build: name (sign-up asks only for email and password), location, contacts, photos, health (Health Log is not in the iOS build, 119fa26), browsing history, advertising data. Apple counts data collected by third-party partners too: Plaid (bank linking), RevenueCat (purchases), Anthropic (AI, opt-in), Supabase (hosting).
+Source review found no dedicated signup name field or native location/contact/photo permission prompt. This is not a final "not collected" declaration: imports, custom records, AI text and third-party services may process additional data. The iOS route gate does not remove shared build assets or stored legacy data; Settings > Export My Data still reads health_logs and journal_entries. Reconcile those flows and the final archive before answering Health & Fitness or other data categories. Include the practices of Plaid, RevenueCat, Anthropic and Supabase in the final inventory.
 
 Crash Data, measured September 30: a local build with no Sentry DSN produced the same content-hashed entry file the live website serves (index-CAWadl42.js), so Sentry is not active on the website today. The Codemagic iOS build gets its Supabase settings from .env.production, which has no DSN, so the signed app will not send crash reports either unless VITE_SENTRY_DSN is added to its build environment. Decide whether to enable Sentry in the iOS build, then make this row and the PrivacyInfo.xcprivacy crash-data entry match that decision.
 

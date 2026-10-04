@@ -1,6 +1,6 @@
 # iOS device verification plan
 
-Prepared October 4, 2026 on branch claude/ios-launch. **No test below has been run on a device**: there is no signed build, no TestFlight, and no Apple account yet. "Evidence so far" is local tests and synthetic browser checks only; it does not replace the device result. Record each device result in the Status line with the build number, device, iOS version, date and what was observed. Never use real bank logins, real cards or real customer accounts.
+Prepared October 4, 2026 by Claude; reviewed and integrated by Codex with corrections below. **No test below has been run on a device**: there is no signed build, no TestFlight, and no Apple account yet. "Evidence so far" is local tests and synthetic browser checks only; it does not replace the device result. Record each device result in the Status line with the build number, device, iOS version, date and what was observed. Never use real bank logins, real cards or real customer accounts.
 
 ## Preconditions
 
@@ -9,13 +9,13 @@ Prepared October 4, 2026 on branch claude/ios-launch. **No test below has been r
 | Signed TestFlight build from codemagic.yaml (ios-app-store workflow) | Needs Apple membership, Codemagic account, App Store Connect API key, signing certificate/profile (OWNER_ACTIONS item 3) |
 | AASA file deployed for the real App ID prefix | Codex, after the owner supplies the prefix (NATIVE_BANK_RETURN.md); the pipeline refuses to build without it |
 | iPhone (and iPad while the app is universal) with TestFlight | Owner |
-| Sandbox Apple Account (App Store Connect > Users and Access > Sandbox) signed in on the device under Settings > Developer/App Store sandbox account | Owner |
+| Sandbox Apple Account from this developer team; owner signs out of Media & Purchases, then signs into Settings > Developer > Sandbox Apple Account for the sandbox controls | Owner |
 | RevenueCat project, products app.yorbit.pro.monthly / yearly, entitlement `pro`, V1 secret key, webhook | Owner (OWNER_ACTIONS item 3) |
 | Custom SMTP for confirmation/reset email | Owner (OWNER_ACTIONS item 0) |
 | PLAID_SANDBOX_SECRET and PLAID_SANDBOX_EMAILS with the tester's address | Owner (OWNER_ACTIONS item 4) |
 | Disposable tester account(s) on addresses you control | Owner |
 
-Apple sandbox subscriptions renew fast: by default a 1-month subscription renews every 5 minutes (options 3/5/30/60 minutes), up to 12 renewals, with sandbox billing retry and grace periods; purchase history can be cleared and purchases interrupted per tester (https://developer.apple.com/help/app-store-connect/test-in-app-purchases/manage-sandbox-apple-account-settings/).
+Record the actual tester mode before measuring expiry. Ordinary TestFlight subscriptions renew daily up to six times; configurable Sandbox Apple Account renewal timing is different. See [Apple TestFlight subscription testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testing-subscriptions-and-in-app-purchases-in-testflight). With that Sandbox Apple Account mode explicitly active: by default a 1-month subscription renews every 5 minutes (options 3/5/30/60 minutes), up to 12 renewals, with sandbox billing retry and grace periods; purchase history can be cleared and purchases interrupted per tester (https://developer.apple.com/help/app-store-connect/test-in-app-purchases/manage-sandbox-apple-account-settings/).
 
 ## D1. Install, launch, layout
 - Steps: install from TestFlight; cold launch; rotate (iPad); open Home, Money, Invest, Plan, Coach, More, Settings; check the notch/Dynamic Island and home indicator areas; dark and light mode.
@@ -44,8 +44,8 @@ Apple sandbox subscriptions renew fast: by default a 1-month subscription renews
 - Status: Pending (device; blocked on Plaid sandbox secret, AASA/App ID prefix).
 
 ## D5. Sync, disconnect, delete with a linked sandbox bank
-- Steps: pull to refresh / Sync; Disconnect one account; delete the account (D10) while another sandbox bank is linked.
-- Pass when: sync updates balances/transactions; disconnect removes it and Plaid sandbox shows the item removed; deletion completes only after bank removal.
+- Steps: Sync; disconnect an account from a sandbox item with no connected siblings, then test an item with two connected accounts. Disconnect one sibling and sync the remaining account; disconnect the last sibling. Delete the disposable account (D10) while another sandbox bank is linked.
+- Pass when: sync updates balances/transactions; disconnected rows disappear; disconnecting one sibling preserves the shared Plaid item and the other account still syncs; removing the final sibling revokes the item; deletion completes only after required sandbox-bank revocations succeed.
 - Evidence so far: test:bank-disconnect (27 checks, real Postgres, fake Plaid), test:account-deletion, Codex hosted synthetic disconnect (Sept 27) - no real or sandbox Plaid call yet.
 - Status: Pending (device/hosted sandbox).
 
@@ -56,7 +56,7 @@ Apple sandbox subscriptions renew fast: by default a 1-month subscription renews
 - Status: Pending (device; blocked on Apple + RevenueCat setup).
 
 ## D7. Restore, renewal, cancellation, expiry
-- Steps: delete and reinstall, sign in, Restore Purchases; leave a monthly sandbox subscription renewing (5-minute renewals) and check Pro persists; cancel in Settings > Apple Account > Subscriptions and wait past the period; with "Interrupt Purchases" or a billing problem, check grace then loss of access.
+- Steps: delete and reinstall, sign in, Restore Purchases; confirm Sandbox Apple Account mode and record its configured rate before observing a monthly renewal (default 5 minutes in that mode; ordinary TestFlight uses daily renewals) and check Pro persists; cancel in Settings > Apple Account > Subscriptions and wait past the period; with "Interrupt Purchases" or a billing problem, check grace then loss of access.
 - Pass when: restore brings back Pro for the same Yorbit account only; Pro stays through renewals; access ends after expiry (server and app agree); grace period keeps access, then ends.
 - Evidence so far: server grace/expiry/refund/transfer cases in test:revenuecat-server-sql.
 - Status: Pending (device).
@@ -86,8 +86,8 @@ Apple sandbox subscriptions renew fast: by default a 1-month subscription renews
 - Evidence so far: seed tested on local real-schema Postgres (Codex); not run in production.
 - Status: Pending.
 
-## D12. Not in the iOS build (regression)
+## D12. Legacy route availability (regression)
 - Steps: confirm there is no way to reach Tasks, Habits, Journal or Health Log in the app.
-- Pass when: none is reachable (they are not registered natively, 119fa26).
+- Pass when: none of these four routes is registered on iOS, while Notes and Custom records remain usable. Web and Android routing is preserved. This does not establish that page assets or stored legacy data are absent from the shared bundle/account export.
 - Evidence so far: test:native-legacy-routes; fixture browser with ?scenario=native-preview shows "Page not found" for all four (Oct 4).
 - Status: Pending (device).
