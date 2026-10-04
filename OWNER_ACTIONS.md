@@ -55,6 +55,8 @@ Either way, Codex then runs scripts/cron-auth-verify.sql through the exact sched
 
 Apple membership is not yet available, as previously confirmed. Owner supplies or arranges:
 - Developer account/entity, app.yorbit ownership, Apple Team ID/App Store app ID and signing access.
+- **Decide the account type before enrolling.** Guideline 5.1.1(ix): apps that "require sensitive user information should be submitted by a legal entity that provides the services, and not by an individual developer." Yorbit links bank accounts, so an individual enrollment risks rejection; an organization enrollment needs a legal entity and a D-U-N-S number and takes longer. Your legal/business decision (APP_STORE_SUBMISSION.md, Developer account type).
+- Device tests to run once a TestFlight build exists, with what each needs: IOS_DEVICE_TESTS.md.
 - A Mac is not required: codemagic.yaml builds, signs and uploads to TestFlight on Codemagic's Macs (its personal plan has included free monthly macOS build minutes; confirm current terms before signing up, and it creates no cost unless you choose a paid plan). Owner creates the Codemagic account, connects this GitHub repo, adds the app_store_credentials group and uploads the Apple distribution certificate/profile as listed at the top of codemagic.yaml. An iPhone (and an iPad while the app is universal) with TestFlight is still needed for device testing. A Mac remains useful for swcutil universal-link debugging (NATIVE_BANK_RETURN.md step 6) but is not on the critical path.
 - Apple agreements, tax, banking/trader and business/legal answers personally. No membership or paid service has been purchased.
 
