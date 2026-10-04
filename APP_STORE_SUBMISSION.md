@@ -295,6 +295,8 @@ A branded support address is optional polish. A working, monitored support conta
 
 ## Privacy wording prepared for owner review (not published)
 
+October 5: implemented in src/pages/PrivacyPolicy.jsx on branch claude/privacy-policy-update and approved by the owner; it goes live when merged. Covers every point below, removes the unsupported display-name and Teller claims, and states that statement files are read on the device.
+
 The current policy needs these concrete corrections before submission:
 
 - CSV transactions are stored in the account's hosted database, not only locally on the device. The source CSV is not retained by the import flow.
