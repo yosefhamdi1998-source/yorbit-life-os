@@ -246,6 +246,12 @@ Do not submit blanket "not collected" answers from this draft. Legacy routes, op
 
 ---
 
+## Accessibility Nutrition Labels (voluntary today)
+
+Apple says these are "voluntary to start" and will later be required for new apps and updates; a feature may be declared only if "users must be able to complete all of the common tasks of your app using that feature" (https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels/). Yorbit has a dark theme and its own larger-text setting, but none of VoiceOver, Voice Control, Larger Text (200%+), Sufficient Contrast, Reduced Motion or Differentiate Without Color Alone has been checked on a device. Declare nothing, or only Dark Interface after confirming every common task in dark mode on the signed build. Captions/Audio Descriptions do not apply (no video).
+
+---
+
 ## Subscription disclosures
 
 Apple requires all of the following visible **on the paywall itself**, not
