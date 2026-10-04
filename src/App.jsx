@@ -13,6 +13,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import RouteHistory from '@/components/RouteHistory';
 import Layout from '@/components/Layout';
 import { FEATURES } from '@/lib/features';
+import { isNative } from '@/lib/platform';
 
 // Every page is its own chunk, fetched only when actually visited, instead
 // of one ~1.9MB bundle shipped to every user regardless of which page they
@@ -99,10 +100,16 @@ const AuthenticatedApp = () => {
             <Route path="/totals" element={<Totals />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/notes" element={<Notes />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/habits" element={<Habits />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/health-log" element={<HealthLog />} />
+            {/* Life-organizer leftovers, out of navigation since the app became
+                money-only. Kept on the web for existing users' data, but not
+                registered in the iOS app: there, with no address bar, they would
+                be dormant features (App Review guideline 2.3.1), and Health Log
+                would put health data into the App Store privacy answers. Their
+                data stays in the account and in Settings > Export My Data. */}
+            {!isNative() && <Route path="/tasks" element={<Tasks />} />}
+            {!isNative() && <Route path="/habits" element={<Habits />} />}
+            {!isNative() && <Route path="/journal" element={<Journal />} />}
+            {!isNative() && <Route path="/health-log" element={<HealthLog />} />}
             <Route path="/more" element={<More />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/upgrade" element={<Upgrade />} />
