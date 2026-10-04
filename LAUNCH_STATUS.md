@@ -2,7 +2,7 @@
 Updated October 3, 2026 (password-reset request fix below; backend and provider evidence retains its original dates). The finite five-item acceptance checklist is APP_STORE_READINESS.md. Replaces earlier readiness claims; the evidence trail is in YORBIT_PROGRESS.md. Owner steps are in OWNER_ACTIONS.md.
 
 ## October 3 password-reset request correction
-A failed reset request no longer displays success or removes the retry form. Network, email-service and rate-limit failures use a generic accessible alert; successful requests retain non-enumerating wording. Five focused auth scripts, strict lint and the production build pass. Desktop/light synthetic browser failure and retry passed; mobile browser verification was blocked by a debugger timeout. Actual email delivery still requires custom SMTP and a disposable-inbox test. GitHub/Vercel release verification pending for this correction; no backend or native deployment is implied.
+A failed reset request no longer displays success or removes the retry form. Network, email-service and rate-limit failures use a generic accessible alert; successful requests retain non-enumerating wording. Five focused auth scripts, strict lint and the production build pass. Desktop/light synthetic browser failure and retry passed; mobile browser verification was blocked by a debugger timeout. Actual email delivery still requires custom SMTP and a disposable-inbox test. Released as 5347868: Vercel success at 2026-10-04T02:31:04Z and public HTTP checks confirm the new ForgotPassword-BSQfvaRm.js retry/alert/status behavior. No production reset email was sent; no backend or native deployment is implied.
 
 ## Readiness decisions
 | Release | Decision | Why |
@@ -14,7 +14,7 @@ A failed reset request no longer displays success or removes the retry form. Net
 ## What is deployed, and where
 | Where | State |
 |---|---|
-| Web (Vercel, yorbit-life-os.vercel.app) | Source commit 32f1d1d has Vercel success at 2026-10-01T03:37:42Z: https://vercel.com/yorbit/yorbit-life-os/5pjSuND1e7BJX72Y5YFDxzz7uRnE . This correction changes backend source and documentation, not frontend behavior. Backend deployment and native readiness are recorded separately. |
+| Web (Vercel, yorbit-life-os.vercel.app) | Password-reset fix 5347868 has Vercel success at 2026-10-04T02:31:04Z: https://vercel.com/yorbit/yorbit-life-os/FcdqzgosiwLLVR7HXZE73t8S7N7M . Public HTML/entry/reset-chunk checks confirm the released behavior. Provider email delivery and native readiness remain separate. |
 | Supabase (bank release verified September 30) | plaid-create-link-token v12, plaid-exchange-token v12, plaid-sync-transactions v25, plaid-sync-holdings v12, plaid-disconnect-account v2 and delete-account v15 are ACTIVE with verify_jwt=true, deployed from 32f1d1d. Hosted anonymous POSTs return 401; native-origin preflights return 200 with the expected origin. No real-bank lifecycle was invoked. Prior billing deployments and migrations remain as recorded below; scheduler endpoints were not redeployed. |
 | Committed, NOT deployed | ai-coach update (native-origin/financial-context approval unresolved). Live Stripe activation is intentionally gated off; sandbox provider configuration remains incomplete. No real provider transaction or bulk revocation was performed. |
 | Native iOS | No signed build, no TestFlight, nothing submitted. The Xcode project now registers the Filesystem and Share plugins. |
