@@ -1,8 +1,22 @@
 # Yorbit owner actions
 
-Updated September 30, 2026. The sandbox portal release and native Supabase Auth redirect are complete. Do not repeat their approvals or setup. The fixed five-item launch scope is APP_STORE_READINESS.md; exact evidence is LAUNCH_STATUS.md and YORBIT_PROGRESS.md. No paid launch, signed build or App Store submission is claimed.
+Updated October 16, 2026. The sandbox portal release, native Supabase Auth redirect and reviewed bank-maintenance backend release are complete. Do not repeat their approvals or setup. The fixed five-item launch scope is APP_STORE_READINESS.md; exact evidence is LAUNCH_STATUS.md and YORBIT_PROGRESS.md. No paid launch, signed build or App Store submission is claimed.
 
 Never paste keys, passwords or tokens into chat, source or reports. Codex handles implementation, configuration checks and permitted testing after the required access exists.
+
+## Start here: the owner input that unlocks remaining work
+
+These are dependencies, not a request to do the engineering yourself. Codex's Supabase connector worked on October 16; you do not need to log the Supabase CLI in for this session's supported deployment/database operations. Give only non-secret account names, domain names and disposable email addresses in chat. Enter secret values in the named dashboard fields.
+
+1. **Email first:** supply your owned sending domain, email provider and a disposable inbox you control. A new Gmail login can administer service accounts or receive test messages; it does not replace a verified sending domain/custom SMTP. If using the proposed Resend setup, complete domain verification and securely save the SMTP settings in item 0. Codex then tests actual signup and password-reset delivery.
+2. **Stripe sandbox:** connect test-environment access; confirm the planned $4.99/month and $29.99/year prices; save the restricted TEST key, both price IDs, matching sandbox webhook secret and exact test-email allowlist in the secrets named in item 1. Codex then runs the approved sandbox lifecycle. No new sandbox deployment approval is needed.
+3. **Plaid sandbox:** securely save PLAID_SANDBOX_SECRET and PLAID_SANDBOX_EMAILS, and allow the exact bank-return URL in item 4. Codex tests fake-bank linking, sync, disconnect and deletion.
+4. **Scheduler:** the simplest existing path is item 2 option A: securely add the complete legacy service_role JWT to Vault as cron_service_role_jwt. Both relevant Vault secret names are absent on October 16. Codex applies the prepared repair and verifies its no-write authentication path; actual scheduled bank execution remains a separate controlled step. Option B remains documented if legacy keys are unavailable.
+5. **RevenueCat:** create/access the project and pro entitlement; save a V1 secret as REVENUECAT_SECRET_API_KEY and a chosen matching webhook Authorization value as REVENUECAT_WEBHOOK_AUTH. Item 3 has the endpoint and native product IDs. Codex can verify server entitlement/webhook behavior before Apple purchases are available.
+6. **Apple/build access:** choose/enroll the appropriate developer account/entity; complete Apple's agreements and business/banking information yourself. Supply app.yorbit ownership, Team ID, actual App ID prefix, App Store app ID and signing access securely. Arrange a supported Mac or the existing Codemagic workflow and an iPhone/iPad for the current universal target. Codex builds and prepares TestFlight; device testing and submission follow.
+7. **Final owner decisions:** confirm a monitored support address; review the factual privacy corrections in APP_STORE_SUBMISSION.md; settle the pending AI/native-origin financial-context release decision. Live billing and App Store submission follow successful sandbox/device acceptance. Irreversible cleanup of old real bank connections is separate from deploying the maintenance tool and has not run.
+
+After these inputs, remaining work is still Codex's: provider/configuration verification, any discovered defect fixes, scheduler authentication checks, native association generation, signed build support, device-test coordination and the final reviewer/privacy/screenshot package. No claim that all engineering or testing is finished is implied.
 
 ## 0. Configure signup and password-reset email delivery (verified September 30)
 

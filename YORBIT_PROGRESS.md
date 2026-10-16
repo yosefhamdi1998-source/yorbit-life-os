@@ -1921,3 +1921,31 @@ Assignment: dry-run-first maintenance for accounts disconnected before the serve
 - New local migration 20261004165854_legacy_cleanup_claim.sql is prepared, NOT applied. Cleanup and refactored Disconnect source are NOT deployed. Real bank access/history/credentials were not touched.
 - Independent local validation: 44 real-Postgres/fake-Plaid checks PASS, including the original 27 disconnect behavior cases, auth/RLS/grants, retry/failure, pagination bounds, shared Items, exact stale-review refusal and concurrency. Capped-page regression failed before correction (0 versus 1 candidate). Five focused scripts PASS: edge-auth-guards, function-jwt-config, plaid-token, plaid-environment, cleanup-disabled. No repeat broad build/browser walk for this backend-only diff; prior frontend/native evidence retains its date and limits.
 - Updated BANK_CREDENTIAL_CLEANUP.md with migration/deployment order, count + review_token request, skip/error meanings and remaining explicit authorization before real bank revocation. This maintenance preparation does not clear email, provider lifecycle, scheduler or signed-device launch gates.
+
+## October 16, 2026 - finish the prepared bank backend release
+
+Owner requested finishing available work without repeating passed checks. Canonical source was 41c0daec0259fb4e07f2f7f1ec600bc485873324, tracked tree clean; private untracked audit/output and other contributor checkouts preserved. No new feature quota, agents or recurring work.
+
+Completed:
+- Applied only source migration 20261004165854_legacy_cleanup_claim.sql through the connector, hosted version 20261016223849. Verified SECURITY INVOKER and service_role-only execution (anon/authenticated false).
+- Deployed plaid-disconnect-account v3 (bundle cc82d8a8e8c54dfeb7b30c89ed3c42a2cac1b578964b65482704e639abd0d70c) and retire-legacy-bank-credentials v1 (bundle 05eb4b86180a38e3ba8a832b26894f9b828cc36a19ba0c3c6232764b53e8450b), both ACTIVE and verify_jwt=true. This releases the reviewed shared disconnect sequence, reason-only error logging and guarded maintenance tool; it does not execute customer cleanup.
+- Hosted release checks: anonymous POST 401 and capacitor://localhost preflight 200 for both endpoints. Two disposable confirmed fixture users signed in; ordinary-user operator request 403, wrong-owner disconnect 404, missing-account 400, owner synthetic disconnect 200, repeat 200. Confirmed synthetic provider-free row disconnected and no credentials existed. Removed only those fixtures; auth users, profiles, bank rows and rate counters each zero. A connector request-state error during cleanup was resolved with one bounded fixture-only read and successful cleanup, not ignored.
+- Existing source's 44 real-local-Postgres/fake-Plaid checks remain prior evidence, not rerun today. No full test suite, lint or web build repeated for unchanged application source. No browser/UI/device coverage added by these HTTP/database tests.
+- Required post-migration security advisor retained existing warnings. Read-only review of the five flagged SECURITY DEFINER RPC definitions confirmed explicit caller auth.uid() scoping; no user data returned and none invoked. Existing pg_net placement and disabled leaked-password protection were not changed or claimed resolved.
+- Supabase's current changelog and deployment docs reviewed for the release; no relevant change to this migration/function packaging. No SDK upgrade or database version change performed.
+- Scheduler name-only prerequisite check: cron_service_role_jwt and cron_secret_key absent. Scheduler jobs/auth gates unchanged. Provider/email secrets and dashboards were not repeatedly audited without new setup evidence.
+- Prior Vercel pending status reconciled: 41c0dae succeeded at 2026-10-04T17:09:07Z, https://vercel.com/yorbit/yorbit-life-os/6taoTBYQDamz9MS53Ff1tmmM8Vcg . Public login returned 200 today; no claim of all-route reliability.
+
+Coverage delta:
+| Flow | Status | Evidence/limit |
+|---|---|---|
+| Newly deployed bank endpoint anonymous/native-origin guards | Tested | HTTP 401/200 on both endpoints. |
+| Disconnect ownership, input validation, owner success and repeat | Tested, hosted synthetic | Provider-free fixture only; real Plaid revoke not exercised. |
+| Operator ordinary-user access | Tested | 403 before candidate scan. No customer candidate list read. |
+| New privileged database claim grants | Tested | service_role only, SECURITY INVOKER. |
+| Actual cleanup of legacy bank connections | Not run | Irreversible real provider action needs separate explicit review. |
+| Provider sandbox purchase/bank lifecycle, email delivery | Blocked | Account/credential/disposable inbox inputs per OWNER_ACTIONS. |
+| Scheduler authentication/actual scheduled execution | Blocked | Vault credential or exact auth-path decision. |
+| New desktop/mobile/theme/Simple-mode/device interaction coverage | Not tested this backend release | Prior coverage retains its dates; no new UI source. |
+
+Updated LAUNCH_STATUS, APP_STORE_READINESS, BANK_CREDENTIAL_CLEANUP and OWNER_ACTIONS with exact deployed evidence and an ordered owner-input checklist. Remaining implementer work is conditional on those inputs: configure/verify providers, fix any discovered failures, finish scheduler repair, native association, signed build/device journeys and final reviewer materials. No paid launch or App Store readiness claim. Previously blocked cloud-backup copying was not retried or bypassed; repository/local evidence is saved separately.

@@ -1,6 +1,8 @@
 # Legacy bank-credential cleanup (operator runbook)
 
-Prepared October 4, 2026 by Claude and corrected during Codex review. **Nothing here has been run against production.** Running it revokes real bank access at Plaid for the accounts it finishes, which cannot be undone (an owner would have to link the bank again). It needs separate review and explicit authorization.
+Prepared October 4, 2026 by Claude and corrected during Codex review. **Reviewed source deployed October 16; no operator cleanup of customer accounts has been run.** Executing cleanup revokes real bank access at Plaid for the accounts it finishes, which cannot be undone (an owner would have to link the bank again). That real execution needs separate review and explicit authorization.
+
+Deployment complete: retire-legacy-bank-credentials v1 and plaid-disconnect-account v3, both ACTIVE with gateway JWT verification enabled; legacy_cleanup_claim hosted migration 20261016223849. Service-role-only RPC grants and hosted anonymous/native-preflight guards pass. A disposable ordinary user was denied operator access (403); the changed user endpoint passed provider-free owner/wrong-owner/validation/retry checks, with all fixtures removed. These checks do not prove real Plaid revocation. See LAUNCH_STATUS.md for the exact evidence.
 
 ## Why
 Before `plaid-disconnect-account` existed, the app marked accounts `disconnected` in the browser and left their Plaid credential and bank Item live. The app hides disconnected accounts, so those owners cannot finish the disconnect themselves. Accounts left in `disconnecting` by an abandoned retry are in the same position. `scripts/launch-readonly-checks.sql` query 2 counts the first group.
@@ -22,7 +24,7 @@ Codex independently ran `npm run test:bank-disconnect` (scripts/test-disconnect-
 The capped-page regression failed on Claude's submitted version (0 candidates instead of 1), then passed after correction. Codex also reran edge-auth-guards, function-jwt-config, plaid-token, plaid-environment and cleanup-disabled successfully. Claude's earlier 36-case/three-run/six-mutant evidence remains in YORBIT_PROGRESS.md as historical contributor evidence; Codex did not repeat that mutant campaign. No hosted migration, function deploy, actual Plaid call, real credential, browser test or native-device result is claimed for this backend-only work.
 
 ## Operator procedure (after review and written authorization)
-1. Apply only the reviewed `20261004165854_legacy_cleanup_claim.sql` migration (not yet applied). Verify its service-role-only EXECUTE grants; do not broadly replay pending migrations. Then deploy `retire-legacy-bank-credentials` from the reviewed commit (verify_jwt true). `plaid-disconnect-account` source also changed (moved into the shared module, same HTTP behavior with sanitized error logging); redeploy it in the same release so deployed code matches source.
+1. Deployment prerequisite is COMPLETE as of October 16: source migration `20261004165854_legacy_cleanup_claim.sql` is applied as hosted version `20261016223849`; cleanup v1 and Disconnect v3 are deployed from `41c0dae`, with JWT verification and service-role-only RPC grants verified. Do not apply or deploy them again unless the source or hosted state changes.
 2. Read-only count first: query 2 of `scripts/launch-readonly-checks.sql`. If it is 0 and no account is `disconnecting`, stop: there is nothing to clean.
 3. Dry run. With the scheduler's Vault secret (`cron_service_role_jwt`, OWNER_ACTIONS item 2 option A) in place, from the SQL editor:
    ```sql

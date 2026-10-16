@@ -1,6 +1,8 @@
 # Yorbit: the five remaining release items
 
-Updated October 4, 2026 (integrated native preparation; acceptance evidence retains its original dates). This is the fixed launch scope, not a rolling feature quota. New defects belong to the item they prevent from passing. Optional polish is deferred. Historical audits remain in Git history and YORBIT_PROGRESS.md; they are not current readiness evidence.
+Updated October 16, 2026 (reviewed bank-maintenance backend deployed; other acceptance evidence retains its original dates). This is the fixed launch scope, not a rolling feature quota. New defects belong to the item they prevent from passing. Optional polish is deferred. Historical audits remain in Git history and YORBIT_PROGRESS.md; they are not current readiness evidence.
+
+October 16: Disconnect v3, guarded operator cleanup v1 and the legacy-only claim migration are deployed. New hosted synthetic auth/ownership/validation/repeat-disconnect checks and fixture cleanup passed; no real provider cleanup was invoked. This closes the saved backend release gap, not the outstanding provider or signed-device acceptance gates. See OWNER_ACTIONS.md's Start here section for the next owner inputs and the implementer's follow-through.
 
 **Decision: not ready for paid launch or App Store submission.** The website is deployed. The owner has confirmed Apple membership and Mac access are not yet available. No signed build, device test, TestFlight upload or Apple submission is claimed.
 
